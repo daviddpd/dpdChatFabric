@@ -29,20 +29,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatFabric.h"
 
 
+
 #define PORTNUMBER 32000
 
 
 int main(int argc, char**argv)
 {
-	int sockfd,c=0,pid,z;
-	chatPacket cp;
-	unsigned char buffer[1400];
-	unsigned char random[1000];
+	int sockfd,pid;
+//	chatPacket cp;
+	chatPacket *cp2;
+//	unsigned char buffer[1400];
+	unsigned char *random;
+
+	msgbuffer mb;
 	struct sockaddr_in servaddr;
 	uint32_t status, randomLength;
-	size_t  length, sentbytes;
+	size_t  sentbytes;
 	chatFabricConfig config;
 	char *str;
+	uuid_tuple to;
+	char *_lyrics = "You lit the fire  Then drank the water  You slammed that door and left me standing all alone  We wrote the story  We turned the pages  You changed the end like everybody said you would    I should have seen it coming  It should have sent me running  That's what I get for loving you    If I had a time machine and  If life was a movie scene  I'd rewind and I'd tell me run  We were never meant to be  So if I had a time machine  I'd go back and I'd tell me run run    - TIME MACHINE, WRITTEN BY INGRID MICHAELSON, BUSBEE, TRENT DABBS";
+
+	random=calloc(534,sizeof(unsigned char));
 	
 /*	if (argc != 2)
 	{
@@ -72,67 +80,33 @@ int main(int argc, char**argv)
 	
 	pid = getpid();
 	
-	uuid_from_string(_UUID0, &cp.payloadKey, &status);
-	uuid_from_string(_UUID0, &cp.envelopeKey, &status);
-	uuid_from_string(_UUID0, &cp.to0, &status);
-	uuid_from_string("ca32aa22-0e7c-11e5-8e8b-00a0988afcc9", &cp.to1, &status);
-
-	memcpy(&cp.from0, &config.uuid0, 16);
-	memcpy(&cp.from1, &config.uuid1, 16);
-		
+	uuid_from_string(_UUID0, &to.u0, &status);
+	uuid_from_string("ca32aa22-0e7c-11e5-8e8b-00a0988afcc9", &to.u1, &status);
+	
+	randomLength = 534;
+	memcpy(random, _lyrics, randomLength);
+	random[randomLength-1] = 0x00;
 	
 	while (1)
 	{
 	
-		randomLength =  arc4random_uniform(100);
-		arc4random_buf(&random, randomLength);
-		
-	
-		c++;
-		bzero((void*)&cp.payload, sizeof(cp.payload));		
-		cp.payloadLength = snprintf ( 
-			(char*)&cp.payload, 
-			sizeof(cp.payload), 
-			"Packet Number: %08d", c 
-		);
-		cp.payloadLength++;  // FIXME/Explain: off my one, memcpy clips the string otherwise.
-		memcpy((char*)&cp.payload+cp.payloadLength, &random, randomLength);
-		cp.payloadLength+=randomLength;
-		cp.msgid = c;
-		
-//		printf ( "\nPayLoad: %s\n", cp.payload );
-//		printf ( "Payload length: %d\n",  cp.payloadLength );
+		printf ( " ==> chatPacket_init ... \n");
+		cp2 = chatPacket_init (&config, &to,  random, randomLength,  0);
+		printf ( " ==> chatPacket_init done \n");
 
-		length = chatPacket_encode ( &cp, &buffer, &config );		
-		
-//		printf ( "Length is %d\n", (int)length );
+//		chatPacket_encode ( cp2, &config, &mb, _CHATPACKET_ENCRYPTED);
+		chatPacket_encode ( cp2, &config, &mb, _CHATPACKET_CLEARTEXT);
 
-		sentbytes = sendto(sockfd,&buffer,length,0,
+
+		sentbytes = sendto(sockfd,mb.msg,mb.length,0,
 			(struct sockaddr *)&servaddr,sizeof(servaddr));
 		
-/*		printf ( "[%d] Packets Sent: %d \n", pid, c );	
-		printf ( "[%d] Packets sent-length: %d \n", pid, (int)sentbytes );	
-		printf ( "[%d] Packets Sent: %d \n", pid, c );	
-		for (z=0; z<length; z++) {
-			if ( 
-				(z == 16) ||
-				(z == 21) ||
-				(z == 53) ||
-				(z == 85) ||
-				(z == 93) ||
-				(z == 109) ||
-				(z == 113) 
-			){
-				printf ("\n");
-			}
-			printf ( "%02x ", buffer[z] );
-		}
-		printf("\n");		
-		chatPacket_print(&cp);
-*/
-		chatPacket_print(&cp);
-		sleep(5);
-	
+
+		chatPacket_print(cp2);
+		free(mb.msg);
+		mb.length = 0;
+		chatPacket_delete(cp2);
+		sleep(10);	
 	}
 }
 

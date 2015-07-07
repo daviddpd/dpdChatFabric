@@ -141,7 +141,7 @@ pp ( (unsigned char *)&shared_key2 );
 
 crypto_aead_chacha20poly1305_encrypt(ciphertext, &ciphertext_len,
                                      MESSAGE, MESSAGE_LEN,
-                                     ADDITIONAL_DATA, ADDITIONAL_DATA_LEN,
+                                     NULL, 0,
                                      NULL, nonce, shared_key);
                                      
                                      
@@ -154,8 +154,8 @@ crypto_aead_chacha20poly1305_encrypt(ciphertext, &ciphertext_len,
 if (crypto_aead_chacha20poly1305_decrypt(decrypted, &decrypted_len,
                                          NULL,
                                          ciphertext, ciphertext_len,
-                                         ADDITIONAL_DATA,
-                                         ADDITIONAL_DATA_LEN,
+                                         NULL,
+                                         0,
                                          nonce, shared_key2) == 0) 
     { 
     

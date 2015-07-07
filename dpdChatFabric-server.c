@@ -30,6 +30,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHILDREN 32
 #define PORTNUMBER 32000
 
+void pp(unsigned char * x) {
+	int i;
+	for (i=0; i<32; i++) {
+		printf ( "%02x", x[i] );
+	}
+	printf ("\n");
+
+}
+
+
 int main(int argc, char**argv)
 {
 	int sockfd,n;
@@ -37,18 +47,23 @@ int main(int argc, char**argv)
 	int kq;
 	struct kevent evSet;
 	struct kevent evList[32];
-	int nev, i,x,z;
+	int nev, i,x;
 	int lowwater = 100;
 	pid_t pid;
 	pid_t childpid[CHILDREN];
-	chatPacket cp;
-	uint32_t status;
+	chatPacket *cp;
+	int status;
+	uint32_t status2;
+	
+	uuid_tuple to;
 
 	socklen_t len;
-	unsigned char mesg[1400];	
+	unsigned char *mesg;
 	char *str;	
-	
+	unsigned char * nullmsg = 0;
 	chatFabricConfig config;
+
+	mesg=calloc(1400,sizeof(unsigned char));
 
 	for (i=0; i<32; i++) {
 		config.payloadkeys_private[i] = 0;
@@ -58,24 +73,41 @@ int main(int argc, char**argv)
 	chatFabric_args(argc, argv, &config);
 	
 	chatFabric_configParse(&config);
-	uuid_to_string(&(config.uuid0), &str, &status);
+	uuid_to_string(&(config.uuid0), &str, &status2);
 	printf (" uuid0       : %s\n", str);
-	uuid_to_string(&(config.uuid1), &str, &status);
+	uuid_to_string(&(config.uuid1), &str, &status2);
 	printf (" uuid1       : %s\n", str);
 
-	printf ("p public key  : %s\n", config.payloadkeys_public_str );
-	printf ("p private key : %s\n", config.payloadkeys_private_str );
+	printf ("p  public key  : %s\n", config.payloadkeys_public_str );
+	printf ("  [bin2hex]    : ");
+	pp ( config.payloadkeys_public );
 
-	printf ("p private key : \n");
-	printf (" [bin2hex]    : ");
-	
-	for (i=0; i<32; i++) {
-		printf ( "%02x", config.payloadkeys_private[i] );
-	}
-	printf ("\n\n");
-		
-	printf ("e public key  : %s\n", config.envelopekeys_public_str );
-	printf ("e private key : %s\n", config.envelopekeys_private_str );
+	printf ("p  private key : %s\n", config.payloadkeys_private_str );
+	printf ("  [bin2hex]    : ");
+	pp ( config.payloadkeys_private );
+
+
+	printf ("e  public key  : %s\n", config.envelopekeys_public_str );
+	printf ("  [bin2hex]    : ");
+	pp ( config.envelopekeys_public );
+
+	printf ("e  private key : %s\n", config.envelopekeys_private_str );
+	printf ("  [bin2hex]    : ");
+	pp ( config.envelopekeys_private );
+
+
+	printf ("ep public key  : %s\n", config.peerkeys_envelope_public_str );
+	printf ("  [bin2hex]    : ");
+	pp ( config.peerkeys_envelope_public );
+
+	printf ("pp  private key : %s\n", config.peerkeys_payload_public_str );
+	printf ("  [bin2hex]    : ");
+	pp ( config.peerkeys_payload_public );
+
+
+
+	uuid_from_string(_UUID0, &to.u0, &status2);
+	uuid_from_string(_UUID0, &to.u1, &status2);
 
 	
 	// Open UDP datagram socket
@@ -99,10 +131,10 @@ int main(int argc, char**argv)
 	
 	
 		if (childpid[x] == 0) { 
+		
 			// In Child
 			kq = kqueue();
 			pid = getpid();			
-//			printf ("[%d] Child %d Forked\n", pid, x );
 			
 			// Setup the Kevent Event.
 			EV_SET(&evSet, sockfd, EVFILT_READ, EV_ADD, 0, 0, NULL);
@@ -112,7 +144,6 @@ int main(int argc, char**argv)
 			}
 
 			for (;;){
-//				printf("Loop [%d] \n", pid);
 				len = sizeof(cliaddr);
 				// Wait for the 
 				nev = kevent(kq, NULL, 0, evList, 32, NULL);
@@ -121,36 +152,19 @@ int main(int argc, char**argv)
 				} else {
 								
 					for (i=0; i<nev; i++) { 
-						if (evList[i].ident == sockfd) {      
+						if (evList[i].ident == sockfd) {
+							//printf ( "\n\n === > Got Packet\n" );
+							cp = chatPacket_init (&config, &to,  nullmsg, 0,  0);
 							n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
-/*							printf ("[%d] Packet Length: %d %d \n", pid, len, n);
-							printf ("[%d] Packet Mesg  : \n", pid);
-							for (z=0; z<n; z++) {
-								if ( 
-									(z == 16) ||
-									(z == 21) ||
-									(z == 53) ||
-									(z == 85) ||
-									(z == 93) ||
-									(z == 109) ||
-									(z == 113)
-								){
-									printf ("\n");
-								}
-								printf ( "%02x ", mesg[z] );
-							}
-							printf ("\n");*/
-							chatPacket_decode ( &cp, &mesg, &config );
-							chatPacket_print(&cp);
-
-							
+							chatPacket_decode (cp, mesg, n, &config );
+							chatPacket_print(cp);
+							chatPacket_delete(cp);							
 						} else {
 							printf ("[%d] Not the socket id.\n", pid);    	
 						}
 					}
 				
 			}
-			
 		} 
 		
 		exit(0);

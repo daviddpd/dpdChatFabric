@@ -1,7 +1,7 @@
 CC = cc
 CFLAGS= -g -O0 -c -Wall
 INCLUDES=-I/usr/include -I/usr/local/include
-LDFLAGS=-L/usr/lib -L/usr/local/lib
+LDFLAGS=-L/usr/lib -L/usr/local/lib -lsodium
 LOCALLIBS=dpdChatFabric.c
 SRCS=dpdChatFabric-server.c dpdChatFabric-client.c
 DEPS=$(LOCALLIBS:.c=.o)

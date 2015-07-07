@@ -29,66 +29,81 @@
 
 #define _UUID0 "00000000-0000-0000-0000-000000000000"
 
-/**
- ** field             offset ***********
-    -----------------------------------------
-*/
+#define _CHATPACKET_ENCRYPTED 1
+#define _CHATPACKET_CLEARTEXT 0
 
-#define OFFSET_ENVELOPEKEY       0
-#define OFFSET_ENVELOPENONCE     16
-#define OFFSET_ENVELOPELENGTH    24
 
-#define OFFSET_TO0               28
-#define OFFSET_TO1               44
-#define OFFSET_FROM0             60
-#define OFFSET_FROM1             76
 
-#define OFFSET_MSGID             92
-#define OFFSET_FLAGS             96
+enum chatPacketTags  {	
+	 cptag_envelopeKey			= 0,
+	 cptag_envelopeNonce		= 1,
+	 cptag_envelopeLength		= 2,
 
-#define OFFSET_PAYLOADKEY       100
-#define OFFSET_PAYLOADNOCE      116
+	 cptag_encryptedEnvelope	= 130,  // set bit 7 high 
 
-#define OFFSET_PAYLOADLENGTH    124
-#define OFFSET_PAYLOAD          128
+	 cptag_envelopeRandomPaddingLength	= 3,
+	 cptag_envelopeRandomPaddingHigh	= 4,
+	 cptag_envelopeRandomPaddingLow	= 132,  // set bit 7 high 	
+
+	 cptag_to0					= 5,
+	 cptag_to1					= 6,
+	 cptag_from0				= 7,
+	 cptag_from1				= 8,
+
+	 cptag_msgid				= 9,
+	 cptag_flags				= 10,
+
+	 cptag_payloadKey			= 11,
+	 cptag_payloadNonce		= 12,
+	 cptag_payloadLength		= 13,
+
+	 cptag_payloadRandomPaddingLength	= 14,
+	 cptag_payloadRandomPaddingHigh	= 15,
+	 cptag_payloadRandomPaddingLow		= 143,  // set bit 7 high 	
+	
+	 cptag_encryptedPayload	= 144,  // set bit 7 high 	
+	 cptag_payload				= 16,
+	
+};
 
 
 typedef struct  {
-	uuid_t envelopeKey;				//   16 bytes:    0 -  15
-	uint64_t envelopeNonce;			//    8 bytes:   16 -  23
-	uint32_t envelopeLength;		//    4 bytes:   24 -  27
+	uuid_t u0;
+	uuid_t u1;
+} uuid_tuple;
 
-	uuid_t to0;						//   16 bytes:   28 -  43
-	uuid_t to1;						//   16 bytes:   44 -  59
-	uuid_t from0;					//   16 bytes:   60 -  75
-	uuid_t from1;					//   16 bytes:   76 -  91
+typedef struct {
+	size_t length;
+	unsigned char *msg;
+} msgbuffer;
 
-	uint32_t msgid;					//    4 bytes:   92 -  95
-	uint32_t flags;					//    4 bytes:   96 -  99
+typedef struct  {
+	uuid_t envelopeKey;
+	uint64_t envelopeNonce;
+	uint32_t envelopeLength;
 
-	uuid_t payloadKey;				//   16 bytes:  100 - 115 
-	uint64_t payloadNonce;			//    8 bytes:  116 - 123
-	uint32_t payloadLength;			//    4 bytes:  124 - 127
+	unsigned char envelopeRandomPaddingLength;
+	unsigned char envelopeRandomPadding[16];
 
-									// 1400 - 128  = 1272 
-									//              -   1 byte (random padding length)
-									//              -  16 bytes (random padding)
-									//              -  16 (AEAD) envelope
-									//              -  16 (AEAD) payload
-									
+	uuid_t to0;
+	uuid_t to1;
+	uuid_t from0;
+	uuid_t from1;
 
-	char payload[1223];				// 1223 bytes:   128 - 1350
-									//   16 bytes:  1350 - 1365 AEAD payload
-									//   16 bytes:  1366 - 1381 AEAD envelope
-									//      bytes:  1382 - 1397 random padding
-									
-									
-									//    1 bytes 
-									//             - high nibble, - length of head padding
-									//             - low nibble, - length of tailling padding
-									//   16 bytes - random padding
+	uint32_t msgid;
+	uint32_t flags;
+
+	uuid_t payloadKey;
+	uint64_t payloadNonce;
+	uint32_t payloadLength;
+
+	unsigned char payloadRandomPaddingLength;
+	unsigned char payloadRandomPadding[16];
+	
+	unsigned char *payload;
 	
 } chatPacket;
+
 
 typedef struct  {
 	char *configfile;
@@ -117,8 +132,15 @@ typedef struct  {
 
 	uint64_t envelopeNonce;
 	uint64_t payloadNonce;
+	uint32_t msgid;
 	
 } chatFabricConfig;
+
+
+void print_bin2hex(unsigned char * x, int len);
+
+void 
+chatFabric_hexprint ( unsigned char *str, uint32_t len );
 
 void
 chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght );
@@ -133,11 +155,17 @@ void
 chatFabric_configParse(chatFabricConfig *config);
 
 
-uint32_t 
-chatPacket_encode (chatPacket *cp, unsigned char *b, chatFabricConfig *);
+chatPacket*
+chatPacket_init (chatFabricConfig *config, uuid_tuple *to, unsigned char *payload, uint32_t len, uint32_t flags);
+
+void
+chatPacket_delete (chatPacket* cp);
+
+void
+chatPacket_encode (chatPacket *cp, chatFabricConfig *, msgbuffer *ob, int encrypted);
 
 void 
-chatPacket_decode (chatPacket *cp, unsigned char *b, chatFabricConfig *);
+chatPacket_decode (chatPacket *cp, unsigned char *b, ssize_t len, chatFabricConfig *config);
 
 void 
 chatPacket_print (chatPacket *cp);
