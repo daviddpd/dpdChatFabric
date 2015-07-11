@@ -334,30 +334,6 @@ chatFabric_configParse(chatFabricConfig *config) {
 		crypto_box_PUBLICKEYBYTES
 		);
 		
-
-
-
-	obj = ucl_lookup_path(root, "keys2.private");
-	config->privatekey_str2 = (unsigned char *)ucl_object_tostring(obj);
-
-	chatFabric_hex2int_bytes(
-		config->privatekey_str2,
-		64,
-		(unsigned char *)&config->privatekey2,
-		crypto_box_SECRETKEYBYTES
-		);
-	
-	obj = ucl_lookup_path(root, "keys2.public");
-	config->publickey_str2 =	(unsigned char *)ucl_object_tostring(obj);
-
-	chatFabric_hex2int_bytes(
-		config->publickey_str2,
-		64,
-		(unsigned char *)&config->publickey2,
-		crypto_box_PUBLICKEYBYTES
-		);
-		
-
 }
 
 chatPacket*
@@ -947,7 +923,6 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 	uint32_t ni=0, i=0, length = 0;
 	unsigned char c=0, h=0, l=0, hp=0, lp = 0;
 	unsigned char *decrypted=0;
-	unsigned long long decrypted_len=0;
 	int ret;
 	const int len2 = len;
 	printf ( " ==> Encoded Packet (%d): ", (int)len  ); 
