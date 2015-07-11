@@ -13,7 +13,7 @@ CFLAGS  = -g -Wall  -I/usr/local/include -I/z/home/dpd/github/dpdChatFabric
 
 all: $(OBJS) $(EXECUTABLE)
 
-%.o: %.c $(DEPS)
+%.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 %: %.o $(DEPS) 

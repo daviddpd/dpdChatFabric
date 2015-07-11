@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatFabric.h"
 
 
-#define CHILDREN 32
+#define CHILDREN 1
 #define PORTNUMBER 32000
 
 void pp(unsigned char * x) {
@@ -48,25 +48,42 @@ int main(int argc, char**argv)
 	struct kevent evSet;
 	struct kevent evList[32];
 	int nev, i,x;
-	int lowwater = 100;
+	int lowwater = 32;
 	pid_t pid;
 	pid_t childpid[CHILDREN];
-	chatPacket *cp;
+	chatPacket *cp, *cp_reply;
 	int status;
 	uint32_t status2;
-	
+	chatFabricPairing pair;
+	size_t  sentbytes;
+	msgbuffer mb;
+
 	uuid_tuple to;
 
 	socklen_t len;
 	unsigned char *mesg;
 	char *str;	
-	unsigned char * nullmsg = 0;
 	chatFabricConfig config;
+	chatFabricState mystate;
+	enum chatPacketCommands replyCmd;
+	enum chatPacketPacketTypes cptype;
 
+	mystate.state = UNCONFIGURED;
+	mystate.hasPublicKey = 0;
+	
+	uuid_create_nil ( &(pair.uuid.u0), &status2);
+	uuid_create_nil ( &(pair.uuid.u1), &status2);
+	pair.hasPublicKey = 0;
+	pair.hasNonce = 0;
+//	arc4random_buf(&(pair.nonce), crypto_secretbox_NONCEBYTES);
+	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
+	bzero(&(pair.nonce), crypto_secretbox_NONCEBYTES);
 	mesg=calloc(1400,sizeof(unsigned char));
 
-	for (i=0; i<32; i++) {
-		config.payloadkeys_private[i] = 0;
+	for (i=0; i<crypto_box_PUBLICKEYBYTES; i++) {
+		pair.publickey[i] = 0;
+		config.publickey[i] = 0;
+		config.privatekey[i] = 0;
 	}
 
 
@@ -78,32 +95,11 @@ int main(int argc, char**argv)
 	uuid_to_string(&(config.uuid1), &str, &status2);
 	printf (" uuid1       : %s\n", str);
 
-	printf ("p  public key  : %s\n", config.payloadkeys_public_str );
-	printf ("  [bin2hex]    : ");
-	pp ( config.payloadkeys_public );
 
-	printf ("p  private key : %s\n", config.payloadkeys_private_str );
-	printf ("  [bin2hex]    : ");
-	pp ( config.payloadkeys_private );
-
-
-	printf ("e  public key  : %s\n", config.envelopekeys_public_str );
-	printf ("  [bin2hex]    : ");
-	pp ( config.envelopekeys_public );
-
-	printf ("e  private key : %s\n", config.envelopekeys_private_str );
-	printf ("  [bin2hex]    : ");
-	pp ( config.envelopekeys_private );
-
-
-	printf ("ep public key  : %s\n", config.peerkeys_envelope_public_str );
-	printf ("  [bin2hex]    : ");
-	pp ( config.peerkeys_envelope_public );
-
-	printf ("pp  private key : %s\n", config.peerkeys_payload_public_str );
-	printf ("  [bin2hex]    : ");
-	pp ( config.peerkeys_payload_public );
-
+	printf ( " %-16s ==> ", "PUBLICKEY" );	
+	print_bin2hex((unsigned char *)&(config.publickey), crypto_box_PUBLICKEYBYTES);
+	printf ( " %-16s ==> ", "PRIVATEKEY" );	
+	print_bin2hex((unsigned char *)&(config.privatekey), crypto_box_PUBLICKEYBYTES);
 
 
 	uuid_from_string(_UUID0, &to.u0, &status2);
@@ -153,11 +149,49 @@ int main(int argc, char**argv)
 								
 					for (i=0; i<nev; i++) { 
 						if (evList[i].ident == sockfd) {
+							printf ("\n\n============================  Listening  ====================\n");
 							//printf ( "\n\n === > Got Packet\n" );
-							cp = chatPacket_init (&config, &to,  nullmsg, 0,  0);
+							cp = chatPacket_init0 ();
+							cp_reply = chatPacket_init0 ();
+							
 							n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
-							chatPacket_decode (cp, mesg, n, &config );
-							chatPacket_print(cp);
+							if ( chatPacket_decode (cp, &pair, mesg, n, &config ) == 0 ) {
+								printf ("             =============  chatPacket Decoding failed  ====================\n");
+								exit(1);
+							}
+							chatPacket_print(cp, IN);
+							replyCmd = stateMachine ( &config, &mystate,  cp, &pair, cp_reply );
+							if ( replyCmd == SEND_REPLY_TRUE ) {
+//								sleep(1);
+								printf ("             =============  Sending Reply  ====================\n");
+
+								chatPacket_print( cp_reply, OUT);
+								
+								switch (cp_reply->cmd) {
+									case NONCE_SEND:
+										cptype = NONCE;
+									break;
+									case PUBLICKEY_SEND:
+										cptype = PUBLICKEY;
+									break;
+									default:
+										cptype = COMMAND;
+									break;
+								}
+								
+								chatPacket_encode ( cp_reply, &config, &pair, &mb, _CHATPACKET_ENCRYPTED, cptype);
+							
+								sentbytes = sendto(sockfd,mb.msg,mb.length,0,
+									(struct sockaddr *)&cliaddr,len);
+								free(mb.msg);
+								mb.length = 0;
+								chatPacket_delete(cp);
+									
+							} else {
+								printf ("===> SEND_REPLY_FALSE\n");
+			
+							}
+							printf ("================================================================================== \n");			
 							chatPacket_delete(cp);							
 						} else {
 							printf ("[%d] Not the socket id.\n", pid);    	
@@ -171,11 +205,9 @@ int main(int argc, char**argv)
 	}
 } 
 
-
 	printf("PARENT PID: %d\n", getpid());
 	for (x=0; x<32; x++) { 	
 //		printf("[%d] Waiting for Child PID: %d\n", getpid(), childpid[x]);
 		waitpid(childpid[x], &status, 0 ); 
 	}
-		
 }
