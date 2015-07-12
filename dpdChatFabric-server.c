@@ -25,6 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "dpdChatFabric.h"
+#include "dpdChatPacket.h"
 
 
 #define CHILDREN 1
@@ -64,12 +65,13 @@ int main(int argc, char**argv)
 	unsigned char *mesg;
 	char *str;	
 	chatFabricConfig config;
-	chatFabricState mystate;
 	enum chatPacketCommands replyCmd;
 	enum chatPacketPacketTypes cptype;
 
-	mystate.state = UNCONFIGURED;
-	mystate.hasPublicKey = 0;
+	mesg=calloc(1400,sizeof(unsigned char));
+
+	pair.state = STATE_UNCONFIGURED;
+	pair.hasPublicKey = 0;
 	
 	uuid_create_nil ( &(pair.uuid.u0), &status2);
 	uuid_create_nil ( &(pair.uuid.u1), &status2);
@@ -78,7 +80,6 @@ int main(int argc, char**argv)
 //	arc4random_buf(&(pair.nonce), crypto_secretbox_NONCEBYTES);
 	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
 	bzero(&(pair.nonce), crypto_secretbox_NONCEBYTES);
-	mesg=calloc(1400,sizeof(unsigned char));
 
 	for (i=0; i<crypto_box_PUBLICKEYBYTES; i++) {
 		pair.publickey[i] = 0;
@@ -90,9 +91,9 @@ int main(int argc, char**argv)
 	chatFabric_args(argc, argv, &config);
 	
 	chatFabric_configParse(&config);
-	uuid_to_string(&(config.uuid0), &str, &status2);
+	uuid_to_string(&(config.uuid.u0), &str, &status2);
 	printf (" uuid0       : %s\n", str);
-	uuid_to_string(&(config.uuid1), &str, &status2);
+	uuid_to_string(&(config.uuid.u1), &str, &status2);
 	printf (" uuid1       : %s\n", str);
 
 
@@ -102,8 +103,8 @@ int main(int argc, char**argv)
 	print_bin2hex((unsigned char *)&(config.privatekey), crypto_box_PUBLICKEYBYTES);
 
 
-	uuid_from_string(_UUID0, &to.u0, &status2);
-	uuid_from_string(_UUID0, &to.u1, &status2);
+	uuid_create_nil(&to.u0, &status2);
+	uuid_create_nil(&to.u1, &status2);
 
 	
 	// Open UDP datagram socket
@@ -119,6 +120,7 @@ int main(int argc, char**argv)
 	servaddr.sin_port=htons(PORTNUMBER);
 	bind(sockfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
 	
+	CHATFABRIC_DEBUG(config.debug, "testing" );
 	
 	// Prefork the children 
 	
@@ -155,23 +157,23 @@ int main(int argc, char**argv)
 							cp_reply = chatPacket_init0 ();
 							
 							n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
-							if ( chatPacket_decode (cp, &pair, mesg, n, &config ) == 0 ) {
+							if ( chatPacket_decode (cp, &pair, mesg, n, &config ) != 0 ) {
 								printf ("             =============  chatPacket Decoding failed  ====================\n");
 								exit(1);
 							}
 							chatPacket_print(cp, IN);
-							replyCmd = stateMachine ( &config, &mystate,  cp, &pair, cp_reply );
-							if ( replyCmd == SEND_REPLY_TRUE ) {
+							replyCmd = stateMachine ( &config, cp, &pair, cp_reply );
+							if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
 //								sleep(1);
 								printf ("             =============  Sending Reply  ====================\n");
 
 								chatPacket_print( cp_reply, OUT);
 								
 								switch (cp_reply->cmd) {
-									case NONCE_SEND:
+									case CMD_NONCE_SEND:
 										cptype = NONCE;
 									break;
-									case PUBLICKEY_SEND:
+									case CMD_PUBLICKEY_SEND:
 										cptype = PUBLICKEY;
 									break;
 									default:
@@ -188,7 +190,7 @@ int main(int argc, char**argv)
 								chatPacket_delete(cp);
 									
 							} else {
-								printf ("===> SEND_REPLY_FALSE\n");
+								printf ("===> CMD_SEND_REPLY_FALSE\n");
 			
 							}
 							printf ("================================================================================== \n");			

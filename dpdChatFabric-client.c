@@ -27,10 +27,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "dpdChatFabric.h"
+#include "dpdChatPacket.h"
 
 
 
-#define PORTNUMBER 32000
+#define PORTNUMBER 1080
 
 
 int main(int argc, char**argv)
@@ -53,15 +54,14 @@ int main(int argc, char**argv)
 	char *_lyrics = "You lit the fire  Then drank the water  You slammed that door and left me standing all alone  We wrote the story  We turned the pages  You changed the end like everybody said you would    I should have seen it coming  It should have sent me running  That's what I get for loving you    If I had a time machine and  If life was a movie scene  I'd rewind and I'd tell me run  We were never meant to be  So if I had a time machine  I'd go back and I'd tell me run run    - TIME MACHINE, WRITTEN BY INGRID MICHAELSON, BUSBEE, TRENT DABBS";
 	unsigned char * nullmsg = 0;
 	socklen_t len;
-	chatFabricState mystate;
 	enum chatPacketCommands replyCmd;
 	enum chatPacketPacketTypes cptype;
 	
 	chatFabricPairing pair;
 
 
-	mystate.state = UNCONFIGURED;
-	mystate.hasPublicKey = 0;
+	pair.state = STATE_UNCONFIGURED;
+	pair.hasPublicKey = 0;
 	pair.hasNonce = 0;
 	
 	random=calloc(534,sizeof(unsigned char));
@@ -76,9 +76,9 @@ int main(int argc, char**argv)
 	chatFabric_args(argc, argv, &config);
 	
 	chatFabric_configParse(&config);
-	uuid_to_string(&(config.uuid0), &str, &status);
+	uuid_to_string(&(config.uuid.u0), &str, &status);
 	printf (" uuid0       : %s\n", str);
-	uuid_to_string(&(config.uuid1), &str, &status);
+	uuid_to_string(&(config.uuid.u1), &str, &status);
 	printf (" uuid1       : %s\n", str);
 	
 	printf ( " %-16s ==> ", "PUBLICKEY" );	
@@ -90,16 +90,17 @@ int main(int argc, char**argv)
 	bzero(&servaddr,sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_addr.s_addr=inet_addr(config.ip);
-	servaddr.sin_port=htons(PORTNUMBER);
+	servaddr.sin_port=htons(config.port);
 
 	setsockopt(sockfd, SOL_SOCKET, SO_RCVLOWAT, &lowwater, sizeof(lowwater));
 	
 	pid = getpid();
 	
-	uuid_from_string(_UUID0, &to.u0, &status);
+	uuid_create_nil(&to.u0, &status);
 	uuid_from_string("ca32aa22-0e7c-11e5-8e8b-00a0988afcc9", &to.u1, &status);
 
-	pair.uuid = to;
+	memcpy(&(pair.uuid.u0), &(to.u0), 16);
+	memcpy(&(pair.uuid.u1), &(to.u1), 16);
 	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
 	bzero(&(pair.nonce), crypto_secretbox_NONCEBYTES);
 	
@@ -111,92 +112,88 @@ int main(int argc, char**argv)
 	memcpy(random, _lyrics, randomLength);
 	random[randomLength-1] = 0x00;
 	
-	while (1)
-	{
 	
-		cp2 = chatPacket_init (&config, &pair, HELLO,  nullmsg, 0,  0);
-		chatPacket_encode ( cp2, &config, &pair,  &mb, _CHATPACKET_ENCRYPTED, COMMAND);
+	cp2 = chatPacket_init (&config, &pair, CMD_HELLO,  nullmsg, 0,  0);
+	chatPacket_encode ( cp2, &config, &pair,  &mb, _CHATPACKET_ENCRYPTED, COMMAND);
 
-		sentbytes = sendto(sockfd,mb.msg,mb.length,0,
-			(struct sockaddr *)&servaddr,sizeof(servaddr));
+	sentbytes = sendto(sockfd,mb.msg,mb.length,0,
+		(struct sockaddr *)&servaddr,sizeof(servaddr));
 
-		chatPacket_print(cp2, OUT);
-		len = sizeof(servaddr);
-		n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&servaddr,&len);
-		cp_reply = chatPacket_init0 ();
+	chatPacket_print(cp2, OUT);
+	len = sizeof(servaddr);
+	n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&servaddr,&len);
+	cp_reply = chatPacket_init0 ();
 
-		chatPacket_decode (cp_reply, &pair, mesg, n, &config );
-		chatPacket_print(cp_reply, IN);
-		printf ("====================\n");			
+	chatPacket_decode (cp_reply, &pair, mesg, n, &config );
+	chatPacket_print(cp_reply, IN);
+	printf ("====================\n");			
 
-		free(mb.msg);
-		mb.length = 0;
-		chatPacket_delete(cp2);
-		chatPacket_delete(cp_reply);
-//		sleep(5);	
+	free(mb.msg);
+	mb.length = 0;
+	chatPacket_delete(cp2);
+	chatPacket_delete(cp_reply);
 
+	cp2 = chatPacket_init (&config, &pair, CMD_PAIR_REQUEST,  nullmsg, 0,  0);
+	chatPacket_encode ( cp2, &config, &pair,  &mb, _CHATPACKET_ENCRYPTED, COMMAND);
 
+	sentbytes = sendto(sockfd,mb.msg,mb.length,0,
+		(struct sockaddr *)&servaddr,sizeof(servaddr));
+	free(mb.msg);
+	mb.length = 0;
+	chatPacket_delete(cp2);
 
-		cp2 = chatPacket_init (&config, &pair, PAIR_REQUEST,  nullmsg, 0,  0);
-		chatPacket_encode ( cp2, &config, &pair,  &mb, _CHATPACKET_ENCRYPTED, COMMAND);
+	chatPacket_print(cp2, OUT);
+	len = sizeof(servaddr);
 
-		sentbytes = sendto(sockfd,mb.msg,mb.length,0,
-			(struct sockaddr *)&servaddr,sizeof(servaddr));
-		free(mb.msg);
-		mb.length = 0;
-		chatPacket_delete(cp2);
-
-		chatPacket_print(cp2, OUT);
-		len = sizeof(servaddr);
-
-	while (mystate.state != PAIRED)
+	while (pair.state != STATE_PAIRED)
 	{
-			printf ("\n\n============================  Listening  ====================\n");
+		printf ("\n\n============================  Listening  ====================\n");
 
-			cp = chatPacket_init0 ();
-			cp_reply = chatPacket_init0 ();		
-			n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&servaddr,&len);
-			if ( chatPacket_decode (cp, &pair, mesg, n, &config ) == 0 ) {
-				printf ("             =============  chatPacket Decoding failed  ====================\n");
-				exit(1);				
-			}
-			chatPacket_print(cp, IN);
-			replyCmd = stateMachine ( &config, &mystate,  cp, &pair, cp_reply );			
-			if ( replyCmd == SEND_REPLY_TRUE ) {
-//				sleep(1);
-				printf ("             =============  Sending Reply  ====================\n");
-
-				switch (cp_reply->cmd) {
-					case NONCE_SEND:
-						cptype = NONCE;
-					break;
-					case PUBLICKEY_SEND:
-						cptype = PUBLICKEY;
-					break;
-					default:
-						cptype = COMMAND;
-					break;
-				}
-				
-				chatPacket_encode ( cp_reply, &config, &pair, &mb, _CHATPACKET_ENCRYPTED, cptype);
-		
-				sentbytes = sendto(sockfd,mb.msg,mb.length,0,
-					(struct sockaddr *)&servaddr,len);
-				chatPacket_print(cp_reply, OUT);
-					
-				free(mb.msg);
-				mb.length = 0;
-				
-			} else {
-				printf ("===> SEND_REPLY_FALSE\n");
-			
-			}
-			printf ("================================================================================== \n");
-			chatPacket_delete(cp);							
-			chatPacket_delete(cp_reply);
-			
+		cp = chatPacket_init0 ();
+		cp_reply = chatPacket_init0 ();		
+		n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&servaddr,&len);
+		if ( chatPacket_decode (cp, &pair, mesg, n, &config ) != 0 ) {
+			printf ("             =============  chatPacket Decoding failed  ====================\n");
+			exit(1);				
 		}
-		cp2 = chatPacket_init (&config, &pair, APP_MESSAGE,  random, randomLength,  0);
+		chatPacket_print(cp, IN);
+		replyCmd = stateMachine ( &config, cp, &pair, cp_reply );			
+		if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
+			printf ("             =============  Sending Reply  ====================\n");
+
+			switch (cp_reply->cmd) {
+				case CMD_NONCE_SEND:
+					cptype = NONCE;
+				break;
+				case CMD_PUBLICKEY_SEND:
+					cptype = PUBLICKEY;
+				break;
+				default:
+					cptype = COMMAND;
+				break;
+			}
+			
+			chatPacket_encode ( cp_reply, &config, &pair, &mb, _CHATPACKET_ENCRYPTED, cptype);
+	
+			sentbytes = sendto(sockfd,mb.msg,mb.length,0,
+				(struct sockaddr *)&servaddr,len);
+			chatPacket_print(cp_reply, OUT);
+				
+			free(mb.msg);
+			mb.length = 0;
+			
+		} else {
+			printf ("===> CMD_SEND_REPLY_FALSE\n");
+		
+		}
+		printf ("================================================================================== \n");
+		chatPacket_delete(cp);							
+		chatPacket_delete(cp_reply);
+			
+	}
+
+	while (1) {
+		cp2 = chatPacket_init (&config, &pair, CMD_APP_MESSAGE,  random, randomLength,  0);
 		chatPacket_encode ( cp2, &config, &pair,  &mb, _CHATPACKET_ENCRYPTED, DATA);
 
 		sentbytes = sendto(sockfd,mb.msg,mb.length,0,
@@ -215,8 +212,29 @@ int main(int argc, char**argv)
 		mb.length = 0;
 		chatPacket_delete(cp2);
 		chatPacket_delete(cp_reply);
-//		sleep(5);	
-		
+
+		cp2 = chatPacket_init (&config, &pair, CMD_HELLO,  nullmsg, 0,  0);
+		chatPacket_encode ( cp2, &config, &pair,  &mb, _CHATPACKET_ENCRYPTED, COMMAND);
+
+		sentbytes = sendto(sockfd,mb.msg,mb.length,0,
+			(struct sockaddr *)&servaddr,sizeof(servaddr));
+
+		chatPacket_print(cp2, OUT);
+		len = sizeof(servaddr);
+		n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&servaddr,&len);
+		cp_reply = chatPacket_init0 ();
+
+		chatPacket_decode (cp_reply, &pair, mesg, n, &config );
+		chatPacket_print(cp_reply, IN);
+		printf ("====================\n");			
+
+		free(mb.msg);
+		mb.length = 0;
+		chatPacket_delete(cp2);
+		chatPacket_delete(cp_reply);
+
+
 	}
+		
 }
 
