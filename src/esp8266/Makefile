@@ -31,8 +31,8 @@ ESPPORT		?= /dev/ttyUSB0
 TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= driver user ../crypto 
-EXTRA_INCDIR    = include ../crypto
+MODULES		= driver user ../crypto ../dpdChatFabric.c ../dpdChatPacket.c
+EXTRA_INCDIR    = include ../crypto ..
 
 # libraries used in this project, mainly provided by the SDK
 LIBS		= c gcc hal pp phy net80211 lwip wpa main

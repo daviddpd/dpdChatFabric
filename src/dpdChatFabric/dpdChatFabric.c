@@ -32,7 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <sys/stat.h>
 
-void print_bin2hex(unsigned char * x, int len) {
+void ICACHE_FLASH_ATTR
+print_bin2hex(unsigned char * x, int len) {
 	int i;
 	for (i=0; i<len; i++) {
 		printf ( "%02x", x[i] );
@@ -42,7 +43,7 @@ void print_bin2hex(unsigned char * x, int len) {
 
 }
 
-void 
+void ICACHE_FLASH_ATTR
 chatFabric_hexprint ( unsigned char *str, uint32_t len ){
 	int i;
 	unsigned char p;
@@ -64,7 +65,7 @@ chatFabric_hexprint ( unsigned char *str, uint32_t len ){
 
 }
 
-void 
+void ICACHE_FLASH_ATTR
 chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght ) {
 	char str[5] = { '0', 'x', '0', '0' , 0 };
 	int i=0,x=0;
@@ -87,7 +88,8 @@ chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char 
 
 }
 
-void
+#ifndef ESP8266
+void ICACHE_FLASH_ATTR
 chatFabric_usage(char *p) {
 	printf ("%s -config configfile\n", p);
 	printf ("   -c --config   FILE           config file to use.\n");
@@ -109,8 +111,10 @@ chatFabric_usage(char *p) {
 
 	return;
 }
+#endif 
 
-void
+#ifndef ESP8266
+void ICACHE_FLASH_ATTR
 chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 	int ch;
 	uint32_t status;
@@ -232,8 +236,10 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 
 
 }
+#endif 
 
-void
+#ifndef ESP8266
+void ICACHE_FLASH_ATTR
 chatFabric_configParse(chatFabricConfig *config) 
 {
 
@@ -341,8 +347,10 @@ chatFabric_configParse(chatFabricConfig *config)
 	}
 
 }
+#endif
 
-void
+#ifndef ESP8266
+void ICACHE_FLASH_ATTR
 chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int write ) 
 {
 
@@ -503,9 +511,11 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 	}
 
 }
+#endif 
 
 
-void
+#ifndef ESP8266
+void ICACHE_FLASH_ATTR 
 chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind )
 {
 
@@ -527,10 +537,10 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind )
 	
 } 
 
+#endif
 
 
-
-enum chatFabricErrors 
+enum chatFabricErrors ICACHE_FLASH_ATTR 
 chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b) 
 {
 	int n, buffersize=1460;
@@ -576,7 +586,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	
 }
 
-enum chatFabricErrors 
+enum chatFabricErrors ICACHE_FLASH_ATTR 
 chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b) 
 {
 	int n, buffersize=1460;
@@ -676,7 +686,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 
 
 
-void 
+void ICACHE_FLASH_ATTR 
 stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e)
 {	
 	chatFabricPairing  previous_state;

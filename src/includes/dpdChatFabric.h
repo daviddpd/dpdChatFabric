@@ -2,6 +2,13 @@
 #ifndef DPDCHATFABRIC_H
 #define DPDCHATFABRIC_H
 
+#ifdef ESP8266
+#define ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#else
+#define ICACHE_FLASH_ATTR __attribute__(())
+#endif
+
+
 #include <arpa/inet.h>
 #include <netinet/in.h> // htonl, ntohl
 #include <limits.h>

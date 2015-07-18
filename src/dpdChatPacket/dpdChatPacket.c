@@ -30,7 +30,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 
-const char * stateLookup (enum chatPacketStates state) {
+const char * 
+ICACHE_FLASH_ATTR 
+stateLookup (enum chatPacketStates state) {
 
 	switch (state) {
 		case STATE_UNCONFIGURED:
@@ -63,7 +65,9 @@ const char * stateLookup (enum chatPacketStates state) {
 
 
 
-const char * cmdLookup (enum chatPacketCommands cmd) {
+const char * 
+ICACHE_FLASH_ATTR
+cmdLookup (enum chatPacketCommands cmd) {
 	switch (cmd) {	
 	case CMD_INVAILD_CMD:
 		return "CMD_INVAILD_CMD";
@@ -150,6 +154,7 @@ const char * cmdLookup (enum chatPacketCommands cmd) {
 }
 
 chatPacket*
+ICACHE_FLASH_ATTR
 chatPacket_init0 (void) {
 	chatPacket * cp;
 	unsigned char h, l, hp, lp; // high / low envelope and payload padding
@@ -207,6 +212,7 @@ chatPacket_init0 (void) {
 
 
 chatPacket*
+ICACHE_FLASH_ATTR
 chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPacketCommands cmd, unsigned char *payload, uint32_t len, uint32_t flags) {
 
 	chatPacket * cp;
@@ -252,6 +258,7 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPac
 }
 
 void
+ICACHE_FLASH_ATTR
 chatPacket_delete (chatPacket* cp) {
 
 	free(cp->payload);
@@ -261,6 +268,7 @@ chatPacket_delete (chatPacket* cp) {
 
 
 void
+ICACHE_FLASH_ATTR
 chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *pair, msgbuffer *ob, int encrypted, enum chatPacketPacketTypes packetType) {
 	uint32_t p_length =0, e_length=0, ob_length=0, encrypted_envolopeLength=0;
 	unsigned long long p_length_encrpyted=0;
@@ -675,7 +683,9 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 }
 
 
-int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, const int len, chatFabricConfig *config) {
+int 
+ICACHE_FLASH_ATTR
+chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, const int len, chatFabricConfig *config) {
 	uint32_t ni=0, i=0, length = 0;
 	unsigned char c=0, h=0, l=0, hp=0, lp = 0;
 	unsigned char *decrypted=0;
@@ -929,7 +939,8 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 
 }
 
-void chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
+void ICACHE_FLASH_ATTR
+chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 
 	uint32_t status,i;
 	char *str;
