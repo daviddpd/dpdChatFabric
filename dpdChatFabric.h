@@ -2,12 +2,13 @@
 #ifndef DPDCHATFABRIC_H
 #define DPDCHATFABRIC_H
 
-
 #include <arpa/inet.h>
-#include <errno.h>
-
 #include <netinet/in.h> // htonl, ntohl
+#include <limits.h>
+#include <errno.h>
 #include <stdio.h> // printf
+
+
 #include <stdlib.h> // exit
 #include <string.h> //memcpy
 #include <strings.h> // bzero
@@ -15,16 +16,35 @@
 #include <sys/types.h> // kqueue / kevent 
 #include <sys/event.h> // kqueue / kevent 
 #include <sys/socket.h>
-#include <sys/time.h>// kqueue / kevent 
+#include <sys/time.h> // kqueue / kevent 
 #include <sys/wait.h> // fork and wait
 #include <unistd.h> // fork and wait, getpid
-#include <uuid.h>   // uuid
 
-#include <limits.h>
      
 #include <getopt.h>
+#include <uuid.h>   // uuid
 
+#ifdef HAVE_SODIUM
 #include <sodium.h>
+#endif 
+
+#ifdef HAVE_LOCAL_CRYPTO
+#include <salsa20.h>
+#include <poly1305-donna.h>
+#include <chacha20_simple.h>
+
+#define crypto_box_PUBLICKEYBYTES 32U
+#define crypto_secretbox_MACBYTES 16U
+#define crypto_secretbox_NONCEBYTES 8U
+#define crypto_box_SEALBYTES 16U
+#define crypto_box_SECRETKEYBYTES 32U
+
+
+void curve25519_donna(unsigned char *output, const unsigned char *a, const unsigned char *b);
+
+#endif
+
+
 #include "cfstructs.h"
 #include "dpdChatPacket.h"
 
@@ -83,8 +103,9 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind );
 enum chatFabricErrors 
 chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b);
 
-enum chatPacketCommands 
-stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair, chatPacket *reply);
+
+void
+stateMachine (chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e);
 
 
 

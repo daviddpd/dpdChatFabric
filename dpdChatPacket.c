@@ -364,13 +364,43 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 		}
 	
 		if ( encrypted == _CHATPACKET_ENCRYPTED ) {
+
+			#ifdef HAVE_SODIUM
 			crypto_box_easy(
 				payload_encrypted, 
 				payload, p_length, 
 				(const unsigned char *)&(pair->nonce),
 				(unsigned char *)&(pair->publickey), 
 				(unsigned char *)&(config->privatekey)
-			);				
+			);
+			#endif
+			
+			#ifdef HAVE_LOCAL_CRYPTO
+			memcpy ( payload_encrypted, payload, p_length );
+			s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, pair->nonce, 0, payload_encrypted, p_length);
+			poly1305_auth(payload_encrypted+p_length, payload_encrypted, p_length, (const unsigned char *)&pair->sharedkey);
+			
+			CHATFABRIC_DEBUG(config->debug,  " ===> MAC Calculation \n" );
+			if (config->debug) {
+				printf ( "   %24s: ", "MAC Calculated" );
+				print_bin2hex((unsigned char *)payload_encrypted+p_length, crypto_secretbox_MACBYTES);
+				printf ( "   %24s (%8d): ", "encrypted payload",  p_length_encrpyted);
+				print_bin2hex((unsigned char *)payload_encrypted, p_length_encrpyted);
+				printf ( "   %24s (%8d): ", "plaintext payload",  p_length);
+				print_bin2hex((unsigned char *)payload, p_length);
+
+
+				printf ( "   %24s: ", "nonce" );
+				print_bin2hex((unsigned char *)pair->nonce, crypto_secretbox_NONCEBYTES);
+				printf ( "   %24s: ", "shared key" );
+				print_bin2hex((unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES);
+
+			}
+			
+			#endif
+
+			
+			
 			free(payload);
 			/*
 			crypto_aead_chacha20poly1305_encrypt(
@@ -447,11 +477,37 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 		// data
 		memcpy(envelope+i, &(cp->envelopeRandomPadding[h]), l);
 		i += l;
+
+		if (config->debug){ 
+			CHATFABRIC_DEBUG(config->debug, " ======> Plaintext Envelope : " );
+			print_bin2hex (envelope, e_length );		
+		}
 		
 	
 		if ( encrypted == _CHATPACKET_ENCRYPTED ) {
 			envelope_encrypted =  calloc(encrypted_envolopeLength,sizeof(unsigned char));
+			#ifdef HAVE_SODIUM
 			crypto_box_seal(envelope_encrypted, envelope, e_length, (unsigned char *)&(pair->publickey));
+			#endif
+			
+			#ifdef HAVE_LOCAL_CRYPTO
+			memcpy ( envelope_encrypted, envelope, e_length );			
+			s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, pair->nullnonce, 0, envelope_encrypted, e_length);
+			poly1305_auth(envelope_encrypted+e_length, envelope_encrypted, e_length, (const unsigned char *)&pair->sharedkey);
+			if (config->debug) {
+				printf ( "   %24s: ", "MAC Calculated" );
+				print_bin2hex((unsigned char *)envelope_encrypted+e_length, crypto_secretbox_MACBYTES);
+				printf ( "   %24s (%8d): ", "encrypted envelope",  e_length);
+				print_bin2hex((unsigned char *)envelope_encrypted, e_length);
+			}
+			
+			#endif			
+			if (config->debug){ 
+				CHATFABRIC_DEBUG(config->debug, " ======> encrypted Envelope : " );
+				print_bin2hex (envelope_encrypted, encrypted_envolopeLength );		
+			}
+
+			cp->envelopeLength = encrypted_envolopeLength;
 			ob_length+=encrypted_envolopeLength + 1 + 1+4 ; // + cptag_encryptedEnvelope + cptag_envelopeLength + cp->envelopeLength
 			free(envelope);
 		} else {
@@ -551,6 +607,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 		++i;	
 	
 		//data
+		cp->envelopeLength = encrypted_envolopeLength;
 		ni = htonl(encrypted_envolopeLength);
 		memcpy(ob->msg+i, &ni, 4);
 		i += 4;
@@ -565,6 +622,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 	
 			memcpy(ob->msg+i, envelope_encrypted, encrypted_envolopeLength);
 			i += encrypted_envolopeLength;
+			
 			free(envelope_encrypted);
 		
 		} else {
@@ -608,6 +666,11 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 	if ( i != ob_length ) {	
 		printf ( " WARNING = OB Length => index didn't match e_length! %u != %u\n", i, ob_length );	
 	}
+	
+	if (config->debug) {
+		CHATFABRIC_DEBUG(config->debug, " encoded Packet : " );
+		print_bin2hex (ob->msg, ob->length );		
+	}
 		
 }
 
@@ -617,6 +680,14 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 	unsigned char c=0, h=0, l=0, hp=0, lp = 0;
 	unsigned char *decrypted=0;
 	int ret;
+	unsigned char * mac;
+
+
+	if (config->debug) {
+		CHATFABRIC_DEBUG(config->debug, " decoding Packet : " );
+		print_bin2hex (b, len);		
+	}
+	
 //	const int len2 = len;
 
 	while (i<len) {
@@ -642,11 +713,30 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 			case cptag_encryptedEnvelope:
 					cp->wasEncrypted = cp->wasEncrypted | 0x02;
 					decrypted=calloc(cp->envelopeLength - crypto_box_SEALBYTES,sizeof(unsigned char));
+
+					#ifdef HAVE_SODIUM
 					ret = crypto_box_seal_open(
 						decrypted, 
 						b+i, cp->envelopeLength, 
 						(unsigned char *)&(config->publickey), 
 						(unsigned char *)&(config->privatekey));
+					#endif 
+						
+					#ifdef HAVE_LOCAL_CRYPTO
+					mac=calloc(crypto_secretbox_MACBYTES,sizeof(unsigned char) );
+					
+					poly1305_auth(mac,  b+i, cp->envelopeLength - crypto_box_SEALBYTES, (const unsigned char *)&pair->sharedkey);
+					ret = poly1305_verify(mac, b+i+cp->envelopeLength-crypto_secretbox_MACBYTES);
+					free(mac);	
+					if ( ret == 1 ) {					
+						memcpy ( decrypted, b+i, cp->envelopeLength-crypto_box_SEALBYTES );
+						s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, pair->nullnonce, 0, decrypted, cp->envelopeLength - crypto_box_SEALBYTES);
+						ret = 0;
+					} else {
+						ret = -1;
+					}
+					#endif
+
 					if ( ret == 0)
 					{
 						i+=cp->envelopeLength;
@@ -656,7 +746,18 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 						}
 					} else {
 						free(decrypted);
-						printf ( " ===> Decryption (envelope) Failed \n");
+						CHATFABRIC_DEBUG(config->debug,  " ===> Decryption (envelope) Failed \n" );
+						CHATFABRIC_DEBUG_FMT(config->debug,  
+							"[DEBUG][%s:%s:%d]  i = %4d,   el = %4d \n",
+							__FILE__, __FUNCTION__, __LINE__,  i, cp->envelopeLength);
+						if (config->debug) {
+							printf ( "   %24s (%8d): ", "MAC Calculated" , crypto_secretbox_MACBYTES);
+							print_bin2hex((unsigned char *)mac, crypto_secretbox_MACBYTES);
+							printf ( "   %24s (%8d): ", "MAC Stream",  cp->envelopeLength);
+							print_bin2hex((unsigned char *)b+i+cp->envelopeLength-crypto_secretbox_MACBYTES, crypto_secretbox_MACBYTES);
+							printf ( "   %24s (%8d): ", "encrypted envelope",  cp->envelopeLength);
+							print_bin2hex((unsigned char *) b+i, cp->envelopeLength);
+						}
 						return -1;
 					}
 			break;
@@ -670,7 +771,7 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 			case cptag_envelopeRandomPaddingHigh:
 				if ( h == 0 ) {
 					// zero length is invalid padding.
-					printf ( " ===> cptag_envelopeRandomPaddingHigh == 0 \n");
+					CHATFABRIC_DEBUG(config->debug, " ===> cptag_envelopeRandomPaddingHigh == 0 \n");
 					return -1;
 				}
 				memcpy(&(cp->envelopeRandomPadding), b+i, h);
@@ -679,7 +780,7 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 			case cptag_envelopeRandomPaddingLow:
 				if ( l == 0 ) {
 					// zero length is invalid padding.
-					printf ( " ===> cptag_envelopeRandomPaddingLow == 0 \n");
+					CHATFABRIC_DEBUG(config->debug, " ===> cptag_envelopeRandomPaddingLow == 0 \n");
 					return -1;
 				}
 				memcpy(&(cp->envelopeRandomPadding[h]), b+i, l);
@@ -728,7 +829,7 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 			case cptag_payloadRandomPaddingHigh:
 				if ( hp == 0 ) {
 					// zero length is invalid padding.
-					printf ( " ===> cptag_payloadRandomPaddingHigh == 0 \n");
+					CHATFABRIC_DEBUG(config->debug, " ===> cptag_payloadRandomPaddingHigh == 0 \n");
 					return -1;
 				}
 				memcpy(&(cp->payloadRandomPadding), b+i, hp);
@@ -738,7 +839,7 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 			case cptag_payloadRandomPaddingLow:
 				if ( lp == 0 ) {
 					// zero length is invalid padding.
-					printf ( " ===> cptag_payloadRandomPaddingLow == 0 \n");
+					CHATFABRIC_DEBUG(config->debug, " ===> cptag_payloadRandomPaddingLow == 0 \n");
 					return -1;
 				}
 				memcpy(&(cp->envelopeRandomPadding[hp]), b+i, lp);
@@ -747,15 +848,41 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 			case cptag_encryptedPayload:
 				cp->wasEncrypted = cp->wasEncrypted | 0x01;			
 				//free(cp->payload);				
+				
+				#ifdef HAVE_LOCAL_CRYPTO
+				mac=calloc(crypto_secretbox_MACBYTES,sizeof(unsigned char) );
+				
+				poly1305_auth(mac,  b+i,  cp->payloadLength - crypto_secretbox_MACBYTES, (const unsigned char *)&pair->sharedkey);
+				ret = poly1305_verify(mac, b+i+cp->payloadLength-crypto_secretbox_MACBYTES);
+				free(mac);
+//				ret =1 ;									
+					CHATFABRIC_DEBUG(config->debug, " ===> Decrypting  (payload) \n");
+					if (config->debug) {
+						printf ( "   %24s: ", "nonce" );
+						print_bin2hex((unsigned char *)pair->mynonce, crypto_secretbox_NONCEBYTES);
+						printf ( "   %24s: ", "shared key" );
+						print_bin2hex((unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES);
+					}
+									
+				if ( ret == 1 ) {					
+					decrypted=calloc(cp->payloadLength - crypto_secretbox_MACBYTES,sizeof(unsigned char));
+					memcpy ( decrypted, b+i, cp->payloadLength - crypto_secretbox_MACBYTES );
+					s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, pair->mynonce, 0, decrypted, cp->payloadLength - crypto_secretbox_MACBYTES);
+					ret = 0;
+				} else {
+					ret = -1;
+				}
+				#endif
+				#ifdef HAVE_SODIUM
 				decrypted=calloc(cp->payloadLength - crypto_secretbox_MACBYTES,sizeof(unsigned char));	
-
-				if ( crypto_box_open_easy(
+				ret = crypto_box_open_easy(
 						decrypted, 
 						(unsigned char *)b+i, cp->payloadLength, 
 						(const unsigned char *)&(pair->mynonce),  
 						(unsigned char *)&(pair->publickey), 
-						(unsigned char *)&(config->privatekey)
-				) == 0 )
+						(unsigned char *)&(config->privatekey) );
+				#endif
+				if (ret == 0 )
 				{
 					i+=cp->payloadLength;
 					if ( chatPacket_decode (cp, pair, decrypted, cp->payloadLength - crypto_secretbox_MACBYTES, config) != 0 ) {
@@ -766,7 +893,14 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 					}					
 				} else {
 					free(decrypted);
-					printf ( " ===> Decryption (payload) Failed \n");
+					CHATFABRIC_DEBUG(config->debug, " ===> Decryption (payload) Failed \n");
+					if (config->debug) {
+						printf ( "   %24s: ", "MAC Calculated" );
+						print_bin2hex((unsigned char *)mac, crypto_secretbox_MACBYTES);
+						printf ( "   %24s: ", "MAC Stream" );
+						print_bin2hex((unsigned char *)b+i+cp->payloadLength, crypto_secretbox_MACBYTES);
+					}
+					
 					return -1;
 				}
 
@@ -780,7 +914,11 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 				i+=crypto_box_PUBLICKEYBYTES;
 			break;
 			default:
-				printf ( " == BAD CHAT PACKET (%02x) =>> Last 6 bytes %02x %02x %02x %02x %02x %02x \n ", c, b[i-2],  b[i-1], b[i], b[i+1], b[i+2], b[i+3]);
+//				printf ( " == BAD CHAT PACKET (%02x) =>> Last 6 bytes %02x %02x %02x %02x %02x %02x \n ", c, b[i-2],  b[i-1], b[i], b[i+1], b[i+2], b[i+3]);
+				CHATFABRIC_DEBUG_FMT(config->debug,  
+					"[DEBUG][%s:%s:%d]  BAD CHAT PACKET (%02x) =>> \n",
+					__FILE__, __FUNCTION__, __LINE__,  c );
+				assert(0);
 				return -1;
 				++i;
 			break;
@@ -803,10 +941,10 @@ void chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 		printf ( "\n === ChatPacket ========================================== \n");
 		cd = " ";
 	} else if ( d == IN ) {
-		printf ( "\n >>> ChatPacket >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> \n");
+		printf ( "\n >>> ChatPacket RECEIVED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> \n");
 		cd = ">";
 	} else if ( d == OUT ) {
-		printf ( "\n <<< ChatPacket <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< \n");	
+		printf ( "\n <<< ChatPacket SENDING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< \n");	
 		cd = "<";
 	}
 	printf ( "%2s %24s %s\n", cd, "Field", "Value");

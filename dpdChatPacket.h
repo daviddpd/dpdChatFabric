@@ -24,7 +24,16 @@
      
 #include <getopt.h>
 
+#if defined(HAVE_SODIUM)
 #include <sodium.h>
+#endif 
+
+#if  defined(HAVE_LOCAL_CRYPTO)
+#include <salsa20.h>
+#include <poly1305-donna.h>
+#include <chacha20_simple.h>
+#endif
+
 #include "cfstructs.h"
 #include "dpdChatFabric.h"
 

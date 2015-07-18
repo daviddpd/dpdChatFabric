@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CHILDREN 1
 #define PORTNUMBER 32000
-
+/*
 void pp(unsigned char * x) {
 	int i;
 	for (i=0; i<32; i++) {
@@ -39,7 +39,7 @@ void pp(unsigned char * x) {
 	printf ("\n");
 
 }
-
+*/
 
 int main(int argc, char**argv)
 {
@@ -162,7 +162,9 @@ int main(int argc, char**argv)
 								exit(1);
 							}
 							chatPacket_print(cp, IN);
-							replyCmd = stateMachine ( &config, cp, &pair, cp_reply );
+							enum chatFabricErrors e;
+							
+							stateMachine ( &config, cp, &pair, cp_reply, &replyCmd, &e );
 							if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
 //								sleep(1);
 								printf ("             =============  Sending Reply  ====================\n");
@@ -212,4 +214,6 @@ int main(int argc, char**argv)
 //		printf("[%d] Waiting for Child PID: %d\n", getpid(), childpid[x]);
 		waitpid(childpid[x], &status, 0 ); 
 	}
+	
+	return 0;
 }

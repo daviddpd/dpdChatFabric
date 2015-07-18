@@ -157,7 +157,8 @@ int main(int argc, char**argv)
 			exit(1);				
 		}
 		chatPacket_print(cp, IN);
-		replyCmd = stateMachine ( &config, cp, &pair, cp_reply );			
+		 enum chatFabricErrors e;
+		stateMachine ( &config, cp, &pair, cp_reply , &replyCmd, &e);
 		if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
 			printf ("             =============  Sending Reply  ====================\n");
 

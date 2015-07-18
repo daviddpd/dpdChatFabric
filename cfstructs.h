@@ -4,6 +4,7 @@
 #define _CHATPACKET_ENCRYPTED 1
 #define _CHATPACKET_CLEARTEXT 0
 
+
 #define CHATFABRIC_DEBUG(d, msg) if (d) fprintf(stderr, "[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg )
 #define CHATFABRIC_DEBUG_FMT(d, ...) if (d) fprintf(stderr, __VA_ARGS__ )
 
@@ -80,35 +81,41 @@ enum chatPacketCommands {
 
 
 enum chatPacketTags  {	
-	 cptag_nonce		= 1,
-	 cptag_envelopeLength		= 2,
+	 cptag_NOOP,
 
-	 cptag_encryptedEnvelope	= 130,  // set bit 7 high 
+	 cptag_nonceLength,	 
+	 cptag_nonce,
 
-	 cptag_envelopeRandomPaddingLength	= 3,
-	 cptag_envelopeRandomPaddingHigh	= 4,
-	 cptag_envelopeRandomPaddingLow	= 132,  // set bit 7 high 	
+	 cptag_envelopeLength,
+	 cptag_encryptedEnvelope,
 
-	 cptag_to0					= 5,
-	 cptag_to1					= 6,
-	 cptag_from0				= 7,
-	 cptag_from1				= 8,
+	 cptag_envelopeRandomPaddingLength,
+	 cptag_envelopeRandomPaddingHigh,
+	 cptag_envelopeRandomPaddingLow,
 
-	 cptag_flags				= 10,
+	 cptag_to0,
+	 cptag_to1,
+	 cptag_from0,
+	 cptag_from1,
+	 cptag_flags,
 
-	 cptag_payloadLength		= 13,
+	 cptag_payloadLength,
 
-	 cptag_payloadRandomPaddingLength	= 14,
-	 cptag_payloadRandomPaddingHigh	= 15,
-	 cptag_payloadRandomPaddingLow		= 143,  // set bit 7 high 	
-	
-	 cptag_encryptedPayload	= 144,  // set bit 7 high 	
-	 cptag_payload				= 16,
-	 cptag_publickey			= 17,
-	 
-	 cptag_cmd				= 170 // 1010 1010
-	 
-	
+	 cptag_payloadRandomPaddingLength,
+	 cptag_payloadRandomPaddingHigh,
+	 cptag_payloadRandomPaddingLow,	
+
+	 cptag_encryptedPayload,
+
+	 cptag_payload,
+
+	 cptag_publickeyId,
+	 cptag_publickey,
+
+	 cptag_mac,
+	 	 
+	 cptag_cmd = 0xFF,
+	 	
 };
 
 typedef struct  {
@@ -152,6 +159,9 @@ typedef struct  {
 	
 	uuid_tuple uuid;
 	unsigned char publickey[crypto_box_PUBLICKEYBYTES];
+	unsigned char sharedkey[crypto_box_PUBLICKEYBYTES];
+	
+	unsigned char nullnonce[crypto_secretbox_NONCEBYTES];
 
 	unsigned char nonce[crypto_secretbox_NONCEBYTES];
 	unsigned char mynonce[crypto_secretbox_NONCEBYTES];
@@ -174,6 +184,7 @@ typedef struct  {
 	unsigned char *msg;
 	int port;
 	uuid_tuple uuid;
+	uuid_tuple to;
 	
 	int debug;
 	int writeconfig;

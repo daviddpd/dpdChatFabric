@@ -51,14 +51,20 @@ int main(int argc, char**argv)
 	
 	uuid_create_nil ( &(pair.uuid.u0), &status2);
 	uuid_create_nil ( &(pair.uuid.u1), &status2);
+
+	
 	pair.hasPublicKey = 0;
 	pair.hasNonce = 0;
 	b.length = -1;
 	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
+	bzero(&(pair.nullnonce), crypto_secretbox_NONCEBYTES);
 
 
 	chatFabric_args(argc, argv, &config);	
 	chatFabric_configParse(&config);
+
+	pair.uuid.u0 = config.to.u0;
+	pair.uuid.u1 = config.to.u1;
 	
 	if ( config.pairfile != NULL ) {
 		chatFabric_pairConfig(&config, &pair, 0 );

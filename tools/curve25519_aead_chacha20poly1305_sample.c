@@ -47,7 +47,6 @@ typedef uint8_t u8;
 
 extern void curve25519_donna(u8 *output, const u8 *secret, const u8 *bp);
 
-
 void 
 chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght ) {
 	char str[5] = { '0', 'x', '0', '0' , 0 };

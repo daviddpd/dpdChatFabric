@@ -55,24 +55,33 @@ int main(int argc, char**argv)
 	pair.hasNonce = 0;
 	b.length = -1;
 	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
+	bzero(&(pair.nullnonce), crypto_secretbox_NONCEBYTES);
 
 
 	
 	chatFabric_args(argc, argv, &config);	
 	chatFabric_configParse(&config);
-		
-	while ( chatFabric_device(&c, &pair, &config,  &b) == ERROR_OK ) { 
+
+	do {		
+		while ( chatFabric_device(&c, &pair, &config,  &b) == ERROR_OK ) { 
 	
-		if ( b.length > 0 ) {
-			tmp=calloc(b.length+1,sizeof(unsigned char));
-			memcpy(tmp, b.msg, b.length);
-			printf ( " === > Payload: %s \n", tmp ) ;
-			free(tmp);
-			free(b.msg);
-			b.length = -1;
+			if ( b.length > 0 ) {
+				tmp=calloc(b.length+1,sizeof(unsigned char));
+				memcpy(tmp, b.msg, b.length);
+				printf ( " === > Payload: %s \n", tmp ) ;
+				if ( b.length == 4 ) {
+					if ( strncmp(tmp, "quit", 4) == 0 ) {
+						exit(0);
+					}
+			
+				}
+				free(tmp);
+				free(b.msg);
+				b.length = -1;
+			}
+	
 		}
-	
-	}
+	} while (1);
 	
 
 }

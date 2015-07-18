@@ -96,8 +96,13 @@ chatFabric_usage(char *p) {
 	printf ("   -d --debug                  ip address.\n");
 	printf ("   -p --port                   port number.\n");
 	printf ("   -k --genkeys                generate public/private key pair.\n");
+
+	printf ("      --to0                    Namespace UUID, Send TO (uuid0).\n");
+	printf ("      --to1                    Instance UUID, Send TO (uuid1).\n");
+
 	printf ("   -u --uuid0                  Namespace UUID (uuid0).\n");
 	printf ("   -v --uuid1                  Instance UUID (uuid1).\n");
+
 	printf ("   -z --genuuid1               generate uuid1, set uuid0 to NIL/zeros.\n");
 	printf ("   -w --writeconfig FILE       new configuration file to write\n");
 	printf ("   -m --message STRING         Send message in payload.\n");
@@ -109,6 +114,7 @@ void
 chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 	int ch;
 	uint32_t status;
+	static const unsigned char basepoint[32] = {9};
 
 	config->configfile = NULL;
 	config->newconfigfile = NULL;
@@ -125,8 +131,13 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 		{	"ip",		required_argument,	NULL,	'i'	},
 		{	"port",		required_argument,	NULL,	'p'	},
 		{	"genkeys",	no_argument,		NULL,	'k'	},
+
+		{	"to0",	required_argument,	NULL,	'a'	},
+		{	"to1",	required_argument,	NULL,	'b'	},
+
 		{	"uuid0",	required_argument,	NULL,	'u'	},
 		{	"uuid1",	required_argument,	NULL,	'v'	},
+
 		{	"genuuid1",	no_argument,		NULL,	'z'	},
 		{	"writeconfig",	required_argument,		NULL,	'w'	},
 		{	"message",	required_argument,		NULL,	'm'	},
@@ -139,8 +150,22 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 	};
 
 	
-	while ((ch = getopt_long(argc, argv, "c:di:kp:s:u:v:zw:P:m:", longopts, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "a:b:c:di:kp:s:u:v:zw:P:m:", longopts, NULL)) != -1) {
 		switch (ch) {
+
+			case 'a':
+				uuid_from_string(
+					optarg, 
+					&(config->to.u0), 
+					&status);
+			break;
+			case 'b':
+				uuid_from_string(
+					optarg, 
+					&(config->to.u1), 
+					&status);	
+			break;
+
 			case 'c':
 				//printf ( "Arg --config : Value : %s \n", optarg );
 				config->configfile = optarg;
@@ -173,8 +198,14 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 					&(config->uuid.u1), 
 					&status);			
 			break;
-			case 'k':			
+			case 'k':
+				#ifdef HAVE_SODIUM			
 				crypto_box_keypair((unsigned char *)&(config->publickey), (unsigned char *)&(config->privatekey));
+				#endif 
+				#ifdef HAVE_LOCAL_CRYPTO
+				curve25519_donna((unsigned char *)&config->publickey, (unsigned char *)&config->privatekey, (unsigned char *)&basepoint);
+				#endif
+
 			break;
 			case 'z':
 				uuid_create_nil(&(config->uuid.u0),  &status);
@@ -210,8 +241,8 @@ chatFabric_configParse(chatFabricConfig *config)
 	struct stat fs;
 	int len =0, i=0;
 	unsigned char *str;
-	unsigned char c;
-	enum chatFabricConfigTags t;
+	unsigned char c,t;
+//	enum chatFabricConfigTags t;
 	
 	if ( config->configfile != NULL ) 
 	{
@@ -220,7 +251,10 @@ chatFabric_configParse(chatFabricConfig *config)
 			printf ( "==>Config file read %s\n",config->configfile  );			
 		
 			stat(config->configfile, &fs);
-			fp = fopen(config->configfile,"r");		
+			fp = fopen(config->configfile,"r");	
+			if ( fp == NULL ) {
+				fprintf(stderr, " Error, can't open file %s \n", config->configfile );			
+			}	
 			str=calloc(fs.st_size,sizeof(unsigned char));
 			fread(str, sizeof (unsigned char), fs.st_size, fp );
 
@@ -251,7 +285,9 @@ chatFabric_configParse(chatFabricConfig *config)
 						i+=16;
 					break;		
 					default:
-						CHATFABRIC_DEBUG(config->debug, "Bad  Config file Tag" );
+						CHATFABRIC_DEBUG_FMT(config->debug,  
+							"[DEBUG][%s:%s:%d] Bad Config File Tag : %02x \n", 
+							__FILE__, __FUNCTION__, __LINE__,  t );
 					break;
 				}
 			}
@@ -314,8 +350,8 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 	int len =0, i=0;
 	struct stat fs;
 	unsigned char *str;
-	unsigned char c;
-	enum chatFabricConfigTags t;
+	unsigned char c, t;
+//	enum chatFabricConfigTags t;
 	
 	if ( ( config->pairfile != NULL ) && (write == 1) )
 	{ 		
@@ -448,16 +484,21 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 						++i;
 						CHATFABRIC_DEBUG_FMT(config->debug,  
 							"[DEBUG][%s:%s:%d] Pair Config File State  : %s \n", 
-							__FILE__, __FUNCTION__, __LINE__,   stateLookup (pair->state) );
-						
+							__FILE__, __FUNCTION__, __LINE__,   stateLookup (pair->state) );						
 					break;
 					default:
-						CHATFABRIC_DEBUG(config->debug, "Bad Pairing Config file Tag" );
+						CHATFABRIC_DEBUG_FMT(config->debug,  
+							"[DEBUG][%s:%s:%d] Bad Pairing Config file Tag: %02x \n", 
+							__FILE__, __FUNCTION__, __LINE__,  t );
 					break;
 		
 				}
 			}
-		}	
+			curve25519_donna((unsigned char *)&pair->sharedkey, (unsigned char *)&config->privatekey, (unsigned char *)&pair->publickey);
+
+		} else {
+			CHATFABRIC_DEBUG(config->debug, "Error Opening Pairing file." );		
+		}
 	
 	}
 
@@ -560,7 +601,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	
 	len = sizeof(c->sockaddr);
 	mesg=calloc(buffersize,sizeof(unsigned char));
-	CHATFABRIC_DEBUG(config->debug, "Waiting for Packet." );
+	CHATFABRIC_DEBUG(config->debug, "Waiting for Packet.\n\n" );
 	n = recvfrom(c->socket,mesg,buffersize,0,(struct sockaddr *)&(c->sockaddr),&len);
 	if ( n == -1 ) {
 		free(mesg);
@@ -599,6 +640,8 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		free(mesg);
 	}
 	
+	CHATFABRIC_DEBUG(config->debug, " == starting state machine ========================================================== \n\n " );
+	
 	cp_reply = chatPacket_init0 ();
 	stateMachine ( config, cp, pair, cp_reply, &replyCmd, &e);
 	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
@@ -633,18 +676,17 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 
 
 
-enum chatPacketCommands 
-stateMachine (chatFabricConfig *config, chatPacket *cp, 
-	chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e)
+void 
+stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e)
 {	
 	chatFabricPairing  previous_state;
-	uinit32_t status;
+	uint32_t status;
 	
 	enum chatPacketCommands RETVAL;
 	
 	if (  
-		( uuid_compare(&(cp->to.u0), config->uuid.u0 &status) == 0 ) &&
-		( uuid_compare(&(cp->to.u1), config->uuid.u1 &status) == 0 
+		( uuid_compare(&(cp->to.u0), &(config->uuid.u0), &status) == 0 ) &&
+		( uuid_compare(&(cp->to.u1), &(config->uuid.u1), &status) == 0  )
 	) {
 		*e = ERROR_INVAILD_DEST;
 	}
@@ -771,6 +813,15 @@ stateMachine (chatFabricConfig *config, chatPacket *cp,
 			if  ( pair->state == STATE_PUBLICKEY_SETUP ) {
 				memcpy( &(pair->publickey), &(cp->publickey), crypto_box_PUBLICKEYBYTES );
 				pair->hasPublicKey = 1;
+				#ifdef HAVE_LOCAL_CRYPTO
+				curve25519_donna((unsigned char *)&pair->sharedkey, (unsigned char *)&config->privatekey, (unsigned char *)&pair->publickey);
+				if (config->debug) {
+					printf ( "   %24s: ", "Shared Key" );
+					print_bin2hex((unsigned char *)pair->sharedkey, crypto_box_PUBLICKEYBYTES);
+				}
+				
+				#endif					
+
 				// flags contains hasPublicKey? of remote 
 				if ( cp->flags == 1 ) {
 					reply->flags = pair->hasPublicKey;
@@ -871,6 +922,8 @@ stateMachine (chatFabricConfig *config, chatPacket *cp,
 			__FILE__, __FUNCTION__, __LINE__,  
 			stateLookup(previous_state.state), stateLookup(pair->state), "!!! STATE CHANGED !!" );		
 	}
+
+
 		
 	*replyCmd = RETVAL;
 	*e = ERROR_OK;
