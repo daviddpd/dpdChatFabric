@@ -4,17 +4,29 @@
 
 #ifdef ESP8266
 #define ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#define ESP_WORD_ALIGN __attribute__ ((aligned (4)))
 #else
 #define ICACHE_FLASH_ATTR __attribute__(())
+#define ESP_WORD_ALIGN __attribute__ (())
 #endif
 
 
+#ifdef ESP8266
+#include "ets_sys.h"
+#include "osapi.h"
+#include "os_type.h"
+#include "user_config.h"
+#include "user_interface.h"
+#include "driver/uart.h"
+#include "espconn.h"
+#include "mem.h"
+#include "arc4random_buf.h"
+#else 
 #include <arpa/inet.h>
 #include <netinet/in.h> // htonl, ntohl
 #include <limits.h>
 #include <errno.h>
 #include <stdio.h> // printf
-
 
 #include <stdlib.h> // exit
 #include <string.h> //memcpy
@@ -26,9 +38,9 @@
 #include <sys/time.h> // kqueue / kevent 
 #include <sys/wait.h> // fork and wait
 #include <unistd.h> // fork and wait, getpid
-
-     
 #include <getopt.h>
+#endif 
+
 #include <uuid.h>   // uuid
 
 #ifdef HAVE_SODIUM
@@ -71,7 +83,7 @@ enum chatFabricConfigTags  {
 	 cftag_state		= 9, // 1+1
 	 
 	
-};
+} ESP_WORD_ALIGN;
 
 
 

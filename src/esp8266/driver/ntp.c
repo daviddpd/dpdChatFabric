@@ -18,6 +18,7 @@
 uint8 ntp_server[] = {192, 168, 1, 1}; // microsoft
 
 extern time_t ntp_unix_timestamp;
+extern int ntp_status;
 
 static os_timer_t ntp_timeout;
 static struct espconn *pCon = 0;
@@ -26,6 +27,7 @@ static void ICACHE_FLASH_ATTR ntp_udp_timeout(void *arg) {
 	
 	os_timer_disarm(&ntp_timeout);
 	uart0_tx_buffer("ntp timout\r\n", 12);
+	ntp_status = 2;
 
 	// clean up connection
 	if (pCon) {
@@ -57,6 +59,8 @@ static void ICACHE_FLASH_ATTR ntp_udp_recv(void *arg, char *pdata, unsigned shor
 	//ds1307_setTime(dt);
 	// or just print it out
 	ntp_unix_timestamp = timestamp;
+	ntp_status = 0;
+
 	char timestr[11];
 	os_sprintf(timestr, " [NTP] ===> %02d:%02d:%02d\r\n", dt->tm_hour, dt->tm_min, dt->tm_sec);
 	os_sprintf(timestr, " [NTP] ===> %d\r\n", timestamp);
@@ -76,6 +80,8 @@ static void ICACHE_FLASH_ATTR ntp_udp_recv(void *arg, char *pdata, unsigned shor
 void ICACHE_FLASH_ATTR ntp_get_time() {
 
 	ntp_t ntp;
+
+	ntp_status = 1;
 
 	// set up the udp "connection"
 	pCon = (struct espconn*)os_zalloc(sizeof(struct espconn));

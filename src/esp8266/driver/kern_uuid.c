@@ -25,7 +25,7 @@
  */
 
 #include <c_types.h>
-#include <driver/uuid.h>
+#include <uuid.h>
 #include "user_interface.h"
 extern time_t ntp_unix_timestamp;
 

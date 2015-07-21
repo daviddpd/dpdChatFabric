@@ -33,8 +33,10 @@
 // #define  _BYTE_ORDER __BIG_ENDIAN
 
 #include <sys/cdefs.h>
-#include <sys/_types.h>
-#include <machine/endian.h>
+#include "os_type.h"
+#include <endian.h>
+
+#ifndef ESP8266
 
 #ifndef _UINT8_T_DECLARED
 typedef	__uint8_t	uint8_t;
@@ -55,7 +57,8 @@ typedef	__uint32_t	uint32_t;
 typedef	__uint64_t	uint64_t;
 #define	_UINT64_T_DECLARED
 #endif
- 
+
+#endif 
 /*
  * General byte order swapping functions.
  */
@@ -68,34 +71,37 @@ typedef	__uint64_t	uint64_t;
  * endian to host byte order functions as detailed in byteorder(9).
  */
 // #if _BYTE_ORDER == _LITTLE_ENDIAN
-// #define	htobe16(x)	bswap16((x))
-// #define	htobe32(x)	bswap32((x))
-// #define	htobe64(x)	bswap64((x))
-// #define	htole16(x)	((uint16_t)(x))
-// #define	htole32(x)	((uint32_t)(x))
-// #define	htole64(x)	((uint64_t)(x))
-// 
-// #define	be16toh(x)	bswap16((x))
-// #define	be32toh(x)	bswap32((x))
-// #define	be64toh(x)	bswap64((x))
-// #define	le16toh(x)	((uint16_t)(x))
-// #define	le32toh(x)	((uint32_t)(x))
-// #define	le64toh(x)	((uint64_t)(x))
-// #else /* _BYTE_ORDER != _LITTLE_ENDIAN */
-#define	htobe16(x)	((uint16_t)(x))
-#define	htobe32(x)	((uint32_t)(x))
-#define	htobe64(x)	((uint64_t)(x))
-#define	htole16(x)	bswap16((x))
-#define	htole32(x)	bswap32((x))
-#define	htole64(x)	bswap64((x))
+#define	htobe16(x)	bswap16((x))
+#define	htobe32(x)	bswap32((x))
+#define	htobe64(x)	bswap64((x))
+#define	htole16(x)	((uint16_t)(x))
+#define	htole32(x)	((uint32_t)(x))
+#define	htole64(x)	((uint64_t)(x))
 
-#define	be16toh(x)	((uint16_t)(x))
-#define	be32toh(x)	((uint32_t)(x))
-#define	be64toh(x)	((uint64_t)(x))
-#define	le16toh(x)	bswap16((x))
-#define	le32toh(x)	bswap32((x))
-#define	le64toh(x)	bswap64((x))
+#define	be16toh(x)	bswap16((x))
+#define	be32toh(x)	bswap32((x))
+#define	be64toh(x)	bswap64((x))
+#define	le16toh(x)	((uint16_t)(x))
+#define	le32toh(x)	((uint32_t)(x))
+#define	le64toh(x)	((uint64_t)(x))
+// #else /* _BYTE_ORDER != _LITTLE_ENDIAN */
+// #define	htobe16(x)	((uint16_t)(x))
+// #define	htobe32(x)	((uint32_t)(x))
+// #define	htobe64(x)	((uint64_t)(x))
+// #define	htole16(x)	bswap16((x))
+// #define	htole32(x)	bswap32((x))
+// #define	htole64(x)	bswap64((x))
+// 
+// #define	be16toh(x)	((uint16_t)(x))
+// #define	be32toh(x)	((uint32_t)(x))
+// #define	be64toh(x)	((uint64_t)(x))
+// #define	le16toh(x)	bswap16((x))
+// #define	le32toh(x)	bswap32((x))
+// #define	le64toh(x)	bswap64((x))
 // #endif /* _BYTE_ORDER == _LITTLE_ENDIAN */
+
+#define ntohl(x) be32dec((void *)&x)
+#define htonl(x) le32dec((void *)&x)
 
 /* Alignment-agnostic encode/decode bytestream to/from little/big endian. */
 
@@ -115,6 +121,7 @@ be32dec(const void *pp)
 	return (((unsigned)p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]);
 }
 
+#ifndef ESP8266
 static __inline uint64_t
 be64dec(const void *pp)
 {
@@ -122,7 +129,7 @@ be64dec(const void *pp)
 
 	return (((uint64_t)be32dec(p) << 32) | be32dec(p + 4));
 }
-
+#endif 
 static __inline uint16_t
 le16dec(const void *pp)
 {
@@ -139,6 +146,7 @@ le32dec(const void *pp)
 	return (((unsigned)p[3] << 24) | (p[2] << 16) | (p[1] << 8) | p[0]);
 }
 
+#ifndef ESP8266
 static __inline uint64_t
 le64dec(const void *pp)
 {
@@ -146,6 +154,7 @@ le64dec(const void *pp)
 
 	return (((uint64_t)le32dec(p + 4) << 32) | le32dec(p));
 }
+#endif
 
 static __inline void
 be16enc(void *pp, uint16_t u)
@@ -167,6 +176,7 @@ be32enc(void *pp, uint32_t u)
 	p[3] = u & 0xff;
 }
 
+#ifndef ESP8266
 static __inline void
 be64enc(void *pp, uint64_t u)
 {
@@ -175,6 +185,7 @@ be64enc(void *pp, uint64_t u)
 	be32enc(p, (uint32_t)(u >> 32));
 	be32enc(p + 4, (uint32_t)(u & 0xffffffffU));
 }
+#endif
 
 static __inline void
 le16enc(void *pp, uint16_t u)
@@ -204,5 +215,6 @@ le64enc(void *pp, uint64_t u)
 	le32enc(p, (uint32_t)(u & 0xffffffffU));
 	le32enc(p + 4, (uint32_t)(u >> 32));
 }
+
 
 #endif	/* _SYS_ENDIAN_H_ */

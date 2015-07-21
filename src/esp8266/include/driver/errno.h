@@ -43,7 +43,7 @@
 __BEGIN_DECLS
 int *	__error(void);
 __END_DECLS
-#define	errno		(* __error())
+//#define	errno		(* __error())
 #endif
 
 #define	EPERM		1		/* Operation not permitted */

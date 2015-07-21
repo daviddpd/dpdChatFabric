@@ -5,9 +5,19 @@
 #define _CHATPACKET_CLEARTEXT 0
 
 
+#ifdef ESP8266
+#include "endian.h"
+#define CHATFABRIC_DEBUG(d, msg) if (d) os_printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg )
+#define CHATFABRIC_DEBUG_FMT(d, ...) if (d) os_printf( __VA_ARGS__ )
+#define socklen_t int
+#define calloc os_malloc
+#define arc4random_uniform(x) os_random() % x
+
+
+#else
 #define CHATFABRIC_DEBUG(d, msg) if (d) fprintf(stderr, "[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg )
 #define CHATFABRIC_DEBUG_FMT(d, ...) if (d) fprintf(stderr, __VA_ARGS__ )
-
+#endif
 
 typedef struct  {
 	uuid_t u0;
@@ -18,7 +28,19 @@ enum chatPacketDirection {
 	NONE,
 	IN,
 	OUT,
-};
+} ESP_WORD_ALIGN;
+
+enum chatPacketTagData {
+	CP_NONE,
+	CP_NOOP,
+
+	CP_INT32,
+	CP_INT8,
+
+	CP_DATA8,
+	CP_UUID,
+	
+} ESP_WORD_ALIGN;
 
 
 enum chatFabricErrors {
@@ -27,18 +49,22 @@ enum chatFabricErrors {
 	ERROR_CHATPACKET_DECODING = -2,
 	ERROR_INVAILD_DEST = -3,
 	
-};
+} ESP_WORD_ALIGN;
 
 enum chatPacketStates  {	
 	STATE_UNCONFIGURED,
 	STATE_PUBLICKEY_SETUP,
+
 	STATE_PAIRING_SETUP,
 	STATE_NONCE_SETUP,
+
 	STATE_CONFIGURED,
 	STATE_CONFIGURED_SYN,
+
 	STATE_CONFIGURED_SYNACK,
 	STATE_PAIRED,
-};
+
+} ESP_WORD_ALIGN;
 
 
 enum chatPacketPacketTypes {
@@ -46,7 +72,7 @@ enum chatPacketPacketTypes {
 	PUBLICKEY,
 	NONCE,
 	DATA,
-};
+} ESP_WORD_ALIGN;
 
 
 enum chatPacketCommands {	
@@ -65,7 +91,7 @@ enum chatPacketCommands {
 	CMD_PUBLICKEY_ACK,
 	CMD_PUBLICKEY_RESET,
 	CMD_VERIFY_SYN,
-	CMD_CMD_VERIFY_SYNACK,
+	CMD_VERIFY_SYNACK,
 	CMD_VERIFY_ACK,
 	CMD_APP_MESSAGE,
 	CMD_APP_MESSAGE_ACK,
@@ -77,29 +103,30 @@ enum chatPacketCommands {
 	CMD_SEND_REPLY_FALSE,
 	CMD_SEND_REPLY_TRUE,
 
-};
+} ESP_WORD_ALIGN;
 
 
 enum chatPacketTags  {	
-	 cptag_NOOP,
+	 cptag_NOOP, 						// 0
 
-	 cptag_nonceLength,	 
-	 cptag_nonce,
+	 cptag_nonceLength,	 				// 1
+	 cptag_nonce,						// 2
 
-	 cptag_envelopeLength,
-	 cptag_encryptedEnvelope,
+	 cptag_envelopeLength,				// 3
+	 cptag_encryptedEnvelope,			// 4
+	 cptag_envelope,					// 5
 
-	 cptag_envelopeRandomPaddingLength,
-	 cptag_envelopeRandomPaddingHigh,
-	 cptag_envelopeRandomPaddingLow,
+	 cptag_envelopeRandomPaddingLength, // 6
+	 cptag_envelopeRandomPaddingHigh,   // 7
+	 cptag_envelopeRandomPaddingLow,    // 8
 
-	 cptag_to0,
-	 cptag_to1,
-	 cptag_from0,
-	 cptag_from1,
-	 cptag_flags,
+	 cptag_to0,							// 9
+	 cptag_to1,							// 10 / a
+	 cptag_from0,						// 11 / b
+	 cptag_from1,						// 12 / c
+	 cptag_flags,						// 13 / d
 
-	 cptag_payloadLength,
+	 cptag_payloadLength,				// 14 / d
 
 	 cptag_payloadRandomPaddingLength,
 	 cptag_payloadRandomPaddingHigh,
@@ -116,11 +143,15 @@ enum chatPacketTags  {
 	 	 
 	 cptag_cmd = 0xFF,
 	 	
-};
+} ESP_WORD_ALIGN;
 
 typedef struct  {
 	uint32_t cmd;
 	uint32_t flags;
+	uint32_t payloadLength;
+#ifdef ESP8266
+	int cpindex;
+#endif
 
 	uint32_t wasEncrypted;
 	
@@ -133,7 +164,6 @@ typedef struct  {
 	uuid_tuple to;
 	uuid_tuple from;
 
-	uint32_t payloadLength;
 
 	unsigned char publickey[crypto_box_PUBLICKEYBYTES];
 
@@ -142,20 +172,24 @@ typedef struct  {
 	
 	unsigned char *payload;
 	
-} chatPacket;
+} ESP_WORD_ALIGN chatPacket;
 
 
 typedef struct {
 	int socket;
+#ifdef ESP8266
+	struct espconn conn;
+#else
 	struct sockaddr_in sockaddr;
+#endif
 	char *ip;	
-} chatFabricConnection;
+} ESP_WORD_ALIGN chatFabricConnection;
 
 typedef struct  {
-	int hasPublicKey;	
-	int hasNonce;	
+	uint32_t hasPublicKey;	
+	uint32_t hasNonce;	
 
-	enum chatPacketStates state;
+	enum chatPacketStates ESP_WORD_ALIGN state;
 	
 	uuid_tuple uuid;
 	unsigned char publickey[crypto_box_PUBLICKEYBYTES];
@@ -166,13 +200,13 @@ typedef struct  {
 	unsigned char nonce[crypto_secretbox_NONCEBYTES];
 	unsigned char mynonce[crypto_secretbox_NONCEBYTES];
 
-} chatFabricPairing;
+} ESP_WORD_ALIGN chatFabricPairing;
 
 
 typedef struct {
 	int length;
 	unsigned char *msg;
-} msgbuffer;
+} ESP_WORD_ALIGN msgbuffer;
 
 
 
@@ -193,5 +227,5 @@ typedef struct  {
 	unsigned char privatekey[crypto_box_SECRETKEYBYTES];
 
 	
-} chatFabricConfig;
+} ESP_WORD_ALIGN chatFabricConfig;
 #endif

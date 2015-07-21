@@ -27,7 +27,7 @@ BIN_OBJ=$(BIN_SRC:.c=.o)
 
 BIN_EXEC=$(BIN_SRC:.c=)
 
-all: $(LOCAL_LIB_OBJ) $(BIN_EXEC)
+all:  $(BIN_OBJ) $(LOCAL_LIB_OBJ) $(BIN_EXEC)
 
 examples/crypto-test: examples/crypto-test.o crypto/chacha20_simple.o crypto/curve25519-donna.o crypto/poly1305-donna.o crypto/salsa20.o
 	$(CC) $(LDFLAGS) -lsodium $(LIBS) $(DEFS) -o $@ $^
@@ -35,9 +35,9 @@ examples/crypto-test: examples/crypto-test.o crypto/chacha20_simple.o crypto/cur
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCLUDES) $(DEFS)
 
-%: %.o $(DEPS) 
+%: %.o $(LOCAL_LIB_OBJ) 
 	$(CC) $(LDFLAGS) $(LIBS) $(DEFS) -o $@ $^
 
 clean:
-	rm -f *.o crypto/*.o examples/*.o $(EXECUTABLE)
+	rm -f $(BIN_EXEC) $(BIN_OBJ) $(LOCAL_LIB_OBJ)
 

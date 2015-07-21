@@ -2,7 +2,18 @@
 #ifndef DPDCHATPACKET_H
 #define DPDCHATPACKET_H
 
+#ifdef ESP8266
+#include "ets_sys.h"
+#include "osapi.h"
+#include "os_type.h"
+#include "user_config.h"
+#include "user_interface.h"
+#include "driver/uart.h"
+#include "espconn.h"
+#include "mem.h"
+#include "arc4random_buf.h"
 
+#else 
 #include <arpa/inet.h>
 #include <errno.h>
 
@@ -23,6 +34,8 @@
 #include <limits.h>
      
 #include <getopt.h>
+
+#endif 
 
 #if defined(HAVE_SODIUM)
 #include <sodium.h>

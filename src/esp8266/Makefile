@@ -31,14 +31,15 @@ ESPPORT		?= /dev/ttyUSB0
 TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= driver user ../crypto ../dpdChatFabric.c ../dpdChatPacket.c
-EXTRA_INCDIR    = include ../crypto ..
+MODULES		= ../dpdChatFabric ../dpdChatPacket driver user ../crypto 
+EXTRA_INCDIR    = include ../crypto ../includes 
 
 # libraries used in this project, mainly provided by the SDK
-LIBS		= c gcc hal pp phy net80211 lwip wpa main
+#LIBS		= c gcc hal pp phy net80211 lwip wpa main
+LIBS		= cirom gcc hal pp phy net80211 lwip wpa main
 
-# compiler flags using during compilation of source files
-CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH -DESP8266 -D_LITTLE_ENDIAN
+# compiler flags using during compilation of source files -fno-inline-functions
+CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN
 
 # linker flags used to generate the main object file
 LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static 
@@ -135,6 +136,6 @@ flash: $(FW_FILE_1) $(FW_FILE_2)
 	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 clean:
-	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto
+	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
