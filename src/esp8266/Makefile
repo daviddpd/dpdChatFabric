@@ -46,6 +46,7 @@ LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 
 # linker script used for the above linkier step
  LD_SCRIPT	= eagle.app.v6.ld
+# LD_SCRIPT  = eagle.app.v6.full.512.ld
 #LD_SCRIPT	= eagle.app.v6.new.1024.app1.ld
 #LD_SCRIPT	= eagle.app.v6.new.1024.app2.ld
 #LD_SCRIPT	= eagle.app.v6.new.2048.ld

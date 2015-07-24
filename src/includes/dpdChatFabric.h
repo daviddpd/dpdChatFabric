@@ -81,6 +81,7 @@ enum chatFabricConfigTags  {
 	 cftag_hasPublicKey	= 7, // 1+1
 	 cftag_hasNonce		= 8, // 1+1
 	 cftag_state		= 9, // 1+1
+	 cftag_serial		= 10, // 1+4
 	 
 	
 } ESP_WORD_ALIGN;

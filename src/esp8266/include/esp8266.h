@@ -12,8 +12,12 @@ unsigned char ESP_WORD_ALIGN *tmp;
 msgbuffer ESP_WORD_ALIGN mbuff;
 uint8_t ESP_WORD_ALIGN wifiStatus;
 
+chatPacket ESP_WORD_ALIGN *cp100;
+
 chatPacket ESP_WORD_ALIGN cpArray[16];
 int ESP_WORD_ALIGN cpStatus[16]; 
 chatFabricPairing ESP_WORD_ALIGN pair[16]; 
+
+int32_t heap, heapLast;
 
 #endif

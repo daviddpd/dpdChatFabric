@@ -78,9 +78,9 @@ uuid_node(uint16_t *node)
 {
 	char hwaddr[6];
 	wifi_get_macaddr(STATION_IF, hwaddr);
-	node[0] = (hwaddr[0]<< 8) | hwaddr[1];
-	node[1] = (hwaddr[2]<< 8) | hwaddr[3];
-	node[2] = (hwaddr[4]<< 8) | hwaddr[5];
+	node[0] = (hwaddr[1]<< 8) | hwaddr[0];
+	node[1] = (hwaddr[3]<< 8) | hwaddr[2];
+	node[2] = (hwaddr[5]<< 8) | hwaddr[4];
 }
 
 /*

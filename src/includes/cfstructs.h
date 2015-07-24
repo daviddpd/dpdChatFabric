@@ -7,10 +7,14 @@
 
 #ifdef ESP8266
 #include "endian.h"
-#define CHATFABRIC_DEBUG(d, msg) if (d) os_printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg )
+#include "mem.h"
+#define CHATFABRIC_DEBUG(d, msg) if (d)  os_printf("[DEBUG][%5d:%s:%s:%d] %s\n", heapLast - system_get_free_heap_size(), __FILE__, __FUNCTION__, __LINE__, msg );
+
 #define CHATFABRIC_DEBUG_FMT(d, ...) if (d) os_printf( __VA_ARGS__ )
 #define socklen_t int
-#define calloc os_malloc
+#define calloc os_zalloc
+#define malloc os_malloc
+#define free os_free
 #define arc4random_uniform(x) os_random() % x
 
 
@@ -140,6 +144,7 @@ enum chatPacketTags  {
 	 cptag_publickey,
 
 	 cptag_mac,
+	 cptag_serial,
 	 	 
 	 cptag_cmd = 0xFF,
 	 	
@@ -152,6 +157,7 @@ typedef struct  {
 #ifdef ESP8266
 	int cpindex;
 #endif
+	uint32_t serial;	
 
 	uint32_t wasEncrypted;
 	
@@ -188,6 +194,7 @@ typedef struct {
 typedef struct  {
 	uint32_t hasPublicKey;	
 	uint32_t hasNonce;	
+	uint32_t serial;	
 
 	enum chatPacketStates ESP_WORD_ALIGN state;
 	

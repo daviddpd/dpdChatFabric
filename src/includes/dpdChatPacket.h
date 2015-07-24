@@ -53,6 +53,10 @@
 
 const char * stateLookup (enum chatPacketStates state);
 const char * cmdLookup (enum chatPacketCommands cmd);
+void nonceInc(chatPacket *cp, chatFabricConfig *config, chatFabricPairing *pair);
+
+void 
+chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuid_t *uuid);
 
 chatPacket*
 chatPacket_init0 (void);

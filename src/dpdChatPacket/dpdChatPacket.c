@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatPacket.h"
 
 #ifdef ESP8266
-void inline free(void *x) { return; }
+//void inline free(void *x) { return; }
 #include "esp8266.h"
 #endif
 
@@ -107,6 +107,9 @@ tagLookup (enum chatPacketTags tag) {
 		break;
 		case cptag_mac:
 			return "mac";
+		break;
+		case cptag_serial:
+			return "serial";
 		break;
 		case cptag_cmd:
 			return "cmd";
@@ -239,6 +242,32 @@ cmdLookup (enum chatPacketCommands cmd) {
 }
 
 void ICACHE_FLASH_ATTR
+chatPacket_calcNonce(uint32_t serial, unsigned char * nonce, unsigned char * sessionNonce )
+{
+
+	uint32_t last4Bytes = crypto_secretbox_NONCEBYTES - 4;
+	uint32_t ninc = 0, ninc2 =0;
+	
+	memcpy( (unsigned char *)sessionNonce, (unsigned char *)nonce, crypto_secretbox_NONCEBYTES );
+	memcpy ( &ninc, sessionNonce+last4Bytes, 4);
+
+#ifdef ESP8266
+	ninc2 = be32dec((void *)&ninc);
+	ninc2 += serial;
+	ninc = 0;
+	ninc = be32dec((void *)&ninc2);
+#else
+	ninc2 = ntohl(ninc);
+	ninc2 += serial;
+	ninc = 0;
+	ninc = htonl(ninc2);
+#endif
+
+	memcpy (  sessionNonce+last4Bytes, &ninc, 4);
+
+}
+
+void ICACHE_FLASH_ATTR
 chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuid_t *uuid)
 {
 
@@ -271,15 +300,17 @@ chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32
 chatPacket*
 ICACHE_FLASH_ATTR
 chatPacket_init0 (void) {
-	chatPacket * cp = NULL;
+	chatPacket * cp;
 	unsigned char h, l, hp, lp; // high / low envelope and payload padding
+	unsigned char _align[4];
 
 	int i=0;
 	unsigned int status=0;
 #ifndef ESP8266	
+
 	cp=(chatPacket *)calloc(1,sizeof(chatPacket));
 	if  ( cp == 0 ) {
-		return 0;
+		return NULL;
 	}
 #else 
 	for (i=0; i<16; i++) {
@@ -299,6 +330,7 @@ chatPacket_init0 (void) {
 	//cp->nonce = 0;
 	cp->envelopeLength = 0;
 	cp->wasEncrypted = -1;
+	cp->serial = 0;
 	
 
 	cp->envelopeRandomPaddingLength = 0;
@@ -348,9 +380,10 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPac
 	unsigned char h, l, hp, lp; // high / low envelope and payload padding
 
 #ifndef ESP8266	
+
 	cp=(chatPacket *)calloc(1,sizeof(chatPacket));
 	if  ( cp == 0 ) {
-		return 0;
+		return NULL;
 	}
 #else 
 	int i;
@@ -373,6 +406,7 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPac
 		return 0;	
 	}
 
+	cp->serial = 0;
 
 	h =  arc4random_uniform(15) + 1;
 	l = 16 - h;
@@ -403,12 +437,17 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPac
 void
 ICACHE_FLASH_ATTR
 chatPacket_delete (chatPacket* cp) {
+	CHATFABRIC_DEBUG(config.debug, "start " );
+
 #ifndef ESP8266
 	free(cp->payload);
 	free(cp);
 #else
 	cpStatus[cp->cpindex] = -1;
+	free(cp->payload);
 #endif
+	CHATFABRIC_DEBUG(config.debug, "return " );
+
 }
 
 
@@ -472,12 +511,17 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 		}
 	
 		if ( encrypted == _CHATPACKET_ENCRYPTED ) {
-
+			pair->serial++;
+			cp->serial = pair->serial;
+			unsigned char *sessionNonce = (unsigned char*)calloc(crypto_secretbox_NONCEBYTES,sizeof(unsigned char));
+			chatPacket_calcNonce(cp->serial, (unsigned char *)&(pair->nonce), sessionNonce);
+			
+			
 			#ifdef HAVE_SODIUM
 			crypto_box_easy(
 				payload_encrypted, 
 				payload, p_length, 
-				(const unsigned char *)&(pair->nonce),
+				(const unsigned char *)sessionNonce,
 				(unsigned char *)&(pair->publickey), 
 				(unsigned char *)&(config->privatekey)
 			);
@@ -485,7 +529,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 			
 			#ifdef HAVE_LOCAL_CRYPTO
 			memcpy ( payload_encrypted, payload, p_length );
-			s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, pair->nonce, 0, payload_encrypted, p_length);
+			s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, sessionNonce, 0, payload_encrypted, p_length);
 			poly1305_auth(payload_encrypted+p_length, payload_encrypted, p_length, (unsigned char *)&pair->sharedkey);
 			
 			if (config->debug) {
@@ -497,6 +541,8 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 				print_bin2hex((unsigned char *)payload, p_length);
 
 
+				printf ( "   %24s: ", "sessionNonce" );
+				print_bin2hex((unsigned char *)sessionNonce, crypto_secretbox_NONCEBYTES);
 				printf ( "   %24s: ", "nonce" );
 				print_bin2hex((unsigned char *)pair->nonce, crypto_secretbox_NONCEBYTES);
 				printf ( "   %24s: ", "shared key" );
@@ -507,7 +553,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 			#endif
 
 			
-			
+			free(sessionNonce);
 			free(payload);
 			/*
 			crypto_aead_chacha20poly1305_encrypt(
@@ -590,16 +636,16 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 	}
 	
 	/*
-	if (cp->payloadLength == 0 )
-	{
-		ob_length+=5;
-	}
+		Add in Serial Number 
 	*/
+	ob_length+=5;
 	ob->length = ob_length;
 	ob->msg = (unsigned char*)calloc(ob->length,sizeof(unsigned char));;
 	i=0;
 		
 	chatPacket_tagDataEncoder ( CP_INT32, ob->msg, &i, cptag_cmd, cp->cmd, NULL, 0, NULL);
+	chatPacket_tagDataEncoder ( CP_INT32, ob->msg, &i, cptag_serial, cp->serial, NULL, 0, NULL);
+
 	chatPacket_tagDataEncoder ( CP_INT32, ob->msg, &i, cptag_flags, cp->flags, NULL, 0, NULL);
 
 	chatPacket_tagDataEncoder ( CP_UUID, ob->msg, &i, cptag_to0, 0, NULL, 0,  &cp->to.u0);
@@ -661,6 +707,14 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 		print_bin2hex (b, len);		
 	}
 	
+	CHATFABRIC_DEBUG_FMT(config->debug,  
+		"[DEBUG][%s:%s:%d]  checking cp pointer %12u\n",
+		__FILE__, __FUNCTION__, __LINE__,  cp);
+	
+	CHATFABRIC_DEBUG_FMT(config->debug,  
+		"[DEBUG][%s:%s:%d]  checking cp-cmd pointer %4u\n",
+		__FILE__, __FUNCTION__, __LINE__,  cp->cmd);
+	
 //	const int len2 = len;
 
 	while (i<len) {
@@ -673,6 +727,11 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				i+=4;
 				cp->cmd = ntohl(ni);
 					
+			break;
+			case cptag_serial:
+				memcpy(&ni, b+i, 4);
+				i+=4;
+				cp->serial = ntohl(ni);					
 			break;
 			case cptag_nonce:
 				memcpy(cp->nonce, b+i, crypto_secretbox_NONCEBYTES);
@@ -826,6 +885,8 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 			case cptag_encryptedPayload:
 				cp->wasEncrypted = cp->wasEncrypted | 0x01;			
 				//free(cp->payload);				
+				unsigned char *sessionNonce = (unsigned char*)calloc(crypto_secretbox_NONCEBYTES,sizeof(unsigned char));
+				chatPacket_calcNonce(cp->serial, (unsigned char *)&(pair->mynonce), sessionNonce);
 				
 				#ifdef HAVE_LOCAL_CRYPTO
 				mac=(unsigned char*)calloc(crypto_secretbox_MACBYTES,sizeof(unsigned char) );
@@ -836,6 +897,8 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 //				ret =1 ;									
 					CHATFABRIC_DEBUG(config->debug, " ===> Decrypting  (payload) \n");
 					if (config->debug) {
+						printf ( "   %24s: ", "sessionNonce" );
+						print_bin2hex((unsigned char *)sessionNonce, crypto_secretbox_NONCEBYTES);
 						printf ( "   %24s: ", "nonce" );
 						print_bin2hex((unsigned char *)pair->mynonce, crypto_secretbox_NONCEBYTES);
 						printf ( "   %24s: ", "shared key" );
@@ -845,7 +908,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				if ( ret == 1 ) {					
 					decrypted=(unsigned char*)calloc(cp->payloadLength - crypto_secretbox_MACBYTES,sizeof(unsigned char));
 					memcpy ( decrypted, b+i, cp->payloadLength - crypto_secretbox_MACBYTES );
-					s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, pair->mynonce, 0, decrypted, cp->payloadLength - crypto_secretbox_MACBYTES);
+					s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, sessionNonce, 0, decrypted, cp->payloadLength - crypto_secretbox_MACBYTES);
 					ret = 0;
 				} else {
 					ret = -1;
@@ -856,10 +919,11 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				ret = crypto_box_open_easy(
 						decrypted, 
 						(unsigned char *)b+i, cp->payloadLength, 
-						(const unsigned char *)&(pair->mynonce),  
+						(const unsigned char *)sessionNonce,  
 						(unsigned char *)&(pair->publickey), 
 						(unsigned char *)&(config->privatekey) );
 				#endif
+				free(sessionNonce);
 				if (ret == 0 )
 				{
 					i+=cp->payloadLength;
@@ -939,6 +1003,7 @@ chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 
 	printf ( "%2s %24s: %42s\n", cd, "Command", cmdLookup (cp->cmd) );
 	printf ( "%2s %24s: %42x\n", cd, "flags", cp->flags);
+	printf ( "%2s %24s: %42u\n", cd, "serial", cp->serial);
 
 	uuid_to_string(&cp->to.u0, &str, &status);
 	printf ( "%2s %24s: %42s\n", cd, "to0", str);

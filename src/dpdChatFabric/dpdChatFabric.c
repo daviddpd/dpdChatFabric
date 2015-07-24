@@ -105,7 +105,7 @@ chatFabric_configParse(chatFabricConfig *config) {
 	uuid_create_nil( &(config->uuid.u0), &status);
 	uuid_create( &(config->uuid.u1), &status);
 	
-	config->debug = 1;
+	config->debug = 0;
 	arc4random_buf((unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES);
 
 	curve25519_donna((unsigned char *)&config->publickey, (unsigned char *)&config->privatekey, (unsigned char *)&basepoint);
@@ -425,9 +425,9 @@ chatFabric_configParse(chatFabricConfig *config)
 
 			fwrite (str, sizeof (unsigned char), len, fp );
 			fclose(fp);
-#ifndef ESP8266
+//#ifndef ESP8266
 			free(str);
-#endif
+//#endif
 		}
 	}
 
@@ -439,6 +439,7 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 
 	FILE *fp=0;
 	int len =0, i=0;
+	uint32_t ni;
 	struct stat fs;
 	unsigned char *str;
 	unsigned char c, t;
@@ -458,66 +459,25 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 			len+=1+1;
 			len+=1+1;
 			len+=1+1;
+			len+=1+4;
 			
 			str=(unsigned char *)calloc(len,sizeof(unsigned char));
 
-			t = cftag_hasPublicKey;
-			memcpy(str+i, &t, 1);
-			++i;
-			c = pair->hasPublicKey;
-			memcpy(str+i, &c, 1);
-			++i;
-
-			t = cftag_hasNonce;
-			memcpy(str+i, &t, 1);
-			++i;
-			c = pair->hasNonce;
-			memcpy(str+i, &c, 1);
-			++i;
-
-			t = cftag_state;
-			memcpy(str+i, &t, 1);
-			++i;
-			c = pair->state;
-			memcpy(str+i, &c, 1);
-			++i;
-						
-			t = cftag_uuid0;
-			memcpy(str+i, &t, 1);
-			++i;		
-			uuid_enc_be(str+i, &pair->uuid.u0);
-			i += 16;
-
-			t = cftag_uuid1;
-			memcpy(str+i, &t, 1);
-			++i;		
-			uuid_enc_be(str+i, &pair->uuid.u1);
-			i += 16;
-
-			t = cftag_publickey;
-			memcpy(str+i, &t, 1);
-			++i;		
-			memcpy(str+i, &(pair->publickey), crypto_box_PUBLICKEYBYTES);
-			i += crypto_box_PUBLICKEYBYTES;
-
-
-			t = cftag_nonce;
-			memcpy(str+i, &t, 1);
-			++i;		
-			memcpy(str+i, &(pair->nonce), crypto_secretbox_NONCEBYTES);
-			i += crypto_secretbox_NONCEBYTES;
-
-			t = cftag_mynonce;
-			memcpy(str+i, &t, 1);
-			++i;		
-			memcpy(str+i, &(pair->mynonce), crypto_secretbox_NONCEBYTES);
-			i += crypto_secretbox_NONCEBYTES;
+			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_hasPublicKey, 0, &pair->hasPublicKey, 1, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_hasNonce, 0, &pair->hasNonce, 1, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_state, 0, &pair->state, 1, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_serial, pair->serial, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_UUID, str, &i, cftag_uuid0, 0, NULL, 0,  &pair->uuid.u0);
+			chatPacket_tagDataEncoder ( CP_UUID, str, &i, cftag_uuid1, 0, NULL, 0,  &pair->uuid.u1);						
+			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_publickey, 0,(unsigned char *)&(pair->publickey), crypto_box_PUBLICKEYBYTES, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_mynonce, 0, (unsigned char *)&(pair->mynonce), crypto_secretbox_NONCEBYTES, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_nonce, 0, (unsigned char *)&(pair->nonce), crypto_secretbox_NONCEBYTES, NULL);
 
 			fwrite (str, sizeof (unsigned char), len, fp );
 			fclose(fp);
-#ifndef ESP8266
+//#ifndef ESP8266
 			free(str);
-#endif
+//#endif
 		}
 	} else if ( ( config->pairfile != NULL ) && (write == 0) ) {
 
@@ -548,7 +508,12 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 					case cftag_mynonce:		// 1+crypto_secretbox_NONCEBYTES
 						memcpy(&(pair->mynonce), str+i, crypto_secretbox_NONCEBYTES);
 						i += crypto_secretbox_NONCEBYTES;					
-					break;		
+					break;
+					case cftag_serial:
+						memcpy(&ni, str+i, 4);
+						i+=4;
+						pair->serial = ntohl(ni);
+					break;					
 					case cftag_uuid0:			// 1+16
 						uuid_dec_be(str+i, &pair->uuid.u0);
 						i+=16;
@@ -622,7 +587,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	chatPacket *cp;
 	msgbuffer mb;
 	unsigned char * nullmsg = 0;
-	b->length = -1;		
+	b->length = 0;		
 	enum chatFabricErrors e;
 #ifndef ESP8266
 	
@@ -652,9 +617,9 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	if ( config->debug )
 		chatPacket_print(cp, OUT);
 						
-#ifndef ESP8266
+//#ifndef ESP8266
 	free(mb.msg);
-#endif
+//#endif
 	mb.length = 0;
 	chatPacket_delete(cp);
 	
@@ -669,12 +634,14 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 enum chatFabricErrors ICACHE_FLASH_ATTR 
 chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b) 
 {
+	CHATFABRIC_DEBUG(config->debug, " Start " );
+
 	int n, buffersize=1460;
 	unsigned char *mesg;
 	socklen_t len;
 	chatPacket *cp, *cp_reply;
 	msgbuffer mb;
-	b->length = -1;		
+	b->length = 0;		
 	uint32_t heap;
 	
 
@@ -683,7 +650,6 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	enum chatFabricErrors e;
 	
 #ifdef ESP8266
-	system_print_meminfo();
 	n = mbuff.length;
 	mesg = mbuff.msg;
 	int errno = 0;
@@ -706,7 +672,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 #endif 	
 	if ( n == -1 ) {
 #ifndef ESP8266
-		free(mesg);
+		free(mesg); /* needed */ 
 #endif
 		CHATFABRIC_DEBUG(config->debug, "recvfrom returned an error" );
 		CHATFABRIC_DEBUG_FMT(config->debug,  
@@ -738,16 +704,17 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 			b->msg=(unsigned char*)calloc(b->length,sizeof(unsigned char));		
 			memcpy(b->msg, cp->payload, b->length);
 		} else {
-			b->length = -1;
+			b->length = 0;
 		}
 #ifndef ESP8266		
 		free(mesg);
 #endif
 	}
 	
+	CHATFABRIC_DEBUG(config->debug, " == cp init0 " );
 	cp_reply = chatPacket_init0 ();
 	
-//	CHATFABRIC_DEBUG(config->debug, " == starting state machine == \n\n " );
+	CHATFABRIC_DEBUG(config->debug, " == starting state machine == \n " );
 	stateMachine ( config, cp, pair, cp_reply, &replyCmd, &e);
 	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
 
@@ -772,9 +739,11 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 #else
 		n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);
 #endif
-#ifndef ESP8266
+		CHATFABRIC_DEBUG(config->debug, "chatPacket UDP data sent." );
+
+//#ifndef ESP8266
 		free(mb.msg);
-#endif
+//#endif
 		mb.length = 0;
 		chatPacket_delete(cp_reply);
 	} else {
@@ -782,6 +751,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	}
 	
 	chatPacket_delete(cp);
+	CHATFABRIC_DEBUG(config->debug, "function return." );
 	return ERROR_OK;
 }
 
@@ -790,6 +760,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 void ICACHE_FLASH_ATTR 
 stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e)
 {	
+	CHATFABRIC_DEBUG(config->debug, " Start " );
 
 	chatFabricPairing  previous_state;
 	uint32_t status;
@@ -1053,4 +1024,5 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 
 	*replyCmd = RETVAL;
 	*e = ERROR_OK;
+	CHATFABRIC_DEBUG(config->debug, " return" );
 }
