@@ -28,7 +28,7 @@ static void loop();
 LOCAL os_timer_t boottimer;
 LOCAL os_timer_t poketimer;
 /*
-LOCAL void ICACHE_FLASH_ATTR
+LOCAL void CP_ICACHE_FLASH_ATTR
 nonceInc()
 {
 	memcpy ( &ninc, (unsigned char *)&(pair[0].nullnonce[4]), 4);
@@ -55,7 +55,7 @@ nonceInc()
 
 }
 */
-LOCAL void ICACHE_FLASH_ATTR
+LOCAL void CP_ICACHE_FLASH_ATTR
 udp_callback(void *arg, char *data, unsigned short length)
 {
     msgbuffer payloadMsg;
@@ -111,7 +111,7 @@ udp_callback(void *arg, char *data, unsigned short length)
 }
 
 
-static void ICACHE_FLASH_ATTR
+static void CP_ICACHE_FLASH_ATTR
 loop()
 {
 	uint32 t,e,z;
@@ -131,7 +131,7 @@ loop()
 	os_printf("%12u %12u heap: %12d heapDiff: %12d  wifi/bootmode: %d/%d\n\r", t/100000, ntp_unix_timestamp, heap, heapLast-heap, wifiStatus, bootstatus);
 }
 
-static void ICACHE_FLASH_ATTR
+static void CP_ICACHE_FLASH_ATTR
 startup()
 {
 	uint32 t;
@@ -187,6 +187,7 @@ startup()
 		pair[0].hasPublicKey = 0;
 		pair[0].hasNonce = 0;
 		pair[0].serial = 0;
+		config.pairfile = "1";
 		
 		b.length = -1;
 		arc4random_buf((unsigned char *)&(pair[0].mynonce), crypto_secretbox_NONCEBYTES);
@@ -197,7 +198,7 @@ startup()
 
 		if ( flashConfig[2048] == cftag_header ) {
 			os_printf("reading pair config\n");
-			chatFabric_pairConfig(&config, (chatFabricPairing *)&pair[0], 0 );
+			chatFabric_pairConfig(&config, (chatFabricPairing *)&(pair[0]), 0 );
 		}
 
 	    os_printf("%12u %12u FlashConfig  %02x %02x %02x %02x %02x \n\r", t/100000, ntp_unix_timestamp, flashConfig[2048], flashConfig[2049], flashConfig[2050], flashConfig[2051], flashConfig[2052] );
@@ -236,7 +237,7 @@ startup()
 
 
 //Init function 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 user_init()
 {
     char ssid[32] = SSID;
@@ -251,7 +252,7 @@ user_init()
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
 	gpio_output_set(BIT2, 0, BIT2, 0);
 
-	bzero(&c,sizeof(c));	
+	bzero(&c,sizeof(c));
 //	bzero(&pair[0],sizeof(pair[0]));	
 	bzero(&config,sizeof(config));	
 	bzero(&b,sizeof(b));

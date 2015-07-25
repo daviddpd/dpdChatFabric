@@ -16,16 +16,16 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 This implementation is intended to be simple, many optimizations can be performed.
 */
 #ifdef ESP8266
-#define ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
 #else
-#define ICACHE_FLASH_ATTR __attribute__(())
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
 #endif
 
 #include <string.h>
 #include "chacha20_simple.h"
 
 void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chacha20_setup(chacha20_ctx *ctx, const uint8_t *key, size_t length, uint8_t nonce[8])
 {
   const char *constants = (length == 32) ? "expand 32-byte k" : "expand 16-byte k";
@@ -52,7 +52,7 @@ chacha20_setup(chacha20_ctx *ctx, const uint8_t *key, size_t length, uint8_t non
 }
 
 void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chacha20_counter_set(chacha20_ctx *ctx, uint64_t counter)
 {
   ctx->schedule[12] = counter & UINT32_C(0xFFFFFFFF);
@@ -67,7 +67,7 @@ chacha20_counter_set(chacha20_ctx *ctx, uint64_t counter)
     x[c] += x[d]; x[b] = ROTL32(x[b] ^ x[c], 7);
 
 void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chacha20_block(chacha20_ctx *ctx, uint32_t output[16])
 {
   uint32_t *const nonce = ctx->schedule+12; //12 is where the 128 bit counter is
@@ -102,7 +102,7 @@ chacha20_block(chacha20_ctx *ctx, uint32_t output[16])
 }
 
 static inline void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chacha20_xor(uint8_t *keystream, const uint8_t **in, uint8_t **out, size_t length)
 {
   uint8_t *end_keystream = keystream + length;
@@ -110,7 +110,7 @@ chacha20_xor(uint8_t *keystream, const uint8_t **in, uint8_t **out, size_t lengt
 }
 
 void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chacha20_encrypt(chacha20_ctx *ctx, const uint8_t *in, uint8_t *out, size_t length)
 {
   if (length)
@@ -139,7 +139,7 @@ chacha20_encrypt(chacha20_ctx *ctx, const uint8_t *in, uint8_t *out, size_t leng
 }
 
 void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chacha20_decrypt(chacha20_ctx *ctx, const uint8_t *in, uint8_t *out, size_t length)
 {
   chacha20_encrypt(ctx, in, out, length);

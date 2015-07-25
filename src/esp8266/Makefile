@@ -46,7 +46,7 @@ LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 
 # linker script used for the above linkier step
 # LD_SCRIPT	= eagle.app.v6.ld
- LD_SCRIPT  = eagle.app.v6.full.512.ld
+ LD_SCRIPT  = eagle.app.v6.full512.ld
 #LD_SCRIPT	= eagle.app.v6.new.1024.app1.ld
 #LD_SCRIPT	= eagle.app.v6.new.1024.app2.ld
 #LD_SCRIPT	= eagle.app.v6.new.2048.ld
@@ -59,7 +59,7 @@ SDK_INCDIR	= include include/json
 # we create two different files for uploading into the flash
 # these are the names and options to generate them
 FW_FILE_1_ADDR	= 0x00000
-FW_FILE_2_ADDR	= 0x40000
+FW_FILE_2_ADDR	= 0x10000
 
 # select which tools to use as compiler, librarian and linker
 CC		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc

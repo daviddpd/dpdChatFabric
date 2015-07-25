@@ -3,10 +3,13 @@
 #define DPDCHATFABRIC_H
 
 #ifdef ESP8266
-#define ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+//#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#ifndef CP_ICACHE_FLASH_ATTR
+#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#endif
 #define ESP_WORD_ALIGN __attribute__ ((aligned (4)))
 #else
-#define ICACHE_FLASH_ATTR __attribute__(())
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
 #define ESP_WORD_ALIGN __attribute__ (())
 #endif
 

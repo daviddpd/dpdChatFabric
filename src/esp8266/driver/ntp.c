@@ -23,8 +23,8 @@ extern int ntp_status;
 static os_timer_t ntp_timeout;
 static struct espconn *pCon = 0;
 
-static void ICACHE_FLASH_ATTR ntp_udp_timeout(void *arg) {
-	
+static void CP_ICACHE_FLASH_ATTR ntp_udp_timeout(void *arg){
+
 	os_timer_disarm(&ntp_timeout);
 	uart0_tx_buffer("ntp timout\r\n", 12);
 	ntp_status = 2;
@@ -38,7 +38,7 @@ static void ICACHE_FLASH_ATTR ntp_udp_timeout(void *arg) {
 	}
 }
 
-static void ICACHE_FLASH_ATTR ntp_udp_recv(void *arg, char *pdata, unsigned short len) {
+static void CP_ICACHE_FLASH_ATTR ntp_udp_recv(void *arg, char *pdata, unsigned short len) {
 	
 	struct tm *dt;
 	time_t timestamp;
@@ -77,7 +77,7 @@ static void ICACHE_FLASH_ATTR ntp_udp_recv(void *arg, char *pdata, unsigned shor
 	}
 }
 
-void ICACHE_FLASH_ATTR ntp_get_time() {
+void CP_ICACHE_FLASH_ATTR ntp_get_time() {
 
 	ntp_t ntp;
 

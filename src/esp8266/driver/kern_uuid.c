@@ -23,6 +23,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifdef ESP8266
+//#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#ifndef CP_ICACHE_FLASH_ATTR
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
+#endif
+#define ESP_WORD_ALIGN __attribute__ ((aligned (4)))
+#else
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
+#define ESP_WORD_ALIGN __attribute__ (())
+#endif
 
 #include <c_types.h>
 #include <uuid.h>
@@ -73,7 +83,7 @@ static struct uuid_macaddr uuid_ether[UUID_NETHER];
  * addresses added later will bump the random MAC address up tp the next
  * index.
  */
-static void ICACHE_FLASH_ATTR
+static void CP_ICACHE_FLASH_ATTR
 uuid_node(uint16_t *node)
 {
 	char hwaddr[6];
@@ -89,7 +99,7 @@ uuid_node(uint16_t *node)
  * the Unix time since 00:00:00.00, January 1, 1970 to the date of the
  * Gregorian reform to the Christian calendar.
  */
-static uint64_t ICACHE_FLASH_ATTR
+static uint64_t CP_ICACHE_FLASH_ATTR
 uuid_time(void)
 {
 	struct bintime bt;
@@ -104,7 +114,7 @@ uuid_time(void)
 	return (time & ((1LL << 60) - 1LL));
 }
 
-struct uuid * ICACHE_FLASH_ATTR
+struct uuid * CP_ICACHE_FLASH_ATTR
 kern_uuidgen(struct uuid *store, size_t count)
 {
 	struct uuid_private uuid;
@@ -170,7 +180,7 @@ sys_uuidgen(struct thread *td, struct uuidgen_args *uap)
 	return (error);
 }
 
-int ICACHE_FLASH_ATTR
+int CP_ICACHE_FLASH_ATTR
 uuid_ether_add(const uint8_t *addr)
 {
 	int i, sum;
@@ -212,7 +222,7 @@ uuid_ether_add(const uint8_t *addr)
 	return (0);
 }
 
-int ICACHE_FLASH_ATTR
+int CP_ICACHE_FLASH_ATTR
 uuid_ether_del(const uint8_t *addr)
 {
 	int i;
@@ -243,7 +253,7 @@ uuid_ether_del(const uint8_t *addr)
 
 */
 
-int ICACHE_FLASH_ATTR
+int CP_ICACHE_FLASH_ATTR
 snprintf_uuid(char *buf, size_t sz, struct uuid *uuid)
 {
 	struct uuid_private *id;
@@ -257,7 +267,7 @@ snprintf_uuid(char *buf, size_t sz, struct uuid *uuid)
 	return (cnt);
 }
 
-int ICACHE_FLASH_ATTR
+int CP_ICACHE_FLASH_ATTR
 printf_uuid(struct uuid *uuid)
 {
 	char buf[38];
@@ -266,7 +276,7 @@ printf_uuid(struct uuid *uuid)
 	return (printf("%s", buf));
 }
 
-int ICACHE_FLASH_ATTR
+int CP_ICACHE_FLASH_ATTR
 sbuf_printf_uuid(struct sbuf *sb, struct uuid *uuid)
 {
 	char buf[38];
@@ -292,7 +302,7 @@ sbuf_printf_uuid(struct sbuf *sb, struct uuid *uuid)
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 le_uuid_enc(void *buf, struct uuid const *uuid)
 {
 	u_char *p;
@@ -308,7 +318,7 @@ le_uuid_enc(void *buf, struct uuid const *uuid)
 		p[10 + i] = uuid->node[i];
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 le_uuid_dec(void const *buf, struct uuid *uuid)
 {
 	u_char const *p;
@@ -324,7 +334,7 @@ le_uuid_dec(void const *buf, struct uuid *uuid)
 		uuid->node[i] = p[10 + i];
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 be_uuid_enc(void *buf, struct uuid const *uuid)
 {
 	u_char *p;
@@ -340,7 +350,7 @@ be_uuid_enc(void *buf, struct uuid const *uuid)
 		p[10 + i] = uuid->node[i];
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 be_uuid_dec(void const *buf, struct uuid *uuid)
 {
 	u_char const *p;
@@ -356,7 +366,7 @@ be_uuid_dec(void const *buf, struct uuid *uuid)
 		uuid->node[i] = p[10 + i];
 }
 // 
-// int ICACHE_FLASH_ATTR
+// int CP_ICACHE_FLASH_ATTR
 // parse_uuid(const char *str, struct uuid *uuid)
 // {
 // 	u_int c[11];

@@ -9,6 +9,16 @@
 #define __NTP_H__
 
 #define NTP_TIMEOUT_MS 5000
+#ifdef ESP8266
+//#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#ifndef CP_ICACHE_FLASH_ATTR
+#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#endif
+#define ESP_WORD_ALIGN __attribute__ ((aligned (4)))
+#else
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
+#define ESP_WORD_ALIGN __attribute__ (())
+#endif
 
 typedef struct {
 	uint8 options;
@@ -24,6 +34,6 @@ typedef struct {
 	uint8 trans_time[8];
 } ntp_t;
 
-void ICACHE_FLASH_ATTR ntp_get_time();
+void CP_ICACHE_FLASH_ATTR ntp_get_time();
 
 #endif

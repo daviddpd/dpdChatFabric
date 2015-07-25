@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // #include <assert.h>
 const char * 
-ICACHE_FLASH_ATTR 
+CP_ICACHE_FLASH_ATTR
 tagLookup (enum chatPacketTags tag) {
 
 	switch (tag) {
@@ -119,7 +119,7 @@ tagLookup (enum chatPacketTags tag) {
 
 
 const char * 
-ICACHE_FLASH_ATTR 
+CP_ICACHE_FLASH_ATTR
 stateLookup (enum chatPacketStates state) {
 
 	switch (state) {
@@ -154,7 +154,7 @@ stateLookup (enum chatPacketStates state) {
 
 
 const char * 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 cmdLookup (enum chatPacketCommands cmd) {
 	switch (cmd) {	
 	case CMD_INVAILD_CMD:
@@ -241,7 +241,7 @@ cmdLookup (enum chatPacketCommands cmd) {
 
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatPacket_calcNonce(uint32_t serial, unsigned char * nonce, unsigned char * sessionNonce )
 {
 
@@ -267,7 +267,7 @@ chatPacket_calcNonce(uint32_t serial, unsigned char * nonce, unsigned char * ses
 
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuid_t *uuid)
 {
 
@@ -298,7 +298,7 @@ chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32
 
 
 chatPacket*
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chatPacket_init0 (void) {
 	chatPacket * cp;
 	unsigned char h, l, hp, lp; // high / low envelope and payload padding
@@ -371,7 +371,7 @@ chatPacket_init0 (void) {
 
 
 chatPacket*
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPacketCommands cmd, unsigned char *payload, uint32_t len, uint32_t flags) {
 
 	chatPacket * cp;
@@ -434,9 +434,9 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPac
 }
 
 void
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chatPacket_delete (chatPacket* cp) {
-	CHATFABRIC_DEBUG(1, "start " );
+//	CHATFABRIC_DEBUG(1, "start " );
 	free(cp->payload);
 
 #ifndef ESP8266
@@ -444,13 +444,13 @@ chatPacket_delete (chatPacket* cp) {
 #else
 	cpStatus[cp->cpindex] = -1;
 #endif
-	CHATFABRIC_DEBUG(1, "return " );
+//	CHATFABRIC_DEBUG(1, "return " );
 
 }
 
 
 void
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *pair, msgbuffer *ob, int encrypted, enum chatPacketPacketTypes packetType) {
 	uint32_t p_length =0, e_length=0, ob_length=0, encrypted_envolopeLength=0;
 	unsigned long long p_length_encrpyted=0;
@@ -695,7 +695,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 
 
 int 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, const int len, chatFabricConfig *config) {
 	uint32_t ni=0, i=0, length = 0;
 	unsigned char c=0, h=0, l=0, hp=0, lp = 0;
@@ -708,13 +708,6 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 		print_bin2hex (b, len);		
 	}
 	
-	CHATFABRIC_DEBUG_FMT(config->debug,  
-		"[DEBUG][%s:%s:%d]  checking cp pointer %12u\n",
-		__FILE__, __FUNCTION__, __LINE__,  cp);
-	
-	CHATFABRIC_DEBUG_FMT(config->debug,  
-		"[DEBUG][%s:%s:%d]  checking cp-cmd pointer %4u\n",
-		__FILE__, __FUNCTION__, __LINE__,  cp->cmd);
 	
 //	const int len2 = len;
 
@@ -805,7 +798,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 			case cptag_envelopeRandomPaddingHigh:
 				if ( h == 0 ) {
 					// zero length is invalid padding.
-					CHATFABRIC_DEBUG(config->debug, " ===> cptag_envelopeRandomPaddingHigh == 0 \n");
+					//CHATFABRIC_DEBUG(config->debug, " ===> cptag_envelopeRandomPaddingHigh == 0 \n");
 					return -1;
 				}
 				memcpy(&(cp->envelopeRandomPadding), b+i, h);
@@ -814,7 +807,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 			case cptag_envelopeRandomPaddingLow:
 				if ( l == 0 ) {
 					// zero length is invalid padding.
-					CHATFABRIC_DEBUG(config->debug, " ===> cptag_envelopeRandomPaddingLow == 0 \n");
+					//CHATFABRIC_DEBUG(config->debug, " ===> cptag_envelopeRandomPaddingLow == 0 \n");
 					return -1;
 				}
 				memcpy(&(cp->envelopeRandomPadding[h]), b+i, l);
@@ -867,7 +860,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 			case cptag_payloadRandomPaddingHigh:
 				if ( hp == 0 ) {
 					// zero length is invalid padding.
-					CHATFABRIC_DEBUG(config->debug, " ===> cptag_payloadRandomPaddingHigh == 0 \n");
+					//CHATFABRIC_DEBUG(config->debug, " ===> cptag_payloadRandomPaddingHigh == 0 \n");
 					return -1;
 				}
 				memcpy(&(cp->payloadRandomPadding), b+i, hp);
@@ -877,7 +870,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 			case cptag_payloadRandomPaddingLow:
 				if ( lp == 0 ) {
 					// zero length is invalid padding.
-					CHATFABRIC_DEBUG(config->debug, " ===> cptag_payloadRandomPaddingLow == 0 \n");
+					//CHATFABRIC_DEBUG(config->debug, " ===> cptag_payloadRandomPaddingLow == 0 \n");
 					return -1;
 				}
 				memcpy(&(cp->envelopeRandomPadding[hp]), b+i, lp);
@@ -974,7 +967,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 
 #ifdef ESP8266

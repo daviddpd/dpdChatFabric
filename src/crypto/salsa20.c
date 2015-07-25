@@ -2,9 +2,9 @@
 #include <stddef.h>
 #include "salsa20.h"
 #ifdef ESP8266
-#define ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
 #else
-#define ICACHE_FLASH_ATTR __attribute__(())
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
 #endif
 
 // Implements DJB's definition of '<<<'
@@ -14,7 +14,7 @@ static uint32_t rotl(uint32_t value, int shift)
 }
 
 static void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_quarterround(uint32_t *y0, uint32_t *y1, uint32_t *y2, uint32_t *y3)
 {
   *y1 = *y1 ^ rotl(*y0 + *y3, 7);
@@ -24,7 +24,7 @@ s20_quarterround(uint32_t *y0, uint32_t *y1, uint32_t *y2, uint32_t *y3)
 }
 
 static void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_rowround(uint32_t y[static 16])
 {
   s20_quarterround(&y[0], &y[1], &y[2], &y[3]);
@@ -34,7 +34,7 @@ s20_rowround(uint32_t y[static 16])
 }
 
 static void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_columnround(uint32_t x[static 16])
 {
   s20_quarterround(&x[0], &x[4], &x[8], &x[12]);
@@ -44,7 +44,7 @@ s20_columnround(uint32_t x[static 16])
 }
 
 static void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_doubleround(uint32_t x[static 16])
 {
   s20_columnround(x);
@@ -53,7 +53,7 @@ s20_doubleround(uint32_t x[static 16])
 
 // Creates a little-endian word from 4 bytes pointed to by b
 static uint32_t 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_littleendian(uint8_t *b)
 {
   return b[0] +
@@ -64,7 +64,7 @@ s20_littleendian(uint8_t *b)
 
 // Moves the little-endian word into the 4 bytes pointed to by b
 static void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_rev_littleendian(uint8_t *b, uint32_t w)
 {
   b[0] = w;
@@ -75,7 +75,7 @@ s20_rev_littleendian(uint8_t *b, uint32_t w)
 
 // The core function of Salsa20
 static void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_hash(uint8_t seq[static 64])
 {
   int i;
@@ -99,7 +99,7 @@ s20_hash(uint8_t seq[static 64])
 
 // The 16-byte (128-bit) key expansion function
 static void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_expand16(uint8_t *k,
                          uint8_t n[static 16],
                          uint8_t keystream[static 64])
@@ -132,7 +132,7 @@ s20_expand16(uint8_t *k,
 
 // The 32-byte (256-bit) key expansion function
 static void 
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 s20_expand32(uint8_t *k,
                          uint8_t n[static 16],
                          uint8_t keystream[static 64])
@@ -165,7 +165,7 @@ s20_expand32(uint8_t *k,
 
 // Performs up to 2^32-1 bytes of encryption or decryption under a
 // 128- or 256-bit key.
-enum s20_status_t ICACHE_FLASH_ATTR
+enum s20_status_t CP_ICACHE_FLASH_ATTR
 s20_crypt(uint8_t *key,
                             enum s20_keylen_t keylen,
                             uint8_t nonce[static 8],

@@ -1,6 +1,6 @@
 #include "arc4random_buf.h"
 
-void ICACHE_FLASH_ATTR arc4random_buf(unsigned char *b, int len ) 
+void CP_ICACHE_FLASH_ATTR arc4random_buf(unsigned char *b, int len )
 {
 	int i;
 	for (i=0; i<len; i++ ) {

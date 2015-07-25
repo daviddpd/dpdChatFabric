@@ -3,6 +3,7 @@
 
 #include "driver/errno.h"
 
+#define CP_ESP_PARAM_START_SEC 0x7a
 
 chatFabricConnection ESP_WORD_ALIGN c;
 chatFabricConfig ESP_WORD_ALIGN config;  

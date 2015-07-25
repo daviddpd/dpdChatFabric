@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ESP8266
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 print_bin2hex(unsigned char * x, int len) {
 	int i;
 	for (i=0; i<len; i++) {
@@ -50,7 +50,7 @@ print_bin2hex(unsigned char * x, int len) {
 
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_hexprint ( unsigned char *str, uint32_t len ){
 	int i;
 	unsigned char p;
@@ -71,7 +71,7 @@ chatFabric_hexprint ( unsigned char *str, uint32_t len ){
 	os_printf ("\n");
 
 }
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght ) {
 	char str[5] = { '0', 'x', '0', '0' , 0 };
 	int i=0,x=0;
@@ -89,17 +89,17 @@ chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char 
 
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_usage(char *p) {
 	return;
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 	return;
 }
 #else
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 print_bin2hex(unsigned char * x, int len) {
 	int i;
 	for (i=0; i<len; i++) {
@@ -110,7 +110,7 @@ print_bin2hex(unsigned char * x, int len) {
 
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_hexprint ( unsigned char *str, uint32_t len ){
 	int i;
 	unsigned char p;
@@ -132,7 +132,7 @@ chatFabric_hexprint ( unsigned char *str, uint32_t len ){
 
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght ) {
 	char str[5] = { '0', 'x', '0', '0' , 0 };
 	int i=0,x=0;
@@ -154,7 +154,7 @@ chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char 
 	}
 
 }
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_usage(char *p) {
 	printf ("%s -config configfile\n", p);
 	printf ("   -c --config   FILE           config file to use.\n");
@@ -177,7 +177,7 @@ chatFabric_usage(char *p) {
 	return;
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 	int ch;
 	uint32_t status;
@@ -302,7 +302,7 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 }
 #endif
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_configParse(chatFabricConfig *config) 
 {
 
@@ -330,12 +330,13 @@ chatFabric_configParse(chatFabricConfig *config)
 		"[DEBUG][%s:%s:%d] Readed in flash\n", 
 		__FILE__, __FUNCTION__, __LINE__ );
 
-	if ( system_param_load (ESP_PARAM_START_SEC, 0, &(flashConfig), 4096) == FALSE ) {
+	if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig), 4096) == FALSE ) {
 		CHATFABRIC_DEBUG_FMT(config->debug, "Read from flash failed." ); 	
 	}
 
 
 	print_bin2hex((unsigned char *)&flashConfig, 256);	
+	print_bin2hex((unsigned char *)&flashConfig+2048, 256);	
 
 	if ( flashConfig[0] == cftag_header ) {
 		filesize=4096;	
@@ -469,7 +470,7 @@ chatFabric_configParse(chatFabricConfig *config)
 			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
 
 #ifdef ESP8266
-		if ( system_param_save_with_protect (ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) { 
+		if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
 			CHATFABRIC_DEBUG_FMT(1,  
 				"[DEBUG][%s:%s:%d] Failed to Save Config to Flash\n", 
 				__FILE__, __FUNCTION__, __LINE__ );
@@ -491,7 +492,7 @@ chatFabric_configParse(chatFabricConfig *config)
 
 }
 
-void ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int write ) 
 {
 			CHATFABRIC_DEBUG(config->debug, "In pair config." );
@@ -517,11 +518,11 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 		str=(unsigned char *)calloc(len,sizeof(unsigned char));
 		i=0;
 #else 
-		CHATFABRIC_DEBUG(config->debug, "pointer assignment" );
+//		CHATFABRIC_DEBUG(config->debug, "pointer assignment" );
 		str = &(flashConfig[0]);
-		CHATFABRIC_DEBUG(config->debug, "setting fp to 1" );
+//		CHATFABRIC_DEBUG(config->debug, "setting fp to 1" );
 		fp = 1;
-		CHATFABRIC_DEBUG(config->debug, "setting i to 2048" );
+//		CHATFABRIC_DEBUG(config->debug, "setting i to 2048" );
 		i=2048;
 #endif
 
@@ -551,6 +552,9 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_header, 0, NULL, 0, NULL);			
 			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_pairs, 1, NULL, 0, NULL);
 			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_pairLength, len, NULL, 0, NULL);
+			CHATFABRIC_DEBUG_FMT(1,
+				"[DEBUG][%s:%s:%d] Encoding Pair Config Length %d\n",
+				__FILE__, __FUNCTION__, __LINE__, len );
 
 			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_hasPublicKey, 0, (unsigned char *)&pair->hasPublicKey, 1, NULL);
 			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_hasNonce, 0, (unsigned char *)&pair->hasNonce, 1, NULL);
@@ -565,9 +569,9 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_mynonce, 0, (unsigned char *)&(pair->mynonce), crypto_secretbox_NONCEBYTES, NULL);
 			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_nonce, 0, (unsigned char *)&(pair->nonce), crypto_secretbox_NONCEBYTES, NULL);
 #ifdef ESP8266
-		if ( system_param_save_with_protect (ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) { 
-			CHATFABRIC_DEBUG_FMT(1,  
-				"[DEBUG][%s:%s:%d] Failed to Save Config to Flash\n", 
+		if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
+			CHATFABRIC_DEBUG_FMT(1,
+				"[DEBUG][%s:%s:%d] Failed to Save Config to Flash\n",
 				__FILE__, __FUNCTION__, __LINE__ );
 		} else {
 			CHATFABRIC_DEBUG_FMT(1,  
@@ -607,7 +611,7 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 			i=0;
 #else
 			// FIXME:  Add if reconfig condition ... from button/GPIO ?
-			if ( system_param_load (ESP_PARAM_START_SEC, 0, &(flashConfig[0]), 4096) == TRUE ) {
+			if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig[0]), 4096) == TRUE ) {
 				filesize=4096;	
 				config->pairfile = "1";
 			}
@@ -618,6 +622,10 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 			while (i<filesize) 
 			{
 				memcpy(&t, str+i, 1);
+				CHATFABRIC_DEBUG_FMT(config->debug,
+					"[DEBUG][%s:%s:%d] Parsing File %02x %4d\n",
+					__FILE__, __FUNCTION__, __LINE__, t, i);
+				
 				++i;			
 				switch (t){
 					case cftag_header:
@@ -626,7 +634,10 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 					case cftag_pairLength:
 						memcpy(&ni, str+i, 4);
 						i+=4;
-						filesize = ntohl(ni);
+						filesize = 2048 + ntohl(ni);
+					CHATFABRIC_DEBUG_FMT(config->debug,  
+						"[DEBUG][%s:%s:%d] Got Length as  %02x %08x %4d\n", 
+						__FILE__, __FUNCTION__, __LINE__, t, ni, filesize);
 					break;
 					case cftag_pairs:
 						memcpy(&ni, str+i, 4);
@@ -686,13 +697,14 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 		}
 	
 	}
+	CHATFABRIC_DEBUG(config->debug, "return" );
 
 }
 
 
 #ifndef ESP8266
 
-void ICACHE_FLASH_ATTR 
+void CP_ICACHE_FLASH_ATTR
 chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind )
 {
 
@@ -717,7 +729,7 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind )
 #endif
 
 
-enum chatFabricErrors ICACHE_FLASH_ATTR 
+enum chatFabricErrors CP_ICACHE_FLASH_ATTR
 chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b) 
 {
 	int n, buffersize=1460;
@@ -770,7 +782,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	
 }
 
-enum chatFabricErrors ICACHE_FLASH_ATTR 
+enum chatFabricErrors CP_ICACHE_FLASH_ATTR
 chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b) 
 {
 	CHATFABRIC_DEBUG(config->debug, " Start " );
@@ -896,7 +908,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 
 
 
-void ICACHE_FLASH_ATTR 
+void CP_ICACHE_FLASH_ATTR
 stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e)
 {	
 	CHATFABRIC_DEBUG(config->debug, " Start " );
@@ -1159,7 +1171,9 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 			stateLookup(previous_state.state), stateLookup(pair->state), "STATE WAS UNCHANGED"  );
 	} else {
 		if ( pair->state == STATE_PAIRED ) {
+#ifdef ESP8266
 			config->pairfile = "1";
+#endif
 			config->hasPairs = 1;
 			CHATFABRIC_DEBUG(config->debug, " Running Pair Config" );
 			chatFabric_pairConfig(config, pair, 1 );

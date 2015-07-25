@@ -1,7 +1,7 @@
 #ifdef ESP8266
-#define ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
 #else
-#define ICACHE_FLASH_ATTR __attribute__(())
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
 #endif
 #include "poly1305-donna.h"
 
@@ -29,7 +29,7 @@
 #endif
 
 void
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 poly1305_update(poly1305_context *ctx, const unsigned char *m, size_t bytes) {
 	poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
 	size_t i;
@@ -67,7 +67,7 @@ poly1305_update(poly1305_context *ctx, const unsigned char *m, size_t bytes) {
 }
 
 void
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 poly1305_auth(unsigned char *mac, const unsigned char *m, size_t bytes, unsigned char *key) {
 	poly1305_context ctx;
 	poly1305_init(&ctx, key);
@@ -76,7 +76,7 @@ poly1305_auth(unsigned char *mac, const unsigned char *m, size_t bytes, unsigned
 }
 
 int
-ICACHE_FLASH_ATTR
+CP_ICACHE_FLASH_ATTR
 poly1305_verify( unsigned char *mac1, unsigned char *mac2) {
 	size_t i;
 	unsigned int dif = 0;
@@ -89,7 +89,7 @@ poly1305_verify( unsigned char *mac1, unsigned char *mac2) {
 
 /* test a few basic operations */
 // int
-// ICACHE_FLASH_ATTR
+// CP_ICACHE_FLASH_ATTR
 // poly1305_power_on_self_test(void) {
 // 	/* example from nacl */
 // 	static const unsigned char nacl_key[32] = {
