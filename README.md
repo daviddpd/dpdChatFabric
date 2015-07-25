@@ -24,6 +24,8 @@ Libsodium implements both [ChaCha20 and Poly1305 for IETF protocols] [1] and [rf
 
 ## Building 
 
+### FreeBSD 
+
 This will build with both GCC48 and clang-3.4.1, and xtensa-lx106-elf-gcc. 
 
 		gmake HAVE_LOCAL_CRYPTO=1
@@ -31,8 +33,33 @@ This will build with both GCC48 and clang-3.4.1, and xtensa-lx106-elf-gcc.
 or
 
 		gmake HAVE_SODIUM=1
-		
-		
+
+bsd-make won't work.  I must be using some gmake only conventions.		
+
+### ESP8266 w/ using esp_iot_sdk_v1.2.0
+
+I have not included the SDK files in this repo. So from `esp_iot_sdk_v1.2.0/examples/driver_lib`, the following files should be copied into the following locations.
+
+```
+	src/esp8266/driver/gpio16.c
+	src/esp8266/driver/uart.c
+	src/esp8266/include/driver/gpio16.h
+	src/esp8266/include/driver/uart.h
+	src/esp8266/include/driver/uart_register.h
+```	
+
+The current code size has extended beyond the two ROM 512k setup.  So, the include eagle.app.v6.full512.ld will map the irom0 segment starting at 0x10000, and stretches beyond the 0x40000 halfway point.   The configuration storaged is using the SDK's save with protect at offset 0x7a000.
+
+If you are using the vagrant VirtualBox setup ... the makefile should just work. Jump into src/esp8266 and just `make`.
+
+At writing, there is no way to clear the saved config.  Use esptool to write 16k of zeros starting at 0x7a000.
+
+So somthing like this:
+
+```shell
+ dd if=/dev/zero of=16kblank.bin bs=16k count=1
+ esptool.py --port /dev/cu.usbserial-AI025GVS write_flash 0x7a000 16kblank.bin 0x00000 firmware/0x00000.bin 0x10000 firmware/0x10000.bin
+```
 
 
 ##  SPEC, PROTOCOL AND SOFTWARE IN HIGH DEGREE OF FLUX 
