@@ -50,6 +50,13 @@ I have not included the SDK files in this repo. So from `esp_iot_sdk_v1.2.0/exam
 
 The current code size has extended beyond the two ROM 512k setup.  So, the include eagle.app.v6.full512.ld will map the irom0 segment starting at 0x10000, and stretches beyond the 0x40000 halfway point.   The configuration storaged is using the SDK's save with protect at offset 0x7a000.
 
+The ESP8266 boots into Station mode, not AP (access point).  So, you need to also compile in the wifi configuration.  I didn't commit my networks SSID and password to git, so you need to create a `src/esp8266/include/driver/uart_register.h` with the contents:
+
+```C
+#define SSID "networkName"
+#define SSID_PASSWORD "networkPassword"
+```
+
 If you are using the vagrant VirtualBox setup ... the makefile should just work. Jump into src/esp8266 and just `make`.
 
 At writing, there is no way to clear the saved config.  Use esptool to write 16k of zeros starting at 0x7a000.
@@ -66,6 +73,9 @@ So somthing like this:
 
 I'm still figuring out how to appropriately use encryption and will likely wildly change.
 
+### Serialization Format
+
+Generally, to keep things small footprint so they fit into small CPUs and controllers, a custom format is use.  The same format is using in config files, and flash config storage as well as the on-the-write format.  All encoding is network-byte order.  All data is proceed with a 1-byte tag. The tags can come in any order, with a few exceptions. Fields that are variable length like the random padding, the payload, and envelope must have lengths that preceed their content.  Otherwise, there is no way to tell when the content in the stream ends.
 
 ## Terminology 
 
