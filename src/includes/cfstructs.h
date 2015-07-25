@@ -224,6 +224,7 @@ typedef struct  {
 	char *ip;
 	unsigned char *msg;
 	int port;
+	int hasPairs;
 	uuid_tuple uuid;
 	uuid_tuple to;
 	

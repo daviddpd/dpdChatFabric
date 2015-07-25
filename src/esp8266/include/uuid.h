@@ -60,7 +60,7 @@ struct uuid {
 	uint16_t	time_hi_and_version;
 	uint8_t		clock_seq_hi_and_reserved;
 	uint8_t		clock_seq_low;
-	uint16_t	node[_UUID_NODE_LEN];
+	uint8_t	node[_UUID_NODE_LEN];
 };
 
 extern int os_printf_plus(const char * format, ...);

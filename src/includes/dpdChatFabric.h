@@ -82,7 +82,14 @@ enum chatFabricConfigTags  {
 	 cftag_hasNonce		= 8, // 1+1
 	 cftag_state		= 9, // 1+1
 	 cftag_serial		= 10, // 1+4
+	 cftag_hasPairs		= 11, // 1+4
+
 	 
+	 cftag_header		= 0xA5, // 165
+
+	 cftag_configLength	= 0xF0, // 240
+	 cftag_pairLength	= 0xF1, // 241
+	 cftag_pairs	= 0xF2, // 241
 	
 } ESP_WORD_ALIGN;
 

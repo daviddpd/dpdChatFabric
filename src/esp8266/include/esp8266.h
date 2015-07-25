@@ -20,4 +20,7 @@ chatFabricPairing ESP_WORD_ALIGN pair[16];
 
 int32_t heap, heapLast;
 
+unsigned char flashConfig[4096];
+#define ESP_PARAM_START_SEC		0x3D
+
 #endif

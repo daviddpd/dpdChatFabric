@@ -331,7 +331,6 @@ chatPacket_init0 (void) {
 	cp->envelopeLength = 0;
 	cp->wasEncrypted = -1;
 	cp->serial = 0;
-	
 
 	cp->envelopeRandomPaddingLength = 0;
 	for (i=0; i<16; i++) {
@@ -437,16 +436,15 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPac
 void
 ICACHE_FLASH_ATTR
 chatPacket_delete (chatPacket* cp) {
-	CHATFABRIC_DEBUG(config.debug, "start " );
+	CHATFABRIC_DEBUG(1, "start " );
+	free(cp->payload);
 
 #ifndef ESP8266
-	free(cp->payload);
 	free(cp);
 #else
 	cpStatus[cp->cpindex] = -1;
-	free(cp->payload);
 #endif
-	CHATFABRIC_DEBUG(config.debug, "return " );
+	CHATFABRIC_DEBUG(1, "return " );
 
 }
 
@@ -619,6 +617,9 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 				print_bin2hex((unsigned char *)envelope_encrypted+e_length, crypto_secretbox_MACBYTES);
 				printf ( "   %24s (%8d): ", "encrypted envelope",  e_length);
 				print_bin2hex((unsigned char *)envelope_encrypted, e_length);
+
+				printf ( "   %24s (%8d): ", "Nonce",  crypto_secretbox_NONCEBYTES);
+				print_bin2hex((unsigned char *)pair->nullnonce, crypto_secretbox_NONCEBYTES);
 			}
 			
 			#endif			

@@ -191,8 +191,16 @@ startup()
 		b.length = -1;
 		arc4random_buf((unsigned char *)&(pair[0].mynonce), crypto_secretbox_NONCEBYTES);
 		bzero(&(pair[0].nullnonce), crypto_secretbox_NONCEBYTES);
+		config.debug = 1;
 		chatFabric_configParse(&config);
 	    os_printf("%12u %12u IDS -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+
+		if ( flashConfig[2048] == cftag_header ) {
+			os_printf("reading pair config\n");
+			chatFabric_pairConfig(&config, (chatFabricPairing *)&pair[0], 0 );
+		}
+
+	    os_printf("%12u %12u FlashConfig  %02x %02x %02x %02x %02x \n\r", t/100000, ntp_unix_timestamp, flashConfig[2048], flashConfig[2049], flashConfig[2050], flashConfig[2051], flashConfig[2052] );
 	    
 		os_printf("state : %s\n", stateLookup(pair[0].state) );
 	    
@@ -209,6 +217,8 @@ startup()
 		print_bin2hex((unsigned char *)&config.publickey, crypto_box_PUBLICKEYBYTES);
 // 		os_printf ( "%2s %24s: \n", ' ', "privateKey");
 		print_bin2hex((unsigned char *)&config.privatekey, crypto_box_SECRETKEYBYTES);
+
+
 
 		bootstatus = 2; // timeset 
 	    os_printf("%12u %12u BootStatus -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
@@ -248,6 +258,10 @@ user_init()
 
 	for (i=0; i<16; i++) {
 		cpStatus[i] = -1;
+	}
+
+	for (i=0; i<4096; i++ ){
+		flashConfig[i] = '\0';
 	}
 
 	heap =0;
