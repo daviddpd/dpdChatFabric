@@ -750,11 +750,9 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 					#endif 
 						
 					#ifdef HAVE_LOCAL_CRYPTO
-					mac=(unsigned char*)calloc(crypto_secretbox_MACBYTES,sizeof(unsigned char) );
-					
+					mac=(unsigned char*)calloc(crypto_secretbox_MACBYTES,sizeof(unsigned char) );					
 					poly1305_auth(mac,  b+i, cp->envelopeLength - crypto_box_SEALBYTES, (unsigned char *)&pair->sharedkey);
 					ret = poly1305_verify(mac, b+i+cp->envelopeLength-crypto_secretbox_MACBYTES);
-					free(mac);	
 					if ( ret == 1 ) {					
 						memcpy ( decrypted, b+i, cp->envelopeLength-crypto_box_SEALBYTES );
 						s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, pair->nullnonce, 0, decrypted, cp->envelopeLength - crypto_box_SEALBYTES);
@@ -767,6 +765,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 					if ( ret == 0)
 					{
 						i+=cp->envelopeLength;
+						free(mac);	
 						if ( chatPacket_decode (cp, pair, decrypted, cp->envelopeLength - crypto_box_SEALBYTES, config) == 0 ) {
 							free(decrypted);
 							return 0;
@@ -785,7 +784,8 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 							printf ( "   %24s (%8d): ", "encrypted envelope",  cp->envelopeLength);
 							print_bin2hex((unsigned char *) b+i, cp->envelopeLength);
 						}
-						return -1;
+						free(mac);	
+					return -1;
 					}
 			break;
 			case cptag_envelopeRandomPaddingLength:

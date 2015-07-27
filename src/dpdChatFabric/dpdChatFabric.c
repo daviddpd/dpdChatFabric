@@ -634,7 +634,12 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 					case cftag_pairLength:
 						memcpy(&ni, str+i, 4);
 						i+=4;
+#ifndef ESP8266
+						filesize = ntohl(ni);
+#else
 						filesize = 2048 + ntohl(ni);
+#endif
+						
 					CHATFABRIC_DEBUG_FMT(config->debug,  
 						"[DEBUG][%s:%s:%d] Got Length as  %02x %08x %4d\n", 
 						__FILE__, __FUNCTION__, __LINE__, t, ni, filesize);
@@ -846,8 +851,10 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	} else {
 	
 
-//		if ( config->debug )
-//			chatPacket_print (cp, IN);
+#ifndef ESP8266
+		if ( config->debug )
+			chatPacket_print (cp, IN);
+#endif
 
 		if ( cp->payloadLength > 0 ) 
 		{
@@ -869,8 +876,10 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	stateMachine ( config, cp, pair, cp_reply, &replyCmd, &e);
 	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
 
-//		if ( config->debug )
-//			chatPacket_print (cp_reply, OUT);
+#ifndef ESP8266
+		if ( config->debug )
+			chatPacket_print (cp_reply, OUT);
+#endif
 
 		switch (cp_reply->cmd) {
 			case CMD_NONCE_SEND:
