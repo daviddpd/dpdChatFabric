@@ -178,6 +178,8 @@ typedef struct  {
 	
 	unsigned char *payload;
 	
+	
+	
 } ESP_WORD_ALIGN chatPacket;
 
 

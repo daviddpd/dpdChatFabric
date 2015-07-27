@@ -1001,16 +1001,16 @@ chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 
 	uuid_to_string(&cp->to.u0, &str, &status);
 	printf ( "%2s %24s: %42s\n", cd, "to0", str);
-//	free(str);
+	free(str);
 	uuid_to_string(&cp->to.u1, &str, &status);
 	printf ( "%2s %24s: %42s\n", cd, "to1", str);
-//	free(str);
+	free(str);
 	uuid_to_string(&cp->from.u0, &str, &status);
 	printf ( "%2s %24s: %42s\n", cd, "from0", str);
-//	free(str);
+	free(str);
 	uuid_to_string(&cp->from.u1, &str, &status);
 	printf ( "%2s %24s: %42s\n", cd, "from0", str);
-//	free(str);
+	free(str);
 
 	
 	printf ( "%2s %24s:%s", cd, "nonce", " " );

@@ -358,15 +358,16 @@ chatFabric_configParse(chatFabricConfig *config)
 		filesize=0;
 		// These are created in args, so for the embedded solution
 		// putting here.
+#ifdef ESP8266
 		uuid_create( &(config->to.u0), &status);
 		uuid_create( &(config->to.u1), &status);
 		uuid_create_nil( &(config->uuid.u0), &status);
 		uuid_create( &(config->uuid.u1), &status);
+		arc4random_buf((unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES);
+		curve25519_donna((unsigned char *)&config->publickey, (unsigned char *)&config->privatekey, (unsigned char *)&basepoint);
+#endif
 	
 		config->debug = 1 & config->debug;
-		arc4random_buf((unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES);
-
-		curve25519_donna((unsigned char *)&config->publickey, (unsigned char *)&config->privatekey, (unsigned char *)&basepoint);
 
 	}
 	str = &(flashConfig[0]);
@@ -912,7 +913,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	
 	chatPacket_delete(cp);
 	CHATFABRIC_DEBUG(config->debug, "function return." );
-	return ERROR_OK;
+	return e;
 }
 
 
@@ -926,13 +927,27 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 	uint32_t status;
 	
 	enum chatPacketCommands RETVAL;
+	int u0 = uuid_compare(&(cp->to.u0), &(config->uuid.u0), &status);
+	int u1 = uuid_compare(&(cp->to.u1), &(config->uuid.u1), &status);
+	CHATFABRIC_DEBUG_FMT(config->debug,  
+		"[DEBUG][%s:%s:%d] u0 %d u1 %d \n", 
+		__FILE__, __FUNCTION__, __LINE__,  u0, u1 );
 	
 	if (  
-		( uuid_compare(&(cp->to.u0), &(config->uuid.u0), &status) == 0 ) &&
-		( uuid_compare(&(cp->to.u1), &(config->uuid.u1), &status) == 0  )
-	) {
+		( ( u0 !=0 ) || ( u1 != 0 )  ) &&
+		( cp->cmd != CMD_HELLO) && 
+		( cp->cmd != CMD_HELLO_ACK) && 
+		( cp->cmd != CMD_PAIR_REQUEST) 
+	 ) 
+	{
+		CHATFABRIC_DEBUG(config->debug, " if " );
 		*e = ERROR_INVAILD_DEST;
+		RETVAL = CMD_SEND_REPLY_FALSE;
+		return;
+	} else {
+		CHATFABRIC_DEBUG(config->debug, " else " );
 	}
+
 
 	previous_state.state =  pair->state;
 	previous_state.hasPublicKey = pair->hasPublicKey;

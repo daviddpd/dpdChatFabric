@@ -62,6 +62,7 @@ udp_callback(void *arg, char *data, unsigned short length)
 	unsigned short l;
 	struct uuid uuid;
 	uint32 t;
+	enum chatFabricErrors e;
 //	t = system_get_time();
 	CHATFABRIC_DEBUG(config.debug, "Got UDP Packet." );
 //    os_printf("%12u %12u  GOT A UDP PACKET\n\r", t/100000, ntp_unix_timestamp);
@@ -76,10 +77,10 @@ udp_callback(void *arg, char *data, unsigned short length)
     mbuff.msg = data;
 
 	CHATFABRIC_DEBUG(config.debug, "chatFabric_device call" );
-    chatFabric_device(&c, &pair[0], &config,  &payloadMsg);
+    e = chatFabric_device(&c, &pair[0], &config,  &payloadMsg);
 	CHATFABRIC_DEBUG(config.debug, "chatFabric_device return" );
 
-    if  ( payloadMsg.length > 0 ) {
+    if  ( ( ERROR_OK == e ) && ( payloadMsg.length > 0) ) {
 
 
 		if ( payloadMsg.length == 3 ) {
