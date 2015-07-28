@@ -70,7 +70,7 @@ int main(int argc, char**argv)
 				memcpy(tmp, b.msg, b.length);
 				printf ( " === > Payload: %s \n", tmp ) ;
 				if ( b.length == 4 ) {
-					if ( strncmp(tmp, "quit", 4) == 0 ) {
+					if ( strncmp((char *)tmp, "quit", 4) == 0 ) {
 						exit(0);
 					}
 			

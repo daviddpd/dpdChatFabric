@@ -35,7 +35,7 @@ int main(int argc, char**argv)
 	chatFabricConfig config;  
 	msgbuffer b;
 	uint32_t status2;
-	unsigned char *tmp;
+//	unsigned char *tmp;
 
 /*
 	Initialization of all the needed fields.

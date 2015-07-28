@@ -25,6 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "util.h"
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 
@@ -302,7 +303,9 @@ CP_ICACHE_FLASH_ATTR
 chatPacket_init0 (void) {
 	chatPacket * cp;
 	unsigned char h, l, hp, lp; // high / low envelope and payload padding
+#ifdef ESP8266
 	unsigned char _align[4];
+#endif
 
 	int i=0;
 	unsigned int status=0;
@@ -455,9 +458,9 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 	uint32_t p_length =0, e_length=0, ob_length=0, encrypted_envolopeLength=0;
 	unsigned long long p_length_encrpyted=0;
 	uint32_t i;
-	uint32_t ni, ni2;
+//	uint32_t ni, ni2;
 
-	unsigned char c,h,l;
+	unsigned char h,l;
 		
 	unsigned char *envelope;
 	unsigned char *envelope_encrypted;
@@ -532,19 +535,19 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 			
 			if (config->debug) {
 				printf ( "   %24s: ", "MAC Calculated" );
-				print_bin2hex((unsigned char *)payload_encrypted+p_length, crypto_secretbox_MACBYTES);
-				printf ( "   %24s (%8d): ", "encrypted payload",  p_length_encrpyted);
-				print_bin2hex((unsigned char *)payload_encrypted, p_length_encrpyted);
+				util_print_bin2hex((unsigned char *)payload_encrypted+p_length, crypto_secretbox_MACBYTES);
+				printf ( "   %24s (%8llu): ", "encrypted payload",  p_length_encrpyted);
+				util_print_bin2hex((unsigned char *)payload_encrypted, p_length_encrpyted);
 				printf ( "   %24s (%8d): ", "plaintext payload",  p_length);
-				print_bin2hex((unsigned char *)payload, p_length);
+				util_print_bin2hex((unsigned char *)payload, p_length);
 
 
 				printf ( "   %24s: ", "sessionNonce" );
-				print_bin2hex((unsigned char *)sessionNonce, crypto_secretbox_NONCEBYTES);
+				util_print_bin2hex((unsigned char *)sessionNonce, crypto_secretbox_NONCEBYTES);
 				printf ( "   %24s: ", "nonce" );
-				print_bin2hex((unsigned char *)pair->nonce, crypto_secretbox_NONCEBYTES);
+				util_print_bin2hex((unsigned char *)pair->nonce, crypto_secretbox_NONCEBYTES);
 				printf ( "   %24s: ", "shared key" );
-				print_bin2hex((unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES);
+				util_print_bin2hex((unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES);
 
 			}
 			
@@ -598,7 +601,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 		
 		if (config->debug){ 
 			CHATFABRIC_DEBUG(config->debug, " ======> Plaintext Envelope : " );
-			print_bin2hex (envelope, e_length );		
+			util_print_bin2hex (envelope, e_length );		
 		}
 		
 	
@@ -614,18 +617,18 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 			poly1305_auth(envelope_encrypted+e_length, envelope_encrypted, e_length, (unsigned char *)&pair->sharedkey);
 			if (config->debug) {
 				printf ( "   %24s: ", "MAC Calculated" );
-				print_bin2hex((unsigned char *)envelope_encrypted+e_length, crypto_secretbox_MACBYTES);
+				util_print_bin2hex((unsigned char *)envelope_encrypted+e_length, crypto_secretbox_MACBYTES);
 				printf ( "   %24s (%8d): ", "encrypted envelope",  e_length);
-				print_bin2hex((unsigned char *)envelope_encrypted, e_length);
+				util_print_bin2hex((unsigned char *)envelope_encrypted, e_length);
 
 				printf ( "   %24s (%8d): ", "Nonce",  crypto_secretbox_NONCEBYTES);
-				print_bin2hex((unsigned char *)pair->nullnonce, crypto_secretbox_NONCEBYTES);
+				util_print_bin2hex((unsigned char *)pair->nullnonce, crypto_secretbox_NONCEBYTES);
 			}
 			
 			#endif			
 			if (config->debug){ 
 				CHATFABRIC_DEBUG(config->debug, " ======> encrypted Envelope : " );
-				print_bin2hex (envelope_encrypted, encrypted_envolopeLength );		
+				util_print_bin2hex (envelope_encrypted, encrypted_envolopeLength );		
 			}
 
 			cp->envelopeLength = encrypted_envolopeLength;
@@ -688,7 +691,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 	
 	if (config->debug) {
 		CHATFABRIC_DEBUG(config->debug, " encoded Packet : " );
-		print_bin2hex (ob->msg, ob->length );		
+		util_print_bin2hex (ob->msg, ob->length );		
 	}
 		
 }
@@ -705,7 +708,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 
 	if (config->debug) {
 		CHATFABRIC_DEBUG(config->debug, " decoding Packet : " );
-		print_bin2hex (b, len);		
+		util_print_bin2hex (b, len);		
 	}
 	
 	
@@ -778,11 +781,11 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 							__FILE__, __FUNCTION__, __LINE__,  i, cp->envelopeLength);
 						if (config->debug) {
 							printf ( "   %24s (%8d): ", "MAC Calculated" , crypto_secretbox_MACBYTES);
-							print_bin2hex((unsigned char *)mac, crypto_secretbox_MACBYTES);
+							util_print_bin2hex((unsigned char *)mac, crypto_secretbox_MACBYTES);
 							printf ( "   %24s (%8d): ", "MAC Stream",  cp->envelopeLength);
-							print_bin2hex((unsigned char *)b+i+cp->envelopeLength-crypto_secretbox_MACBYTES, crypto_secretbox_MACBYTES);
+							util_print_bin2hex((unsigned char *)b+i+cp->envelopeLength-crypto_secretbox_MACBYTES, crypto_secretbox_MACBYTES);
 							printf ( "   %24s (%8d): ", "encrypted envelope",  cp->envelopeLength);
-							print_bin2hex((unsigned char *) b+i, cp->envelopeLength);
+							util_print_bin2hex((unsigned char *) b+i, cp->envelopeLength);
 						}
 						free(mac);	
 					return -1;
@@ -815,22 +818,22 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 			break;
 			case cptag_to0:
 				uuid_dec_be(b+i, &cp->to.u0);
-//				print_bin2hex((unsigned char *)b+i, 16);
+//				util_print_bin2hex((unsigned char *)b+i, 16);
 				i+=16;
 			break;
 			case cptag_to1:
 				uuid_dec_be(b+i, &cp->to.u1);
-//				print_bin2hex((unsigned char *)b+i, 16);
+//				util_print_bin2hex((unsigned char *)b+i, 16);
 				i+=16;
 			break;
 			case cptag_from0:
 				uuid_dec_be(b+i, &cp->from.u0);
-//				print_bin2hex((unsigned char *)b+i, 16);
+//				util_print_bin2hex((unsigned char *)b+i, 16);
 				i+=16;
 			break;
 			case cptag_from1:
 				uuid_dec_be(b+i, &cp->from.u1);
-//				print_bin2hex((unsigned char *)b+i, 16);
+//				util_print_bin2hex((unsigned char *)b+i, 16);
 				i+=16;
 			break;
 			case cptag_flags:
@@ -892,11 +895,11 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 					CHATFABRIC_DEBUG(config->debug, " ===> Decrypting  (payload) \n");
 					if (config->debug) {
 						printf ( "   %24s: ", "sessionNonce" );
-						print_bin2hex((unsigned char *)sessionNonce, crypto_secretbox_NONCEBYTES);
+						util_print_bin2hex((unsigned char *)sessionNonce, crypto_secretbox_NONCEBYTES);
 						printf ( "   %24s: ", "nonce" );
-						print_bin2hex((unsigned char *)pair->mynonce, crypto_secretbox_NONCEBYTES);
+						util_print_bin2hex((unsigned char *)pair->mynonce, crypto_secretbox_NONCEBYTES);
 						printf ( "   %24s: ", "shared key" );
-						print_bin2hex((unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES);
+						util_print_bin2hex((unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES);
 					}
 									
 				if ( ret == 1 ) {					
@@ -932,9 +935,9 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 					CHATFABRIC_DEBUG(config->debug, " ===> Decryption (payload) Failed \n");
 					if (config->debug) {
 						printf ( "   %24s: ", "MAC Calculated" );
-						print_bin2hex((unsigned char *)mac, crypto_secretbox_MACBYTES);
+						util_print_bin2hex((unsigned char *)mac, crypto_secretbox_MACBYTES);
 						printf ( "   %24s: ", "MAC Stream" );
-						print_bin2hex((unsigned char *)b+i+cp->payloadLength, crypto_secretbox_MACBYTES);
+						util_print_bin2hex((unsigned char *)b+i+cp->payloadLength, crypto_secretbox_MACBYTES);
 					}
 					
 					return -1;
@@ -1015,19 +1018,19 @@ chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 	
 	printf ( "%2s %24s:%s", cd, "nonce", " " );
 
-	print_bin2hex((unsigned char *)&cp->nonce, crypto_secretbox_NONCEBYTES);
+	util_print_bin2hex((unsigned char *)&cp->nonce, crypto_secretbox_NONCEBYTES);
 
 	printf ( "%2s %24s: %42u\n", cd, "envelopeLength", cp->envelopeLength);
 
 	printf ( "%2s %24s: %42x\n", cd, "envelope Padding Length", cp->envelopeRandomPaddingLength);
 	printf ( "%2s %24s: ", cd, "envelope Padding");
-	print_bin2hex((unsigned char *)&cp->envelopeRandomPaddingLength, 16);
+	util_print_bin2hex((unsigned char *)&cp->envelopeRandomPaddingLength, 16);
 
 	printf ( "%2s %24s: %42d\n", cd, "PayLoadLength", cp->payloadLength);
 
 	printf ( "%2s %24s: %42x\n", cd, "payload Padding Length", cp->payloadRandomPaddingLength);
 	printf ( "%2s %24s: ", cd, "payload Padding");
-	print_bin2hex((unsigned char *)&cp->payloadRandomPadding, 16);
+	util_print_bin2hex((unsigned char *)&cp->payloadRandomPadding, 16);
 	
 	printf ( "%2s %24s: ", cd, "payload" );
 	for (i=0; i<cp->payloadLength; i++) {

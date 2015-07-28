@@ -27,6 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
+#include "util.h"
 
 #include <assert.h>
 #include <sys/types.h>
@@ -38,57 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef ESP8266
-
-void CP_ICACHE_FLASH_ATTR
-print_bin2hex(unsigned char * x, int len) {
-	int i;
-	for (i=0; i<len; i++) {
-		os_printf ( "%02x", x[i] );
-		if ( (i>0) && ( (i+1)%4 == 0 ) ) { os_printf (" "); }
-	}
-	os_printf ("\n");
-
-}
-
-void CP_ICACHE_FLASH_ATTR
-chatFabric_hexprint ( unsigned char *str, uint32_t len ){
-	int i;
-	unsigned char p;
-	os_printf ( "\n %4s: ", " " );		
-
-	for (i=0; i<len; i++) {
-		p = str[i];
-		if ( p < 32 ) {
-			os_printf (" ");
-		} else {
-			printf ("%c", p);
-		}
-		if ( (i > 0 ) && (i % 42) == 0 ) {
-			os_printf ( "\n %4s: ", ' ' );		
-		}
-	}
-
-	os_printf ("\n");
-
-}
-void CP_ICACHE_FLASH_ATTR
-chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght ) {
-	char str[5] = { '0', 'x', '0', '0' , 0 };
-	int i=0,x=0;
-	uint32_t dst_int;
-	for ( i = 0; i<hexLength; i=i+2) {
-		str[2] = hex[i];
-		str[3] = hex[i+1];
-		if ( x < dstLenght ) {
-			os_sprintf (str, "%d", &dst_int );
-			dst_int = strtoul(str, NULL, 16);
-			dst[x] = (unsigned char)dst_int;
-		}
-		x++;
-	}
-
-}
-
 void CP_ICACHE_FLASH_ATTR
 chatFabric_usage(char *p) {
 	return;
@@ -99,61 +49,6 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config) {
 	return;
 }
 #else
-void CP_ICACHE_FLASH_ATTR
-print_bin2hex(unsigned char * x, int len) {
-	int i;
-	for (i=0; i<len; i++) {
-		printf ( "%02x", x[i] );
-		if ( (i>0) && ( (i+1)%4 == 0 ) ) { printf (" "); }
-	}
-	printf ("\n");
-
-}
-
-void CP_ICACHE_FLASH_ATTR
-chatFabric_hexprint ( unsigned char *str, uint32_t len ){
-	int i;
-	unsigned char p;
-	printf ( "\n %4s: ", " " );		
-
-	for (i=0; i<len; i++) {
-		p = str[i];
-		if ( p < 32 ) {
-			printf (" ");
-		} else {
-			printf ("%c", p);
-		}
-		if ( (i > 0 ) && (i % 42) == 0 ) {
-			printf ( "\n %4s: ", ' ' );		
-		}
-	}
-
-	printf ("\n");
-
-}
-
-void CP_ICACHE_FLASH_ATTR
-chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght ) {
-	char str[5] = { '0', 'x', '0', '0' , 0 };
-	int i=0,x=0;
-	uint32_t dst_int;
-	//str[2] = 0;
-//	printf ( "==> chatFabric_hex2int_bytes\n" );
-	for ( i = 0; i<hexLength; i=i+2) {
-		str[2] = hex[i];
-		str[3] = hex[i+1];
-		if ( x < dstLenght ) {
-			sscanf (str, "%d", &dst_int );
-			dst_int = strtoul(str, NULL, 16);
-			dst[x] = (unsigned char)dst_int;
-		}
-		
-//		printf ( " === %6s ?= %02x = %4d = ===========\n", str, dst[x], dst_int );
-		
-		x++;
-	}
-
-}
 void CP_ICACHE_FLASH_ATTR
 chatFabric_usage(char *p) {
 	printf ("%s -config configfile\n", p);
@@ -315,7 +210,7 @@ chatFabric_configParse(chatFabricConfig *config)
 	uint32_t ni;
 	int len =0, i=0, filesize=0;
 	unsigned char *str;
-	unsigned char c,t;
+	unsigned char t;
 //	enum chatFabricConfigTags t;
 #ifdef ESP8266
 
@@ -324,7 +219,7 @@ chatFabric_configParse(chatFabricConfig *config)
 		"[DEBUG][%s:%s:%d] Reading in flash\n", 
 		__FILE__, __FUNCTION__, __LINE__ );
 		
-	print_bin2hex((unsigned char *)&flashConfig, 256);	
+	util_print_bin2hex((unsigned char *)&flashConfig, 256);	
 
 	CHATFABRIC_DEBUG_FMT(config->debug,  
 		"[DEBUG][%s:%s:%d] Readed in flash\n", 
@@ -335,8 +230,8 @@ chatFabric_configParse(chatFabricConfig *config)
 	}
 
 
-	print_bin2hex((unsigned char *)&flashConfig, 256);	
-	print_bin2hex((unsigned char *)&flashConfig+2048, 256);	
+	util_print_bin2hex((unsigned char *)&flashConfig, 256);	
+	util_print_bin2hex((unsigned char *)&flashConfig+2048, 256);	
 
 	if ( flashConfig[0] == cftag_header ) {
 		filesize=4096;	
@@ -462,13 +357,13 @@ chatFabric_configParse(chatFabricConfig *config)
 			str=(unsigned char *)calloc(len,sizeof(unsigned char));
 #endif 	
 
-			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_header, 0, NULL, 0, NULL);
-			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_configLength, len, NULL, 0, NULL);
-			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_hasPairs, config->hasPairs, NULL, 0, NULL);
-			chatPacket_tagDataEncoder ( CP_UUID, str, &i, cftag_uuid0, 0, NULL, 0,  &config->uuid.u0);
-			chatPacket_tagDataEncoder ( CP_UUID, str, &i, cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
-			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
-			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_header, 0, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_configLength, len, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_hasPairs, config->hasPairs, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid0, 0, NULL, 0,  &config->uuid.u0);
+			chatPacket_tagDataEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
 
 #ifdef ESP8266
 		if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
@@ -479,7 +374,7 @@ chatFabric_configParse(chatFabricConfig *config)
 			CHATFABRIC_DEBUG_FMT(1,  
 				"[DEBUG][%s:%s:%d] Save Succesful.\n", 
 				__FILE__, __FUNCTION__, __LINE__ );		
-			print_bin2hex((unsigned char *)&flashConfig, 256);	
+			util_print_bin2hex((unsigned char *)&flashConfig, 256);	
 				
 		}
 
@@ -507,7 +402,7 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 	uint32_t ni;
 	struct stat fs;
 	unsigned char *str;
-	unsigned char c, t;
+	unsigned char t;
 //	enum chatFabricConfigTags t;
 	
 		
@@ -550,25 +445,25 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 
 			len+=1+4; // serial
 			
-			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_header, 0, NULL, 0, NULL);			
-			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_pairs, 1, NULL, 0, NULL);
-			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_pairLength, len, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_header, 0, NULL, 0, NULL);			
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_pairs, 1, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_pairLength, len, NULL, 0, NULL);
 			CHATFABRIC_DEBUG_FMT(1,
 				"[DEBUG][%s:%s:%d] Encoding Pair Config Length %d\n",
 				__FILE__, __FUNCTION__, __LINE__, len );
 
-			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_hasPublicKey, 0, (unsigned char *)&pair->hasPublicKey, 1, NULL);
-			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_hasNonce, 0, (unsigned char *)&pair->hasNonce, 1, NULL);
-			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_state, 0, (unsigned char *)&pair->state, 1, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_hasPublicKey, 0, (unsigned char *)&pair->hasPublicKey, 1, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_hasNonce, 0, (unsigned char *)&pair->hasNonce, 1, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_state, 0, (unsigned char *)&pair->state, 1, NULL);
 
-			chatPacket_tagDataEncoder ( CP_INT32, str, &i, cftag_serial, pair->serial, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_serial, pair->serial, NULL, 0, NULL);
 
-			chatPacket_tagDataEncoder ( CP_UUID, str, &i, cftag_uuid0, 0, NULL, 0,  &pair->uuid.u0);
-			chatPacket_tagDataEncoder ( CP_UUID, str, &i, cftag_uuid1, 0, NULL, 0,  &pair->uuid.u1);						
+			chatPacket_tagDataEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid0, 0, NULL, 0,  &pair->uuid.u0);
+			chatPacket_tagDataEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid1, 0, NULL, 0,  &pair->uuid.u1);						
 
-			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_publickey, 0,(unsigned char *)&(pair->publickey), crypto_box_PUBLICKEYBYTES, NULL);
-			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_mynonce, 0, (unsigned char *)&(pair->mynonce), crypto_secretbox_NONCEBYTES, NULL);
-			chatPacket_tagDataEncoder ( CP_DATA8, str, &i, cftag_nonce, 0, (unsigned char *)&(pair->nonce), crypto_secretbox_NONCEBYTES, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(pair->publickey), crypto_box_PUBLICKEYBYTES, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_mynonce, 0, (unsigned char *)&(pair->mynonce), crypto_secretbox_NONCEBYTES, NULL);
+			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_nonce, 0, (unsigned char *)&(pair->nonce), crypto_secretbox_NONCEBYTES, NULL);
 #ifdef ESP8266
 		if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
 			CHATFABRIC_DEBUG_FMT(1,
@@ -738,8 +633,7 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind )
 enum chatFabricErrors CP_ICACHE_FLASH_ATTR
 chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b) 
 {
-	int n, buffersize=1460;
-	unsigned char *mesg;
+	int n;
 	socklen_t len;
 	chatPacket *cp;
 	msgbuffer mb;
@@ -798,9 +692,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	socklen_t len;
 	chatPacket *cp, *cp_reply;
 	msgbuffer mb;
-	b->length = 0;		
-	uint32_t heap;
-	
+	b->length = 0;	
 
 	enum chatPacketCommands replyCmd;
 	enum chatPacketPacketTypes cptype;
@@ -1085,11 +977,11 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 				curve25519_donna((unsigned char *)&pair->sharedkey, (unsigned char *)&config->privatekey, (unsigned char *)&pair->publickey);
 				if (config->debug) {
 					printf ( "   %24s: ", "Shared Key" );
-					print_bin2hex((unsigned char *)pair->sharedkey, crypto_box_PUBLICKEYBYTES);
+					util_print_bin2hex((unsigned char *)pair->sharedkey, crypto_box_PUBLICKEYBYTES);
 					printf ( "   %24s: ", "private Key" );
-					print_bin2hex((unsigned char *)config->privatekey, crypto_box_PUBLICKEYBYTES);
+					util_print_bin2hex((unsigned char *)config->privatekey, crypto_box_PUBLICKEYBYTES);
 					printf ( "   %24s: ", "public key" );
-					print_bin2hex((unsigned char *)pair->publickey, crypto_box_PUBLICKEYBYTES);
+					util_print_bin2hex((unsigned char *)pair->publickey, crypto_box_PUBLICKEYBYTES);
 				}
 				
 				#endif					

@@ -16,7 +16,7 @@ endif
 ifdef HAVE_LOCAL_CRYPTO
 DEFS+=-DHAVE_LOCAL_CRYPTO
 INCLUDES+= -I./crypto
-LOCAL_LIB_SRC+=crypto/chacha20_simple.c crypto/curve25519-donna.c crypto/poly1305-donna.c crypto/salsa20.c
+LOCAL_LIB_SRC+=crypto/chacha20_simple.c crypto/curve25519-donna.c crypto/poly1305-donna.c crypto/salsa20.c util/util.c
 endif
 
 LOCAL_LIB_SRC+=dpdChatFabric/dpdChatFabric.c dpdChatPacket/dpdChatPacket.c 

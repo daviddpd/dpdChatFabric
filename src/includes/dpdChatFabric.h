@@ -101,14 +101,6 @@ enum chatFabricConfigTags  {
 const char * stateLookup (enum chatPacketStates state);
 const char * cmdLookup (enum chatPacketCommands cmd);
 
-void print_bin2hex(unsigned char * x, int len);
-
-void 
-chatFabric_hexprint ( unsigned char *str, uint32_t len );
-
-void
-chatFabric_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght );
-
 void
 chatFabric_usage(char *p);
 
