@@ -102,18 +102,16 @@ const char * stateLookup (enum chatPacketStates state);
 const char * cmdLookup (enum chatPacketCommands cmd);
 
 void
-chatFabric_usage(char *p);
-
-void
-chatFabric_args(int argc, char**argv, chatFabricConfig *config);
-
-void
-chatFabric_configParse(chatFabricConfig *config);
-void
 chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int write );
 
 enum chatFabricErrors 
-chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b);
+chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  chatFabricAction *a, msgbuffer *b);
+
+enum chatFabricErrors 
+chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b);
+
+void
+stateMachine (chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e);
 
 
 void
@@ -121,13 +119,6 @@ chatFabric_configParse(chatFabricConfig *config);
 
 void
 chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind );
-
-enum chatFabricErrors 
-chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  msgbuffer *b);
-
-
-void
-stateMachine (chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e);
 
 
 

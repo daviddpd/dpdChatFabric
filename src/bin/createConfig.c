@@ -26,6 +26,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
+#include "args.h"
 
 
 int main(int argc, char**argv)
@@ -55,8 +56,10 @@ int main(int argc, char**argv)
 	pair.hasNonce = 0;
 	b.length = -1;
 	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
+
+	chatFabricAction a;
 	
-	chatFabric_args(argc, argv, &config);	
+	chatFabric_args(argc, argv, &config, &a);	
 	chatFabric_configParse(&config);
 	
 

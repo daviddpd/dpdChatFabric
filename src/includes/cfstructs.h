@@ -145,10 +145,44 @@ enum chatPacketTags  {
 
 	 cptag_mac,
 	 cptag_serial,
-	 	 
+	 cptag_action,
+	 cptag_action_type,
+	 cptag_action_value,
+	 cptag_action_control,
+	 cptag_action_length,
+	 cptag_action_data,
+	 	 	 
 	 cptag_cmd = 0xFF,
 	 	
 } ESP_WORD_ALIGN;
+
+
+enum chatPacketActions {
+	ACTION_NULL = 0,
+	ACTION_GET,
+	ACTION_SET,	
+	ACTION_READ, // send	
+} ESP_WORD_ALIGN;
+
+enum chatPacketActionsType {
+	ACTION_TYPE_NULL = 0,
+	ACTION_TYPE_BOOLEAN,
+	ACTION_TYPE_DIMMER,
+	ACTION_TYPE_GAUGE,
+	ACTION_TYPE_DATA,	
+} ESP_WORD_ALIGN;
+
+
+typedef struct {
+	uint32_t action; // get/set/value
+	uint32_t action_control; // index of the control to act on.
+	uint32_t action_type; // boolean(rw), dimmer(rw), gauge(ro), data(rw)
+	uint32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
+	uint32_t action_length; 
+	unsigned char *action_data;
+	
+} ESP_WORD_ALIGN chatFabricAction;
+
 
 typedef struct  {
 	uint32_t cmd;
@@ -177,6 +211,13 @@ typedef struct  {
 	unsigned char payloadRandomPadding[16];
 	
 	unsigned char *payload;
+	
+	uint32_t action; // get/set/value
+	uint32_t action_control; // index of the control to act on.
+	uint32_t action_type; // boolean(rw), dimmer(rw), gauge(ro), data(rw)
+	uint32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
+	uint32_t action_length; 
+	unsigned char *action_data;
 	
 	
 	
@@ -215,8 +256,13 @@ typedef struct  {
 typedef struct {
 	int length;
 	unsigned char *msg;
+	uint32_t action; // get/set/value
+	uint32_t action_control; // index of the control to act on.
+	uint32_t action_type; // boolean(rw), dimmer(rw), gauge(ro), data(rw)
+	uint32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
+	uint32_t action_length; 
+	unsigned char *action_data;
 } ESP_WORD_ALIGN msgbuffer;
-
 
 
 typedef struct  {
@@ -225,6 +271,8 @@ typedef struct  {
 	char *pairfile;
 	char *ip;
 	unsigned char *msg;
+	void (*callback)(void *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd);	
+	
 	int port;
 	int hasPairs;
 	uuid_tuple uuid;

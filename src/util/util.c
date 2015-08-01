@@ -24,7 +24,7 @@ util_hexprint ( unsigned char *str, uint32_t len ){
 		if ( p < 32 ) {
 			os_printf (" ");
 		} else {
-			printf ("%c", p);
+			os_printf ("%c", p);
 		}
 		if ( (i > 0 ) && (i % 42) == 0 ) {
 			os_printf ( "\n %4s: ", ' ' );		

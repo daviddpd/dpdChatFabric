@@ -26,6 +26,55 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
+#include "args.h"
+
+uint32_t controls[16];
+
+void deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd) 
+{
+
+	unsigned char *tmp;
+	if ( cp->payloadLength > 0 ) {
+
+		tmp=calloc(cp->payloadLength,sizeof(unsigned char));
+		memcpy(tmp, cp->payload, cp->payloadLength);
+		printf ( " === > Payload: %s \n", tmp ) ;
+		
+	}
+	
+	printf ( " === >deviceCallBack  %u %u %u %u\n",  cp->action, cp->action_type, cp->action_control,cp->action_value  ) ;
+
+	if ( (cp->action_control >= 0 ) && (cp->action_control < 16 ) ) 
+	{
+
+		if (cp->action == ACTION_GET ) 
+		{
+			reply->action = ACTION_READ;
+			reply->action_control = cp->action_control;
+			reply->action_type = ACTION_TYPE_BOOLEAN;
+			reply->action_value = controls[cp->action_control];
+			reply->action_length = 0;
+			
+			
+		} else if (cp->action == ACTION_SET ) 
+		{
+			reply->action = ACTION_READ;
+			reply->action_control = cp->action_control;
+			reply->action_type = ACTION_TYPE_BOOLEAN;
+			controls[cp->action_control] = cp->action_value;
+			reply->action_value = controls[cp->action_control];			
+			reply->action_length = 0;
+		
+		}
+	}
+
+
+	for (int i=0; i<16; i++) {	
+		printf ( " %2u ",  controls[i] );
+	}
+	printf ( "\n");
+
+}
 
 
 int main(int argc, char**argv)
@@ -36,6 +85,7 @@ int main(int argc, char**argv)
 	msgbuffer b;
 	uint32_t status2;
 	unsigned char *tmp;
+	int i=0;
 
 /*
 	Initialization of all the needed fields.
@@ -57,14 +107,21 @@ int main(int argc, char**argv)
 	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
 	bzero(&(pair.nullnonce), crypto_secretbox_NONCEBYTES);
 
+	for (i=0; i<16; i++) {
+		controls[i]=0;
+	}
 
-	
-	chatFabric_args(argc, argv, &config);	
+	chatFabricAction a;
+	a.action_length = 0;
+
+	chatFabric_args(argc, argv, &config, &a);	
 	chatFabric_configParse(&config);
+	
+	config.callback = &deviceCallBack;
 
 	do {		
 		while ( chatFabric_device(&c, &pair, &config,  &b) == ERROR_OK ) { 
-	
+/*
 			if ( b.length > 0 ) {
 				tmp=calloc(b.length+1,sizeof(unsigned char));
 				memcpy(tmp, b.msg, b.length);
@@ -79,6 +136,10 @@ int main(int argc, char**argv)
 				free(b.msg);
 				b.length = -1;
 			}
+*/			
+			free(tmp);
+			free(b.msg);
+			b.length = -1;
 	
 		}
 	} while (1);

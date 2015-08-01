@@ -55,6 +55,11 @@ const char * stateLookup (enum chatPacketStates state);
 const char * cmdLookup (enum chatPacketCommands cmd);
 void nonceInc(chatPacket *cp, chatFabricConfig *config, chatFabricPairing *pair);
 
+const char *  CP_ICACHE_FLASH_ATTR actionTypeLookup (enum chatPacketActionsType tag);
+const char *  CP_ICACHE_FLASH_ATTR actionLookup (enum chatPacketActions tag);
+const char *  CP_ICACHE_FLASH_ATTR tagLookup (enum chatPacketTags tag);
+void CP_ICACHE_FLASH_ATTR chatPacket_calcNonce(uint32_t serial, unsigned char * nonce, unsigned char * sessionNonce );
+
 void 
 chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuid_t *uuid);
 
@@ -75,5 +80,7 @@ int chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *
 
 void 
 chatPacket_print (chatPacket *cp, enum chatPacketDirection d);
+void 
+chatPacket_print_action (chatPacket *cp);
 
 #endif

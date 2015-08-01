@@ -1,8 +1,16 @@
+#include "__attribute__.h"
+#include <string.h>
+
+#ifdef ESP8266
+#include "ets_sys.h"
+#include "osapi.h"
+#else 
 #include <sys/types.h>
-#include <string.h> //memcpy
 #include <stdio.h>
 #include <stdlib.h>
-#include "__attribute__.h"
+extern int os_printf_plus(const char * format, ...);
+#endif
+
 
 
 #ifndef CF_UTIL_H

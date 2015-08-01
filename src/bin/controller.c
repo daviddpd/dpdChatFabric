@@ -26,7 +26,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
+#include "args.h"
 
+
+void controllerCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd) 
+{
+	printf ( "{controllerCallBack} %8s %12s %u %u\n",  actionLookup(cp->action), actionTypeLookup(cp->action_type), cp->action_control, cp->action_value  ) ;
+	return;
+}
 
 int main(int argc, char**argv)
 {
@@ -59,9 +66,12 @@ int main(int argc, char**argv)
 	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
 	bzero(&(pair.nullnonce), crypto_secretbox_NONCEBYTES);
 
+	chatFabricAction a;
+	a.action_length = 0;
 
-	chatFabric_args(argc, argv, &config);	
+	chatFabric_args(argc, argv, &config, &a);	
 	chatFabric_configParse(&config);
+	config.callback = &controllerCallBack;
 
 	pair.uuid.u0 = config.to.u0;
 	pair.uuid.u1 = config.to.u1;
@@ -70,7 +80,25 @@ int main(int argc, char**argv)
 		chatFabric_pairConfig(&config, &pair, 0 );
 	}
 	
-	if ( chatFabric_controller(&c, &pair, &config,  &b) == ERROR_OK ) { 
+/*	
+	if ( strcmp ( "on", config.msg ) == 0 ) {	
+		a.action = (uint32_t)ACTION_SET;
+		a.action_type = (uint32_t)ACTION_TYPE_BOOLEAN;
+		a.action_control = 0;
+		a.action_value = 1;
+			printf ( " === > setting on %u %u %u %u\n",  a.action, a.action_type, a.action_control,a.action_value  ) ;
+	}
+	
+	if ( strcmp ( "off", config.msg ) == 0 ) {
+		a.action = (uint32_t)ACTION_SET;
+		a.action_type = (uint32_t) ACTION_TYPE_BOOLEAN;
+		a.action_control = 0;
+		a.action_value = 0;	
+		printf ( " === > setting off %u %u %u %u\n",  a.action, a.action_type, a.action_control,a.action_value  ) ;
+	}
+*/
+
+	if ( chatFabric_controller(&c, &pair, &config, &a,  &b) == ERROR_OK  ) { 
 	
 		if ( b.length > 0 ) {
 			tmp=calloc(b.length+1,sizeof(unsigned char));

@@ -34,7 +34,56 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "esp8266.h"
 #endif
 
-// #include <assert.h>
+
+const char * 
+CP_ICACHE_FLASH_ATTR
+actionTypeLookup (enum chatPacketActionsType tag) {
+
+	switch (tag) {
+		case ACTION_TYPE_NULL:
+			return "NULL";
+		break;
+		case ACTION_TYPE_BOOLEAN:
+			return "BOOLEAN";
+		break;
+		case ACTION_TYPE_DIMMER:
+			return "DIMMER";
+		break;
+		case ACTION_TYPE_GAUGE:
+			return "GAUGE";
+		break;
+		case ACTION_TYPE_DATA:
+			return "DATA";
+		break;
+	}
+	return "UNKNWON";	
+}
+
+
+const char * 
+CP_ICACHE_FLASH_ATTR
+actionLookup (enum chatPacketActions tag) {
+
+	switch (tag) {
+		case ACTION_NULL:
+			return "NULL";
+		break;
+		case ACTION_GET:
+			return "GET";
+		break;
+		case ACTION_SET:
+			return "SET";
+		break;
+		case ACTION_READ:
+			return "READ";
+		break;
+	}
+	return "UNKNWON";
+	
+}
+
+
+
 const char * 
 CP_ICACHE_FLASH_ATTR
 tagLookup (enum chatPacketTags tag) {
@@ -115,7 +164,27 @@ tagLookup (enum chatPacketTags tag) {
 		case cptag_cmd:
 			return "cmd";
 		break;
+		case cptag_action:
+			return "action";
+		break;
+		case cptag_action_type:
+			return "action_type";
+		break;
+		case cptag_action_value:
+			return "action_value";
+		break;
+		case cptag_action_length:
+			return "action_length";
+		break;
+		case cptag_action_data:
+			return "action_data";
+		break;
+		case cptag_action_control:
+			return "action_control";
+		break;
+	 	 	 		
 	}
+	return "UNKNOWN";
 }
 
 
@@ -274,6 +343,11 @@ chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32
 
 	uint32_t x = *i;
 	uint32_t ni = 0;
+/*
+	CHATFABRIC_DEBUG_FMT(1,  
+		"[DEBUG][%s:%s:%d] %4u %s \n",
+		__FILE__, __FUNCTION__, __LINE__,  *i, tagLookup ( tag ));
+*/
 	
 	memcpy(b+x, &tag, 1);
 	++x;
@@ -366,7 +440,14 @@ chatPacket_init0 (void) {
 	lp = 16 - hp;
 	cp->payloadRandomPaddingLength = (hp << 4) | lp;
 	arc4random_buf((unsigned char *)&(cp->payloadRandomPadding), 16);
-		
+
+
+	cp->action = ACTION_NULL;
+	cp->action_control = 0;
+	cp->action_type = ACTION_TYPE_NULL;
+	cp->action_value = 0;
+	cp->action_length = 0;
+	
 	return cp;
 
 
@@ -431,6 +512,13 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPac
 	cp->wasEncrypted = -1;
 	cp->payloadLength = len;	
 	memcpy(cp->payload, payload, len);
+
+	cp->action = ACTION_NULL;
+	cp->action_control = 0;
+	cp->action_type = ACTION_TYPE_NULL;
+	cp->action_value = 0;
+	cp->action_length = 0;
+
 		
 	return cp;
 
@@ -441,6 +529,9 @@ CP_ICACHE_FLASH_ATTR
 chatPacket_delete (chatPacket* cp) {
 //	CHATFABRIC_DEBUG(1, "start " );
 	free(cp->payload);
+	if ( cp->action_length > 0 ) {
+		free(cp->action_data);
+	}
 
 #ifndef ESP8266
 	free(cp);
@@ -450,7 +541,6 @@ chatPacket_delete (chatPacket* cp) {
 //	CHATFABRIC_DEBUG(1, "return " );
 
 }
-
 
 void
 CP_ICACHE_FLASH_ATTR
@@ -484,7 +574,14 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 		l = cp->payloadRandomPaddingLength  & 0x0F;	
 		i = 0;
 	
-		p_length = 1+cp->payloadLength  + 2 + 1+16 + 1+4 + 1;	
+		p_length = 1+cp->payloadLength  + 2 + 1+16 + 1+4 + 1;
+	
+		if ( cp->action != 0 ) {
+			p_length += 5 + 5 + 5 + 5 + 5;
+			if ( cp->action_length > 0 ) {
+				p_length +=	1 + cp->action_length;
+			}
+		}
 	
 		if ( encrypted == _CHATPACKET_ENCRYPTED ) {
 			payload=(unsigned char*)calloc(p_length,sizeof(unsigned char));		
@@ -504,11 +601,25 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 
 		chatPacket_tagDataEncoder ( CP_DATA8, payload, &i, cptag_payloadRandomPaddingLength, 0, &cp->payloadRandomPaddingLength, 1, NULL);
 		chatPacket_tagDataEncoder ( CP_DATA8, payload, &i, cptag_payloadRandomPaddingHigh, 0, (unsigned char *)&cp->payloadRandomPadding, h, NULL);
+		
+		if ( cp->action != 0 ) {
+			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_action, cp->action, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_action_control, cp->action_control, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_action_type, cp->action_type, NULL, 0, NULL);
+
+			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_action_value, cp->action_value, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_action_length, cp->action_length, NULL, 0, NULL);
+			if ( cp->action_length > 0 ) {
+				chatPacket_tagDataEncoder ( CP_DATA8, payload, &i, cptag_action_data, 0, cp->action_data, cp->action_length, NULL);	
+			}
+
+		}
 		chatPacket_tagDataEncoder ( CP_DATA8, payload, &i, cptag_payload, 0, cp->payload, cp->payloadLength, NULL);
+				
 		chatPacket_tagDataEncoder ( CP_DATA8, payload, &i, cptag_payloadRandomPaddingLow, 0, (unsigned char *)&(cp->payloadRandomPadding[h]), l, NULL);
 
 		if ( i != p_length ) {	
-			printf ( " WARNING = PAYLOAD => index didn't match e_length! %u != %u\n", i, p_length );	
+			printf ( " WARNING = PAYLOAD => index didn't match p_length! %u != %u\n", i, p_length );	
 		}
 	
 		if ( encrypted == _CHATPACKET_ENCRYPTED ) {
@@ -954,6 +1065,39 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 			break;
 			case cptag_envelope:
 			break;
+			case cptag_action:
+				memcpy(&ni, b+i, 4);
+				i+=4;
+				cp->action = ntohl(ni);			
+			break;
+			case cptag_action_control:
+				memcpy(&ni, b+i, 4);
+				i+=4;
+				cp->action_control = ntohl(ni);			
+			break;
+			case cptag_action_type:
+				memcpy(&ni, b+i, 4);
+				i+=4;
+				cp->action_type = ntohl(ni);			
+			break;
+			case cptag_action_value:
+				memcpy(&ni, b+i, 4);
+				i+=4;
+				cp->action_value = ntohl(ni);			
+			break;
+			case cptag_action_length:
+				memcpy(&ni, b+i, 4);
+				i+=4;
+				cp->action_length = ntohl(ni);
+				if ( cp->action_length > 0 ) {
+					cp->action_data=(unsigned char*)calloc(cp->action_length,sizeof(unsigned char));
+				}				
+			break;
+			case cptag_action_data:
+				memcpy(cp->action_data, b+i, cp->action_length);
+				i+=cp->payloadLength;			
+			break;
+						
 			default:
 //				printf ( " == BAD CHAT PACKET (%02x) =>> Last 6 bytes %02x %02x %02x %02x %02x %02x \n ", c, b[i-2],  b[i-1], b[i], b[i+1], b[i+2], b[i+3]);
 				CHATFABRIC_DEBUG_FMT(config->debug,  
@@ -969,6 +1113,26 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 	return 0;
 
 }
+
+void CP_ICACHE_FLASH_ATTR
+chatPacket_print_action (chatPacket *cp) {
+	char *cd = " " ;
+#ifdef ESP8266
+	return;
+#else
+	
+	
+	printf ( "%2s %24s: %4u %42s\n", cd, "Action", cp->action, actionLookup (cp->action) );
+	printf ( "%2s %24s: %4u %42u\n", cd, "Control Index", cp->action_control, cp->action_control);
+	printf ( "%2s %24s: %4u %42s\n", cd, "Control Type", cp->action_type, actionTypeLookup(cp->action_type));
+	printf ( "%2s %24s: %4u %42u\n", cd, "Control Value", cp->action_value, cp->action_value);
+	
+
+#endif
+
+}
+
+
 
 void CP_ICACHE_FLASH_ATTR
 chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
