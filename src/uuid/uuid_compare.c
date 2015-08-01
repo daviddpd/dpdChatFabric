@@ -28,7 +28,7 @@
  */
 
 #include <string.h>
-#include <uuid.h>
+#include <uuid_local.h>
 
 /* A macro used to improve the readability of uuid_compare(). */
 #define DIFF_RETURN(a, b, field)	do {			\

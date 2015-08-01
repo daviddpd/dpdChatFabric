@@ -23,6 +23,18 @@
 #define CHATFABRIC_DEBUG_FMT(d, ...) if (d) fprintf(stderr, __VA_ARGS__ )
 #endif
 
+#ifdef HAVE_LOCAL_CRYPTO
+#ifndef crypto_box_PUBLICKEYBYTES
+#define crypto_box_PUBLICKEYBYTES 32U
+#define crypto_secretbox_MACBYTES 16U
+#define crypto_secretbox_NONCEBYTES 8U
+#define crypto_box_SEALBYTES 16U
+#define crypto_box_SECRETKEYBYTES 32U
+#endif
+#endif
+
+
+
 typedef struct  {
 	uuid_t u0;
 	uuid_t u1;

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2002,2005 Marcel Moolenaar
+ * Copyright (c) 2002 Marcel Moolenaar
  * Copyright (c) 2002 Hiten Mahesh Pandya
  * All rights reserved.
  *
@@ -24,44 +24,23 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD: stable/10/lib/libc/uuid/uuid_to_string.c 139601 2005-01-03 02:56:15Z marcel $
+ * $FreeBSD: stable/10/lib/libc/uuid/uuid_create_nil.c 118670 2003-08-08 19:18:43Z marcel $
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <uuid.h>
+#include <strings.h>
+#include <uuid_local.h>
 
 /*
- * uuid_to_string() - Convert a binary UUID into a string representation.
+ * uuid_create_nil() - create a nil UUID.
  * See also:
- *	http://www.opengroup.org/onlinepubs/009629399/uuid_to_string.htm
- *
- * NOTE: The references given above do not have a status code for when
- *	 the string could not be allocated. The status code has been
- *	 taken from the Hewlett-Packard implementation.
+ *	http://www.opengroup.org/onlinepubs/009629399/uuid_create_nil.htm
  */
 void
-uuid_to_string(const uuid_t *u, char **s, uint32_t *status)
+uuid_create_nil(uuid_t *u, uint32_t *status)
 {
-	uuid_t nil;
 
-	if (status != NULL)
+	if (status)
 		*status = uuid_s_ok;
 
-	/* Why allow a NULL-pointer here? */
-	if (s == 0)
-		return;
-
-	if (u == NULL) {
-		u = &nil;
-		uuid_create_nil(&nil, NULL);
-	}
-
-	os_sprintf(s, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-	    u->time_low, u->time_mid, u->time_hi_and_version,
-	    u->clock_seq_hi_and_reserved, u->clock_seq_low, u->node[0],
-	    u->node[1], u->node[2], u->node[3], u->node[4], u->node[5]);
-
-	if (*s == NULL && status != NULL)
-		*status = uuid_s_no_memory;
+	bzero(u, sizeof(*u));
 }

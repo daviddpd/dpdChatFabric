@@ -30,7 +30,7 @@
 __FBSDID("$FreeBSD: stable/10/lib/libc/uuid/uuid_stream.c 181743 2008-08-14 22:23:16Z emax $");
 
 #include <endian.h>
-#include <uuid.h>
+#include <uuid_local.h>
 
 /*
  * Encode/Decode UUID into octet-stream.

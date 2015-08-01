@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2002 Marcel Moolenaar
+ * Copyright (c) 2002,2005 Marcel Moolenaar
  * Copyright (c) 2002 Hiten Mahesh Pandya
  * All rights reserved.
  *
@@ -24,23 +24,31 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD: stable/10/lib/libc/uuid/uuid_create_nil.c 118670 2003-08-08 19:18:43Z marcel $
+ * $FreeBSD: stable/10/lib/libc/uuid/uuid_is_nil.c 146098 2005-05-11 13:18:10Z delphij $
  */
 
-#include <strings.h>
-#include <uuid.h>
+#include <uuid_local.h>
 
 /*
- * uuid_create_nil() - create a nil UUID.
+ * uuid_is_nil() - return whether the UUID is a nil UUID.
  * See also:
- *	http://www.opengroup.org/onlinepubs/009629399/uuid_create_nil.htm
+ *	http://www.opengroup.org/onlinepubs/009629399/uuid_is_nil.htm
  */
-void
-uuid_create_nil(uuid_t *u, uint32_t *status)
+int32_t
+uuid_is_nil(const uuid_t *u, uint32_t *status)
 {
+	const uint32_t *p;
 
 	if (status)
 		*status = uuid_s_ok;
 
-	bzero(u, sizeof(*u));
+	if (!u)
+		return (1);
+
+	/*
+	 * Pick the largest type that has equivalent alignment constraints
+	 * as an UUID and use it to test if the UUID consists of all zeroes.
+	 */
+	p = (const uint32_t*)u;
+	return ((p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] == 0) ? 1 : 0);
 }

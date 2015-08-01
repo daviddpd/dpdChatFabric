@@ -24,31 +24,44 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD: stable/10/lib/libc/uuid/uuid_is_nil.c 146098 2005-05-11 13:18:10Z delphij $
+ * $FreeBSD: stable/10/lib/libc/uuid/uuid_to_string.c 139601 2005-01-03 02:56:15Z marcel $
  */
 
-#include <uuid.h>
+#include <stdio.h>
+#include <string.h>
+#include <uuid_local.h>
 
 /*
- * uuid_is_nil() - return whether the UUID is a nil UUID.
+ * uuid_to_string() - Convert a binary UUID into a string representation.
  * See also:
- *	http://www.opengroup.org/onlinepubs/009629399/uuid_is_nil.htm
+ *	http://www.opengroup.org/onlinepubs/009629399/uuid_to_string.htm
+ *
+ * NOTE: The references given above do not have a status code for when
+ *	 the string could not be allocated. The status code has been
+ *	 taken from the Hewlett-Packard implementation.
  */
-int32_t
-uuid_is_nil(const uuid_t *u, uint32_t *status)
+void
+uuid_to_string(const uuid_t *u, char **s, uint32_t *status)
 {
-	const uint32_t *p;
+	uuid_t nil;
 
-	if (status)
+	if (status != NULL)
 		*status = uuid_s_ok;
 
-	if (!u)
-		return (1);
+	/* Why allow a NULL-pointer here? */
+	if (s == 0)
+		return;
 
-	/*
-	 * Pick the largest type that has equivalent alignment constraints
-	 * as an UUID and use it to test if the UUID consists of all zeroes.
-	 */
-	p = (const uint32_t*)u;
-	return ((p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] == 0) ? 1 : 0);
+	if (u == NULL) {
+		u = &nil;
+		uuid_create_nil(&nil, NULL);
+	}
+
+	os_sprintf(s, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+	    u->time_low, u->time_mid, u->time_hi_and_version,
+	    u->clock_seq_hi_and_reserved, u->clock_seq_low, u->node[0],
+	    u->node[1], u->node[2], u->node[3], u->node[4], u->node[5]);
+
+	if (*s == NULL && status != NULL)
+		*status = uuid_s_no_memory;
 }

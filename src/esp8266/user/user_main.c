@@ -7,7 +7,7 @@
 #include "driver/uart.h"
 #include "espconn.h"
 #include "mem.h"
-#include "uuid.h"
+#include "uuid_local.h"
 #include "ntp.h"
 #include <salsa20.h>
 #include <poly1305-donna.h>
