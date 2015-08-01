@@ -29,7 +29,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <uuid_local.h>
+#include "uuid_local.h"
 
 /*
  * uuid_to_string() - Convert a binary UUID into a string representation.
@@ -41,9 +41,9 @@
  *	 taken from the Hewlett-Packard implementation.
  */
 void
-uuid_to_string(const uuid_t *u, char **s, uint32_t *status)
+uuid_to_string(const uuid_cp *u, char **s, uint32_t *status)
 {
-	uuid_t nil;
+	uuid_cp nil;
 
 	if (status != NULL)
 		*status = uuid_s_ok;

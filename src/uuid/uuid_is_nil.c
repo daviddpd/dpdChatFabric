@@ -27,7 +27,7 @@
  * $FreeBSD: stable/10/lib/libc/uuid/uuid_is_nil.c 146098 2005-05-11 13:18:10Z delphij $
  */
 
-#include <uuid_local.h>
+#include "uuid_local.h"
 
 /*
  * uuid_is_nil() - return whether the UUID is a nil UUID.
@@ -35,7 +35,7 @@
  *	http://www.opengroup.org/onlinepubs/009629399/uuid_is_nil.htm
  */
 int32_t
-uuid_is_nil(const uuid_t *u, uint32_t *status)
+uuid_is_nil(const uuid_cp *u, uint32_t *status)
 {
 	const uint32_t *p;
 

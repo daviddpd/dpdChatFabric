@@ -5,6 +5,7 @@
 #define _CHATPACKET_CLEARTEXT 0
 
 
+
 #ifdef ESP8266
 #include "endian.h"
 #include "mem.h"
@@ -19,6 +20,9 @@
 
 
 #else
+typedef struct uuid uuid_cp;
+//typedef  uuid_cp uuid_t;
+
 #define CHATFABRIC_DEBUG(d, msg) if (d) fprintf(stderr, "[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg )
 #define CHATFABRIC_DEBUG_FMT(d, ...) if (d) fprintf(stderr, __VA_ARGS__ )
 #endif
@@ -36,8 +40,8 @@
 
 
 typedef struct  {
-	uuid_t u0;
-	uuid_t u1;
+	uuid_cp u0;
+	uuid_cp u1;
 } uuid_tuple;
 
 enum chatPacketDirection {

@@ -30,7 +30,7 @@
 __FBSDID("$FreeBSD: stable/10/lib/libc/uuid/uuid_stream.c 181743 2008-08-14 22:23:16Z emax $");
 
 #include <endian.h>
-#include <uuid_local.h>
+#include "uuid_local.h"
 
 /*
  * Encode/Decode UUID into octet-stream.
@@ -53,7 +53,7 @@ __FBSDID("$FreeBSD: stable/10/lib/libc/uuid/uuid_stream.c 181743 2008-08-14 22:2
  */
 
 void
-uuid_enc_le(void *buf, const uuid_t *uuid)
+uuid_enc_le(void *buf, const uuid_cp *uuid)
 {
 	uint8_t *p = buf;
 	int i;
@@ -68,7 +68,7 @@ uuid_enc_le(void *buf, const uuid_t *uuid)
 }
 
 void
-uuid_dec_le(const void *buf, uuid_t *uuid)
+uuid_dec_le(const void *buf, uuid_cp *uuid)
 {
 	const uint8_t *p = buf;
 	int i;
@@ -83,7 +83,7 @@ uuid_dec_le(const void *buf, uuid_t *uuid)
 }
 
 void
-uuid_enc_be(void *buf, const uuid_t *uuid)
+uuid_enc_be(void *buf, const uuid_cp *uuid)
 {
 	uint8_t *p = buf;
 	int i;
@@ -98,7 +98,7 @@ uuid_enc_be(void *buf, const uuid_t *uuid)
 }
 
 void
-uuid_dec_be(const void *buf, uuid_t *uuid)
+uuid_dec_be(const void *buf, uuid_cp *uuid)
 {
 	const uint8_t *p = buf;
 	int i;

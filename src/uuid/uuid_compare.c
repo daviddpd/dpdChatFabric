@@ -28,7 +28,7 @@
  */
 
 #include <string.h>
-#include <uuid_local.h>
+#include "uuid_local.h"
 
 /* A macro used to improve the readability of uuid_compare(). */
 #define DIFF_RETURN(a, b, field)	do {			\
@@ -45,7 +45,7 @@
  *	 than any non-nil UUID.
  */
 int32_t
-uuid_compare(const uuid_t *a, const uuid_t *b, uint32_t *status)
+uuid_compare(const uuid_cp *a, const uuid_cp *b, uint32_t *status)
 {
 	int	res;
 

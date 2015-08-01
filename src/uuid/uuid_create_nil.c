@@ -28,7 +28,7 @@
  */
 
 #include <strings.h>
-#include <uuid_local.h>
+#include "uuid_local.h"
 
 /*
  * uuid_create_nil() - create a nil UUID.
@@ -36,7 +36,7 @@
  *	http://www.opengroup.org/onlinepubs/009629399/uuid_create_nil.htm
  */
 void
-uuid_create_nil(uuid_t *u, uint32_t *status)
+uuid_create_nil(uuid_cp *u, uint32_t *status)
 {
 
 	if (status)

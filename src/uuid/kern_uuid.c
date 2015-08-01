@@ -35,7 +35,7 @@
 #endif
 
 #include <c_types.h>
-#include <uuid_local.h>
+#include "uuid_local.h"
 #include "user_interface.h"
 extern time_t ntp_unix_timestamp;
 

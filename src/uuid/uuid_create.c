@@ -27,7 +27,7 @@
  * $FreeBSD: stable/10/lib/libc/uuid/uuid_create.c 118670 2003-08-08 19:18:43Z marcel $
  */
 
-#include <uuid_local.h>
+#include "uuid_local.h"
 
 /*
  * uuid_create() - create an UUID.
@@ -35,7 +35,7 @@
  *	http://www.opengroup.org/onlinepubs/009629399/uuid_create.htm
  */
 void
-uuid_create(uuid_t *u, uint32_t *status)
+uuid_create(uuid_cp *u, uint32_t *status)
 {
 
 	if (status)

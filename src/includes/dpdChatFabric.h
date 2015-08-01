@@ -24,6 +24,8 @@
 #include "espconn.h"
 #include "mem.h"
 #include "arc4random_buf.h"
+#include "uuid_local.h"   // uuid
+
 #else 
 #include <arpa/inet.h>
 #include <netinet/in.h> // htonl, ntohl
@@ -42,9 +44,9 @@
 #include <sys/wait.h> // fork and wait
 #include <unistd.h> // fork and wait, getpid
 #include <getopt.h>
+#include <uuid.h>
 #endif 
 
-#include <uuid_local.h>   // uuid
 
 #ifdef HAVE_SODIUM
 #include <sodium.h>
