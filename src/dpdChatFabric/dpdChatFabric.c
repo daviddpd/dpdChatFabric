@@ -607,14 +607,18 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 			b->length = cp->payloadLength;
 			b->msg=(unsigned char*)calloc(b->length,sizeof(unsigned char));		
 			memcpy(b->msg, cp->payload, b->length);
+		} else {
+			b->length = 0;
+		}
+
+		if ( cp->action != ACTION_NULL ) {
 			b->action = cp->action;
 			b->action_control = cp->action_control;
 			b->action_type = cp->action_type;
 			b->action_value = cp->action_value;
 			b->action_length = cp->action_length;
-		} else {
-			b->length = 0;
 		}
+
 #ifndef ESP8266		
 		free(mesg);
 #endif
