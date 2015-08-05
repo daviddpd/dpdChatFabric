@@ -1,3 +1,4 @@
+#ifndef ESP8266
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 #include "args.h"
@@ -28,6 +29,8 @@ chatFabric_usage(char *p) {
 	printf ("   --send \n");
 	printf ("   --control \n");
 	printf ("   --value \n");
+	printf ("   --tcp \n");
+	printf ("   --udp \n");
 
 	return;
 }
@@ -45,6 +48,7 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 	config->port = 32000;	
 	config->debug = 0;
 	config->writeconfig = 0;
+	config->type = SOCK_DGRAM;
 	
 	struct option longopts[] = {
 		{	"config",	required_argument,	NULL,	'c'	},
@@ -70,6 +74,8 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 		
 		{	"control",	required_argument,	NULL, 3},		
 		{	"value",	required_argument,	NULL,	 4},		
+		{	"tcp",	no_argument,	NULL,	 5},		
+		{	"udp",	no_argument,	NULL,	 6},		
 
 		/*  remember a zero line, else 
 			getopt_long segfaults with unknown options */
@@ -95,6 +101,12 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 			break;
 			case 4:
 				a->action_value = (uint32_t )atoi(optarg);
+			break;
+			case 5:
+				config->type = SOCK_STREAM;
+			break;
+			case 6:
+				config->type = SOCK_DGRAM;
 			break;
 							
 			break;
@@ -178,3 +190,4 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 
 
 }
+#endif

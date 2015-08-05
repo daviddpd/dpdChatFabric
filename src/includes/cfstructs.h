@@ -5,6 +5,10 @@
 #define _CHATPACKET_CLEARTEXT 0
 
 
+#ifdef IOS_APP
+#include "printf.h"
+#endif
+
 
 #ifdef ESP8266
 #include "endian.h"
@@ -242,10 +246,14 @@ typedef struct {
 	int socket;
 #ifdef ESP8266
 	struct espconn conn;
+	esp_tcp esptcp;
 #else
 	struct sockaddr_in sockaddr;
 #endif
-	char *ip;	
+	char *ip;
+	int type; // SOCK_STREAM SOCK_DGRAM SOCK_RAW SOCK_RDM SOCK_SEQPACKET
+	int acceptedSocket;
+	int bind;
 } ESP_WORD_ALIGN chatFabricConnection;
 
 typedef struct  {
@@ -288,6 +296,8 @@ typedef struct  {
 	void (*callback)(void *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd);	
 	
 	int port;
+	int type; // SOCK_STREAM SOCK_DGRAM SOCK_RAW SOCK_RDM SOCK_SEQPACKET
+	
 	int hasPairs;
 	uuid_tuple uuid;
 	uuid_tuple to;

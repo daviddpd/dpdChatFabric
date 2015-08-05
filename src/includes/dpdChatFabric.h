@@ -52,9 +52,9 @@
 #endif 
 
 #ifdef HAVE_LOCAL_CRYPTO
-#include <salsa20.h>
-#include <poly1305-donna.h>
-#include <chacha20_simple.h>
+#include "salsa20.h"
+#include "poly1305-donna.h"
+#include "chacha20_simple.h"
 
 #define crypto_box_PUBLICKEYBYTES 32U
 #define crypto_secretbox_MACBYTES 16U
@@ -119,7 +119,7 @@ void
 chatFabric_configParse(chatFabricConfig *config);
 
 void
-chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind );
+chatFabric_consetup( chatFabricConnection *c,  char *ip, int port );
 
 
 

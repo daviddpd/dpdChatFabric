@@ -53,6 +53,7 @@ int main(int argc, char**argv)
 	bzero(&config,sizeof(config));	
 	bzero(&b,sizeof(b));
 
+
 	pair.state = STATE_UNCONFIGURED;
 	pair.hasPublicKey = 0;
 	
@@ -79,6 +80,12 @@ int main(int argc, char**argv)
 	if ( config.pairfile != NULL ) {
 		chatFabric_pairConfig(&config, &pair, 0 );
 	}
+
+	c.type = config.type;
+	c.socket = -1;
+	c.acceptedSocket = -1;
+	c.bind = 0;
+	
 	
 /*	
 	if ( strcmp ( "on", config.msg ) == 0 ) {	

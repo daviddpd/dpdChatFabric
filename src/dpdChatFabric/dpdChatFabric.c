@@ -470,11 +470,31 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 #ifndef ESP8266
 
 void CP_ICACHE_FLASH_ATTR
-chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind )
+chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 {
 
 	int lowwater = 64;
-	c->socket=socket(AF_INET,SOCK_DGRAM,0);
+	
+	if ( c->type == SOCK_STREAM  &&  c->acceptedSocket == -1 && c->socket != -1 && c->bind == 1) {
+		socklen_t len;
+		c->acceptedSocket = accept(c->socket,(struct sockaddr *)&c->sockaddr,&len);
+		return;
+	} else if ( c->type == SOCK_STREAM  &&  c->socket != -1 && c->bind == 0) {
+		return;	
+	} else if ( c->type == SOCK_DGRAM  &&  c->socket != -1 ) {
+		return;	
+	}
+	// c->bind = doBind;
+	c->acceptedSocket = -1;
+	c->socket = -1;		
+	c->socket=socket(AF_INET,c->type,0);
+
+	CHATFABRIC_DEBUG_FMT(1,  
+		"[DEBUG][%s:%s:%d] ERRNO: %d  Socket FD %d \n", 
+		__FILE__, __FUNCTION__, __LINE__,  errno, c->socket );
+
+	
+//	assert (c->socket != -1 );
 	bzero( &(c->sockaddr),sizeof(c->sockaddr) );
 	c->sockaddr.sin_family = AF_INET;
 	if ( ip == 0 ) {
@@ -483,12 +503,33 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port, int doBind )
 		c->sockaddr.sin_addr.s_addr=inet_addr(ip);
 	}
 	c->sockaddr.sin_port=htons(port);
-	setsockopt(c->socket, SOL_SOCKET, SO_RCVLOWAT, &lowwater, sizeof(lowwater));
+	
+	if ( c->type == SOCK_DGRAM ) {
+		setsockopt(c->socket, SOL_SOCKET, SO_RCVLOWAT, &lowwater, sizeof(lowwater));
+	}
 
-	if ( doBind ==  1 ) {
+	if ( c->bind ==  1 ) {
 		bind(c->socket,(struct sockaddr *)&c->sockaddr,sizeof(c->sockaddr));
+		if ( c->type == SOCK_STREAM ) 
+		{
+			listen(c->socket,1024);
+			socklen_t len;
+			c->acceptedSocket = accept(c->socket,(struct sockaddr *)&c->sockaddr,&len);
+		}
+	} else {
+		if ( c->type == SOCK_STREAM ) {
+			if ( connect(c->socket, (struct sockaddr *)&c->sockaddr, sizeof(c->sockaddr) ) < 0 ) {
+			CHATFABRIC_DEBUG_FMT(1,  
+				"[DEBUG][%s:%s:%d] ERRNO: %d  Socket Connect FD %d , %s \n", 
+				__FILE__, __FUNCTION__, __LINE__,  errno, c->socket, strerror(errno) );
+//				assert(0);
+			
+			}
+
+		}
 	}
 	
+	return;
 } 
 
 #endif
@@ -505,14 +546,11 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	b->length = 0;		
 	enum chatFabricErrors e;
 #ifndef ESP8266
-	
-	if ( c->socket < 1 ) {
-		 chatFabric_consetup(c, config->ip, config->port, 0 );
-		if ( c->socket == -1 ) {
-			CHATFABRIC_DEBUG(config->debug, "chatFabric connection setup failed" );
-			return ERROR_SOCKET;
-		}	
-	}
+	chatFabric_consetup(c, config->ip, config->port);
+	if ( c->socket == -1 ) {
+		CHATFABRIC_DEBUG(config->debug, "chatFabric connection setup failed" );
+		return ERROR_SOCKET;
+	}	
 #endif
 
 	if ( pair->state != STATE_PAIRED ) {
@@ -536,7 +574,16 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 #ifndef ESP8266
 
 	len = sizeof(c->sockaddr);
-	n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);
+	
+	if ( c->type == SOCK_STREAM ) {
+		if (c->bind == 1 ) {
+		    n = write(c->acceptedSocket, mb.msg, mb.length);
+		} else {
+		    n = write(c->socket, mb.msg, mb.length);		
+		}
+	} else {	
+		n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);
+	}
 #endif
 
 	if ( config->debug )
@@ -552,6 +599,9 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 		e = chatFabric_device(c, pair, config, b);
 	} while ( (e == ERROR_OK) && (pair->state != STATE_PAIRED)  );
 	
+#ifndef ESP8266	
+	close (c->socket);
+#endif
 	return e;
 	
 }
@@ -577,8 +627,8 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	mesg = mbuff.msg;
 	int errno = 0;
 #else
-	if ( c->socket < 1 ) {
-		 chatFabric_consetup(c, config->ip, config->port, 1 );
+	if ( c->socket == -1 || ( c->acceptedSocket == -1 && c->bind == 1 )  ) {
+		chatFabric_consetup(c, config->ip, config->port);
 		if ( c->socket == -1 ) {
 			CHATFABRIC_DEBUG(config->debug, "chatFabric connection setup failed" );
 			return ERROR_SOCKET;
@@ -591,7 +641,16 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 
 	len = sizeof(c->sockaddr);
 
-	n = recvfrom(c->socket,mesg,buffersize,0,(struct sockaddr *)&(c->sockaddr),&len);
+	if ( c->type == SOCK_STREAM ) { 
+		if ( c->bind == 1 ) {
+			n = read(c->acceptedSocket,mesg,buffersize);
+		} else {
+			n = read(c->socket,mesg,buffersize);
+		}
+		// n = recvfrom(c->acceptedSocket,mesg,buffersize,0,(struct sockaddr *)&(c->sockaddr),&len);
+	} else {
+		n = recvfrom(c->socket,mesg,buffersize,0,(struct sockaddr *)&(c->sockaddr),&len);
+	}
 #endif 	
 	if ( n == -1 ) {
 #ifndef ESP8266
@@ -601,6 +660,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		CHATFABRIC_DEBUG_FMT(config->debug,  
 			"[DEBUG][%s:%s:%d] ERRNO: %d \n", 
 			__FILE__, __FUNCTION__, __LINE__,  errno );
+//		assert (0);
 		return ERROR_OK;	
 	} else {
 		CHATFABRIC_DEBUG(config->debug, "Got Packet!" );	
@@ -682,9 +742,24 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 #ifdef ESP8266
 		espconn_sent(&c->conn, (uint8 *)mb.msg, mb.length);
 #else
-		n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);
+	if ( c->type == SOCK_STREAM ) {
+		if ( c->bind == 1 ) 
+		{
+		    n = write(c->acceptedSocket, mb.msg, mb.length);
+		} else {
+		    n = write(c->socket, mb.msg, mb.length);		
+		}
+		CHATFABRIC_DEBUG_FMT(config->debug,  
+			"[DEBUG][%s:%s:%d] chatPacket TCP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s \n", 
+			__FILE__, __FUNCTION__, __LINE__,  n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
+	} else {
+	
+		n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);	
+		CHATFABRIC_DEBUG_FMT(config->debug,  
+			"[DEBUG][%s:%s:%d] chatPacket UDP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s \n", 
+			__FILE__, __FUNCTION__, __LINE__,  n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
+	}
 #endif
-		CHATFABRIC_DEBUG(config->debug, "chatPacket UDP data sent." );
 
 //#ifndef ESP8266
 		free(mb.msg);
@@ -696,7 +771,16 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	}
 	
 	chatPacket_delete(cp);
-	CHATFABRIC_DEBUG(config->debug, "function return." );
+#ifndef ESP8266
+	if ( ( c->type == SOCK_STREAM ) && ( c->acceptedSocket != -1 ) &&  (pair->state == STATE_PAIRED) )
+	{
+		close(c->acceptedSocket);
+		// close(c->socket);
+		// c->socket = -1;
+		c->acceptedSocket = -1;
+	}
+#endif	
+	CHATFABRIC_DEBUG(config->debug, "function return." );	
 	return e;
 }
 

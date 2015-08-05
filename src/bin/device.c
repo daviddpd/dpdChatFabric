@@ -93,6 +93,7 @@ int main(int argc, char**argv)
 	bzero(&pair,sizeof(pair));	
 	bzero(&config,sizeof(config));	
 	bzero(&b,sizeof(b));
+	
 
 /*	
 	pair.state = STATE_UNCONFIGURED;
@@ -120,6 +121,10 @@ int main(int argc, char**argv)
 	chatFabric_configParse(&config);
 	
 	config.callback = &deviceCallBack;
+	c.type = config.type;
+	c.socket = -1;
+	c.acceptedSocket = -1;
+	c.bind = 1;
 
 	do {		
 		while ( chatFabric_device(&c, &pair, &config,  &b) == ERROR_OK ) { 

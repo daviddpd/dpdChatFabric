@@ -43,9 +43,9 @@
 #endif 
 
 #if  defined(HAVE_LOCAL_CRYPTO)
-#include <salsa20.h>
-#include <poly1305-donna.h>
-#include <chacha20_simple.h>
+#include "salsa20.h"
+#include "poly1305-donna.h"
+#include "chacha20_simple.h"
 #endif
 
 #include "cfstructs.h"

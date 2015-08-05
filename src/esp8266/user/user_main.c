@@ -205,6 +205,18 @@ udp_callback(void *arg, char *data, unsigned short length)
 }
 
 
+void CP_ICACHE_FLASH_ATTR
+tcp_listen(void *arg)
+{
+    struct espconn *pesp_conn = arg;
+
+    espconn_regist_recvcb(pesp_conn, udp_callback);
+    
+//    espconn_regist_reconcb(pesp_conn, webserver_recon);
+//    espconn_regist_disconcb(pesp_conn, webserver_discon);
+}
+
+
 static void CP_ICACHE_FLASH_ATTR
 loop()
 {
@@ -324,11 +336,23 @@ startup()
 
 		bootstatus = 2; // timeset 
 	    os_printf("%12u %12u BootStatus -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+
+
+		c.conn.type = ESPCONN_TCP;
+		c.conn.state = ESPCONN_NONE;
+		c.conn.proto.tcp = &c.esptcp;
+		c.conn.proto.tcp->local_port = 1388;
+		espconn_regist_connectcb(&c.conn, tcp_listen);
+		espconn_accept(&c.conn);
+	    
+/*	    
     	c.conn.type = ESPCONN_UDP;
     	c.conn.proto.udp = (esp_udp *)os_zalloc(sizeof(esp_udp));
     	c.conn.proto.udp->local_port = 1288;
     	espconn_regist_recvcb(&c.conn, udp_callback);
     	espconn_create(&c.conn);
+*/
+
 	    os_printf("%12u %12u UDP setup complete -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
 
 
