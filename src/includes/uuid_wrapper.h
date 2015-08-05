@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
 * Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+list of conditions and the following disclaimer.
 
 * Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -24,41 +24,32 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "dpdChatFabric.h"
-#include "dpdChatPacket.h"
-#include "args.h"
+
+#ifndef _UUID_WRAPPER_H_
+#define _UUID_WRAPPER_H_
+
+#ifdef FREEBSD
+#include <uuid.h>
+#elif defined(ESP8266)
+#include "uuid_local.h"
+#elif defined(IOS_APP)
+#include <uuid/uuid.h>
+#endif 
+
+#ifndef uuid_cp
+typedef struct uuid uuid_cp;
+#endif
 
 
-int main(int argc, char**argv)
-{
-	chatFabricConnection c;
-	chatFabricPairing pair; 
-	chatFabricConfig config;  
-	msgbuffer b;
+void uuidToBytes(void *str, uuid_cp *uuid);
+void uuidFromBytes(void *str, uuid_cp *uuid);
+void uuidToStr(void *str, uuid_cp *uuid);
+void uuidFromStr(void *str, uuid_cp *uuid);
+void uuidCreate(uuid_cp *uuid);
+void uuidCreateNil(uuid_cp *uuid);
+void uuidCopy(uuid_cp *from, uuid_cp *to );
 
-/*
-	Initialization of all the needed fields.
-	FIXME : Encapsulate this Initialization more.
-*/
-	bzero(&c,sizeof(c));	
-	bzero(&pair,sizeof(pair));	
-	bzero(&config,sizeof(config));	
-	bzero(&b,sizeof(b));
+int uuidCompare(uuid_cp *uuid0, uuid_cp *uuid1);
 
-	pair.state = STATE_UNCONFIGURED;
-	pair.hasPublicKey = 0;
-	
-	uuidCreateNil( &(pair.uuid.u0));
-	uuidCreateNil( &(pair.uuid.u1));
-	pair.hasPublicKey = 0;
-	pair.hasNonce = 0;
-	b.length = -1;
-	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
 
-	chatFabricAction a;
-	
-	chatFabric_args(argc, argv, &config, &a);	
-	chatFabric_configParse(&config);
-	
-
-}
+#endif

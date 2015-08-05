@@ -363,7 +363,7 @@ chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32
 		memcpy(b+x, s, len);
 		x += len;
 	} else if (  type == CP_UUID ) {
-		uuid_enc_be(b+x, uuid);
+		uuidToBytes(b+x, uuid);
 		x += 16;
 	}
 
@@ -382,7 +382,6 @@ chatPacket_init0 (void) {
 #endif
 
 	int i=0;
-	unsigned int status=0;
 #ifndef ESP8266	
 
 	cp=(chatPacket *)calloc(1,sizeof(chatPacket));
@@ -415,10 +414,10 @@ chatPacket_init0 (void) {
 		cp->payloadRandomPadding[i]=0;
 	}
 
-	uuid_create_nil(&(cp->to.u0), &status);
-	uuid_create_nil(&(cp->to.u1), &status);
-	uuid_create_nil(&(cp->from.u0), &status);
-	uuid_create_nil(&(cp->from.u1), &status);
+	uuidCreateNil(&(cp->to.u0));
+	uuidCreateNil(&(cp->to.u1));
+	uuidCreateNil(&(cp->from.u0));
+	uuidCreateNil(&(cp->from.u1));
 
 	cp->payloadLength =0;
 
@@ -500,12 +499,12 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPac
 	lp = 16 - hp;
 	cp->payloadRandomPaddingLength = (hp << 4) | lp;
 	arc4random_buf((unsigned char *)&(cp->payloadRandomPadding), 16);
-		
-	cp->to.u0 = to->u0;
-	cp->to.u1 = to->u1;
 
-	memcpy(&(cp->from.u0), &(config->uuid.u0), 16);
-	memcpy(&(cp->from.u1), &(config->uuid.u1), 16);		
+	uuidCopy( &to->u0, &cp->to.u0);
+	uuidCopy( &to->u1, &cp->to.u1);
+
+	uuidCopy(&(config->uuid.u0), &(cp->from.u0));
+	uuidCopy(&(config->uuid.u1), &(cp->from.u1));
 
 	cp->cmd = cmd;
 	cp->flags = flags;
@@ -928,22 +927,22 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				i+=l;
 			break;
 			case cptag_to0:
-				uuid_dec_be(b+i, &cp->to.u0);
+				uuidFromBytes(b+i, &cp->to.u0);
 //				util_print_bin2hex((unsigned char *)b+i, 16);
 				i+=16;
 			break;
 			case cptag_to1:
-				uuid_dec_be(b+i, &cp->to.u1);
+				uuidFromBytes(b+i, &cp->to.u1);
 //				util_print_bin2hex((unsigned char *)b+i, 16);
 				i+=16;
 			break;
 			case cptag_from0:
-				uuid_dec_be(b+i, &cp->from.u0);
+				uuidFromBytes(b+i, &cp->from.u0);
 //				util_print_bin2hex((unsigned char *)b+i, 16);
 				i+=16;
 			break;
 			case cptag_from1:
-				uuid_dec_be(b+i, &cp->from.u1);
+				uuidFromBytes(b+i, &cp->from.u1);
 //				util_print_bin2hex((unsigned char *)b+i, 16);
 				i+=16;
 			break;
@@ -1141,8 +1140,12 @@ chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 	return;
 #else
 
-	uint32_t status,i, pl=0;
+	uint32_t i, pl=0;
+#ifdef IOS_APP
+	uuid_string_t str;
+#else
 	char *str;
+#endif
 	char p;
 
 	char *cd = " ";
@@ -1166,18 +1169,28 @@ chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 	printf ( "%2s %24s: %42x\n", cd, "flags", cp->flags);
 	printf ( "%2s %24s: %42u\n", cd, "serial", cp->serial);
 
-	uuid_to_string(&cp->to.u0, &str, &status);
+
+
+	uuidToStr(&str, &cp->to.u0);
 	printf ( "%2s %24s: %42s\n", cd, "to0", str);
+#ifndef IOS_APP
 	free(str);
-	uuid_to_string(&cp->to.u1, &str, &status);
+#endif
+	uuidToStr(&str, &cp->to.u1 );
 	printf ( "%2s %24s: %42s\n", cd, "to1", str);
+#ifndef IOS_APP
 	free(str);
-	uuid_to_string(&cp->from.u0, &str, &status);
+#endif
+	uuidToStr(&str, &cp->from.u0);
 	printf ( "%2s %24s: %42s\n", cd, "from0", str);
+#ifndef IOS_APP
 	free(str);
-	uuid_to_string(&cp->from.u1, &str, &status);
+#endif
+	uuidToStr(&str, &cp->from.u1);
 	printf ( "%2s %24s: %42s\n", cd, "from0", str);
+#ifndef IOS_APP
 	free(str);
+#endif
 
 	
 	printf ( "%2s %24s:%s", cd, "nonce", " " );

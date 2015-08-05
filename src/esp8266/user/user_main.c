@@ -7,7 +7,7 @@
 #include "driver/uart.h"
 #include "espconn.h"
 #include "mem.h"
-#include "uuid_local.h"
+#include "uuid_wrapper.h"
 #include "ntp.h"
 #include <salsa20.h>
 #include <poly1305-donna.h>
@@ -27,9 +27,12 @@ static void loop();
 
 uint32_t controls[16];
 
-
 LOCAL os_timer_t boottimer;
 LOCAL os_timer_t poketimer;
+
+LOCAL os_timer_t buttonDebounce;
+//LOCAL os_timer_t buttonDebounce;
+
 /*
 LOCAL void CP_ICACHE_FLASH_ATTR
 nonceInc()
@@ -271,6 +274,8 @@ startup()
 //		bzero(&config,sizeof(config));	
 //		bzero(&b,sizeof(b));
 
+
+/*
 		pair[0].state = STATE_UNCONFIGURED;
 		pair[0].hasPublicKey = 0;
 	
@@ -279,12 +284,15 @@ startup()
 		pair[0].hasPublicKey = 0;
 		pair[0].hasNonce = 0;
 		pair[0].serial = 0;
+		arc4random_buf((unsigned char *)&(pair[0].mynonce), crypto_secretbox_NONCEBYTES);
+		bzero(&(pair[0].nullnonce), crypto_secretbox_NONCEBYTES);
+*/
+		chatFabric_pair_init(&pair[0]);
+
 		config.pairfile = "1";
 		
 		b.length = -1;
-		arc4random_buf((unsigned char *)&(pair[0].mynonce), crypto_secretbox_NONCEBYTES);
-		bzero(&(pair[0].nullnonce), crypto_secretbox_NONCEBYTES);
-		config.debug = 0;
+		config.debug = 1;
 		chatFabric_configParse(&config);
 		config.callback = (void*)&deviceCallBack;
 	    os_printf("%12u %12u IDS -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
@@ -329,6 +337,47 @@ startup()
 }
 
 
+void CP_ICACHE_FLASH_ATTR
+doButton(uint8 gpio_pin)
+{
+	uint8 i = gpio_pin;	
+	os_printf ( " ==> Starting doButton %d \n", i );		
+	switch(i) {
+		case 12:
+			os_printf ( " ==> Pin %d pressed - Unpairing \n", i );	
+			chatFabric_pair_init(&pair[0]);				
+		break;
+		case 13:
+			os_printf ( " ==> Pin %d pressed \n", i );			
+		break;
+	}
+
+	gpio_pin_intr_state_set(GPIO_ID_PIN(i), GPIO_PIN_INTR_NEGEDGE);
+}
+
+void CP_ICACHE_FLASH_ATTR
+buttonPress(void *n)
+{
+	uint8 i = 0;
+    uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
+
+	for (i=12; i<14; i++) {
+		if (gpio_status & BIT(i) ) {
+			//disable interrupt
+			gpio_pin_intr_state_set(GPIO_ID_PIN(i), GPIO_PIN_INTR_DISABLE);
+
+			//clear interrupt status
+			GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(i));
+
+		    os_timer_disarm(&buttonDebounce);
+		    os_timer_setfn(&buttonDebounce, (os_timer_func_t *)doButton, i);
+		    os_timer_arm(&buttonDebounce, 120, 0);
+		    
+		    
+		}		
+	}
+
+}
 //Init function 
 void CP_ICACHE_FLASH_ATTR
 user_init()
@@ -353,6 +402,14 @@ user_init()
 
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO4_U, FUNC_GPIO4);
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
+    
+	ETS_GPIO_INTR_ATTACH(buttonPress, NULL);
+	ETS_GPIO_INTR_DISABLE();
+	GPIO_DIS_OUTPUT(12); // set of input
+	GPIO_DIS_OUTPUT(13); // set of input
+    gpio_pin_intr_state_set(GPIO_ID_PIN(12), GPIO_PIN_INTR_NEGEDGE);    
+    gpio_pin_intr_state_set(GPIO_ID_PIN(13), GPIO_PIN_INTR_NEGEDGE);
+    ETS_GPIO_INTR_ENABLE();
 
 //	gpio_output_set(BIT2, 0, BIT2, 0);
 

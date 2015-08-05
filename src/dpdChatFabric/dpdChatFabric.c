@@ -98,10 +98,10 @@ chatFabric_configParse(chatFabricConfig *config)
 		// These are created in args, so for the embedded solution
 		// putting here.
 #ifdef ESP8266
-		uuid_create( &(config->to.u0), &status);
-		uuid_create( &(config->to.u1), &status);
-		uuid_create_nil( &(config->uuid.u0), &status);
-		uuid_create( &(config->uuid.u1), &status);
+		uuidCreateNil( &(config->to.u0));
+		uuidCreateNil( &(config->to.u1));
+		uuidCreateNil( &(config->uuid.u0));
+		uuidCreate( &(config->uuid.u1));
 		arc4random_buf((unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES);
 		curve25519_donna((unsigned char *)&config->publickey, (unsigned char *)&config->privatekey, (unsigned char *)&basepoint);
 #endif
@@ -160,11 +160,11 @@ chatFabric_configParse(chatFabricConfig *config)
 						i+=crypto_box_SECRETKEYBYTES;
 					break;		
 					case cftag_uuid0:			// 1+16
-						uuid_dec_be(str+i, &config->uuid.u0);
+						uuidFromBytes(str+i, &config->uuid.u0);
 						i+=16;
 					break;		
 					case cftag_uuid1:			// 1+16
-						uuid_dec_be(str+i, &config->uuid.u1);
+						uuidFromBytes(str+i, &config->uuid.u1);
 						i+=16;
 					break;		
 					default:
@@ -230,6 +230,27 @@ chatFabric_configParse(chatFabricConfig *config)
 	}
 
 }
+
+void CP_ICACHE_FLASH_ATTR
+chatFabric_pair_init(chatFabricPairing *pair) 
+{
+
+	pair->state = STATE_UNCONFIGURED;
+	pair->hasPublicKey = 0;	
+	uuidCreateNil ( &(pair->uuid.u0) );
+	uuidCreateNil ( &(pair->uuid.u1));
+	pair->hasPublicKey = 0;
+	pair->hasNonce = 0;
+#ifdef ESP8266	
+	arc4random_buf((unsigned char *)&(pair[0].mynonce), crypto_secretbox_NONCEBYTES);
+#else
+	arc4random_buf(&(pair->mynonce), crypto_secretbox_NONCEBYTES);
+#endif
+
+	bzero(&(pair->nullnonce), crypto_secretbox_NONCEBYTES);
+
+}
+
 
 void CP_ICACHE_FLASH_ATTR
 chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int write ) 
@@ -406,11 +427,11 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 						pair->serial = ntohl(ni);
 					break;					
 					case cftag_uuid0:			// 1+16
-						uuid_dec_be(str+i, &pair->uuid.u0);
+						uuidFromBytes(str+i, &pair->uuid.u0);
 						i+=16;
 					break;		
 					case cftag_uuid1:			// 1+16
-						uuid_dec_be(str+i, &pair->uuid.u1);
+						uuidFromBytes(str+i, &pair->uuid.u1);
 						i+=16;
 					break;		
 
@@ -687,11 +708,10 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 	CHATFABRIC_DEBUG(config->debug, " Start " );
 
 	chatFabricPairing  previous_state;
-	uint32_t status;
 	
 	enum chatPacketCommands RETVAL;
-	int u0 = uuid_compare(&(cp->to.u0), &(config->uuid.u0), &status);
-	int u1 = uuid_compare(&(cp->to.u1), &(config->uuid.u1), &status);
+	int u0 = uuidCompare(&(cp->to.u0), &(config->uuid.u0));
+	int u1 = uuidCompare(&(cp->to.u1), &(config->uuid.u1));
 	CHATFABRIC_DEBUG_FMT(config->debug,  
 		"[DEBUG][%s:%s:%d] u0 %d u1 %d \n", 
 		__FILE__, __FUNCTION__, __LINE__,  u0, u1 );
@@ -715,19 +735,10 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 	previous_state.state =  pair->state;
 	previous_state.hasPublicKey = pair->hasPublicKey;
 
-#ifndef ESP8266
-	reply->to.u0 = cp->from.u0;
-	reply->to.u1 = cp->from.u1;
-	reply->from.u0 = config->uuid.u0;
-	reply->from.u1= config->uuid.u1;
-#else
-
-	memcpy(&reply->to.u0, &cp->from.u0, 16 );
-	memcpy(&reply->to.u1, &cp->from.u1, 16 );
-	memcpy(&reply->from.u0, &config->uuid.u0, 16 );
-	memcpy(&reply->from.u1, &config->uuid.u1, 16 );
-
-#endif
+	uuidCopy( &cp->from.u0, &reply->to.u0);
+	uuidCopy( &cp->from.u1, &reply->to.u1);
+	uuidCopy( &config->uuid.u0, &reply->from.u0);
+	uuidCopy( &config->uuid.u1, &reply->from.u1);
 	
 	RETVAL = CMD_SEND_REPLY_FALSE;
 	
@@ -762,8 +773,8 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 				reply->flags = 0;
 				reply->cmd = CMD_PAIR_REQUEST_ACK;
 				pair->state = STATE_PUBLICKEY_SETUP;
-				pair->uuid.u0 = cp->from.u0;
-				pair->uuid.u1 = cp->from.u1;
+				uuidCopy( &cp->from.u0, &pair->uuid.u0);
+				uuidCopy( &cp->from.u1, &pair->uuid.u1);
 				RETVAL = CMD_SEND_REPLY_TRUE;	
 			}
 		break;
@@ -772,8 +783,8 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 				reply->flags = 0;
 				reply->cmd = CMD_PUBLICKEY_REQUEST;
 				pair->state = STATE_PUBLICKEY_SETUP;
-				pair->uuid.u0 = cp->from.u0;
-				pair->uuid.u1 = cp->from.u1;
+				uuidCopy( &cp->from.u0, &pair->uuid.u0);
+				uuidCopy( &cp->from.u1, &pair->uuid.u1);
 				RETVAL = CMD_SEND_REPLY_TRUE;
 			}
 		break;

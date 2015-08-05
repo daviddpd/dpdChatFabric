@@ -31,7 +31,7 @@ ESPPORT		?= /dev/ttyUSB0
 TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= ../dpdChatFabric ../dpdChatPacket driver user ../crypto ../util ../uuid
+MODULES		= ../dpdChatFabric ../dpdChatPacket driver user ../crypto ../util ../uuid_wrapper ../uuid
 EXTRA_INCDIR    = include ../crypto ../includes 
 
 # libraries used in this project, mainly provided by the SDK
@@ -138,6 +138,6 @@ flash: $(FW_FILE_1) $(FW_FILE_2)
 	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 clean:
-	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket
+	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket ./util ./uuid_wrapper ./uuid
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))

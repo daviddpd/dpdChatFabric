@@ -44,7 +44,7 @@ void deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing
 	
 	printf ( " === >deviceCallBack  %u %u %u %u\n",  cp->action, cp->action_type, cp->action_control,cp->action_value  ) ;
 
-	if ( (cp->action_control >= 0 ) && (cp->action_control < 16 ) ) 
+	if ( cp->action_control < 16  ) 
 	{
 
 		if (cp->action == ACTION_GET ) 
@@ -83,8 +83,6 @@ int main(int argc, char**argv)
 	chatFabricPairing pair; 
 	chatFabricConfig config;  
 	msgbuffer b;
-	uint32_t status2;
-	unsigned char *tmp;
 	int i=0;
 
 /*
@@ -96,16 +94,20 @@ int main(int argc, char**argv)
 	bzero(&config,sizeof(config));	
 	bzero(&b,sizeof(b));
 
+/*	
 	pair.state = STATE_UNCONFIGURED;
 	pair.hasPublicKey = 0;
-	
 	uuid_create_nil ( &(pair.uuid.u0), &status2);
 	uuid_create_nil ( &(pair.uuid.u1), &status2);
 	pair.hasPublicKey = 0;
 	pair.hasNonce = 0;
-	b.length = -1;
 	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
 	bzero(&(pair.nullnonce), crypto_secretbox_NONCEBYTES);
+*/	
+
+	chatFabric_pair_init(&pair);
+
+	b.length = -1;
 
 	for (i=0; i<16; i++) {
 		controls[i]=0;
@@ -121,23 +123,6 @@ int main(int argc, char**argv)
 
 	do {		
 		while ( chatFabric_device(&c, &pair, &config,  &b) == ERROR_OK ) { 
-/*
-			if ( b.length > 0 ) {
-				tmp=calloc(b.length+1,sizeof(unsigned char));
-				memcpy(tmp, b.msg, b.length);
-				printf ( " === > Payload: %s \n", tmp ) ;
-				if ( b.length == 4 ) {
-					if ( strncmp((char *)tmp, "quit", 4) == 0 ) {
-						exit(0);
-					}
-			
-				}
-				free(tmp);
-				free(b.msg);
-				b.length = -1;
-			}
-*/			
-			free(tmp);
 			free(b.msg);
 			b.length = -1;
 	

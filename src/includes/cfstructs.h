@@ -20,8 +20,6 @@
 
 
 #else
-typedef struct uuid uuid_cp;
-//typedef  uuid_cp uuid_t;
 
 #define CHATFABRIC_DEBUG(d, msg) if (d) fprintf(stderr, "[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg )
 #define CHATFABRIC_DEBUG_FMT(d, ...) if (d) fprintf(stderr, __VA_ARGS__ )
@@ -148,9 +146,9 @@ enum chatPacketTags  {
 
 	 cptag_payloadLength,				// 14 / d
 
-	 cptag_payloadRandomPaddingLength,
-	 cptag_payloadRandomPaddingHigh,
-	 cptag_payloadRandomPaddingLow,	
+	 cptag_payloadRandomPaddingLength, // 15 / e
+	 cptag_payloadRandomPaddingHigh,  // 16 / 0f
+	 cptag_payloadRandomPaddingLow,	 // 17
 
 	 cptag_encryptedPayload,
 

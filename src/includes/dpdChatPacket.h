@@ -29,13 +29,14 @@
 #include <sys/time.h>// kqueue / kevent 
 #include <sys/wait.h> // fork and wait
 #include <unistd.h> // fork and wait, getpid
-#include <uuid.h>   // uuid
 
 #include <limits.h>
      
 #include <getopt.h>
 
 #endif 
+
+#include "uuid_wrapper.h"
 
 #if defined(HAVE_SODIUM)
 #include <sodium.h>

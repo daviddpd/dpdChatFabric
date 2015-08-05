@@ -27,6 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 #include "args.h"
+#include "uuid_wrapper.h"
 
 
 void controllerCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd) 
@@ -41,7 +42,6 @@ int main(int argc, char**argv)
 	chatFabricPairing pair; 
 	chatFabricConfig config;  
 	msgbuffer b;
-	uint32_t status2;
 	unsigned char *tmp;
 
 /*
@@ -56,8 +56,8 @@ int main(int argc, char**argv)
 	pair.state = STATE_UNCONFIGURED;
 	pair.hasPublicKey = 0;
 	
-	uuid_create_nil ( &(pair.uuid.u0), &status2);
-	uuid_create_nil ( &(pair.uuid.u1), &status2);
+	uuidCreateNil ( &(pair.uuid.u0));
+	uuidCreateNil ( &(pair.uuid.u1));
 
 	
 	pair.hasPublicKey = 0;

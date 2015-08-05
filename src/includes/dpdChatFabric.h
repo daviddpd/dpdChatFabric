@@ -24,7 +24,6 @@
 #include "espconn.h"
 #include "mem.h"
 #include "arc4random_buf.h"
-#include "uuid_local.h"   // uuid
 
 #else 
 #include <arpa/inet.h>
@@ -44,9 +43,9 @@
 #include <sys/wait.h> // fork and wait
 #include <unistd.h> // fork and wait, getpid
 #include <getopt.h>
-#include <uuid.h>
 #endif 
 
+#include "uuid_wrapper.h"
 
 #ifdef HAVE_SODIUM
 #include <sodium.h>
@@ -103,8 +102,8 @@ enum chatFabricConfigTags  {
 const char * stateLookup (enum chatPacketStates state);
 const char * cmdLookup (enum chatPacketCommands cmd);
 
-void
-chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int write );
+void chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int write );
+void chatFabric_pair_init(chatFabricPairing *pair);
 
 enum chatFabricErrors 
 chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  chatFabricAction *a, msgbuffer *b);

@@ -34,7 +34,7 @@ chatFabric_usage(char *p) {
 
 void CP_ICACHE_FLASH_ATTR
 chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction *a) {
-	int ch, action_value=0, action_control=0, action_set=0, action_get=0, action_send=0;
+	int ch;
 	uint32_t status;
 	static const unsigned char basepoint[32] = {9};
 
