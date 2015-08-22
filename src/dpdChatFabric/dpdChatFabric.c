@@ -57,16 +57,17 @@ chatFabric_configParse(chatFabricConfig *config)
 //	enum chatFabricConfigTags t;
 #ifdef ESP8266
 
-// FIXME:  Add if reconfig condition ... from button/GPIO ?
+/*
 	CHATFABRIC_DEBUG_FMT(config->debug,  
 		"[DEBUG][%s:%s:%d] Reading in flash\n", 
 		__FILE__, __FUNCTION__, __LINE__ );
-		
+*/		
 //	util_print_bin2hex((unsigned char *)&flashConfig, 256);	
-
+/*
 	CHATFABRIC_DEBUG_FMT(config->debug,  
 		"[DEBUG][%s:%s:%d] Readed in flash\n", 
 		__FILE__, __FUNCTION__, __LINE__ );
+*/
 
 	if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig), 4096) == FALSE ) {
 		CHATFABRIC_DEBUG_FMT(config->debug, "Read from flash failed." ); 	
@@ -132,9 +133,11 @@ chatFabric_configParse(chatFabricConfig *config)
 			while (i<filesize) 
 			{
 				memcpy(&t, str+i, 1);
+/*
 				CHATFABRIC_DEBUG_FMT(config->debug,  
 					"[DEBUG][%s:%s:%d] Parsing File %02x %4d\n", 
 					__FILE__, __FUNCTION__, __LINE__, t, i);
+*/
 				++i;
 							
 				switch (t){
@@ -382,9 +385,11 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 			while (i<filesize) 
 			{
 				memcpy(&t, str+i, 1);
+/*				
 				CHATFABRIC_DEBUG_FMT(config->debug,
 					"[DEBUG][%s:%s:%d] Parsing File %02x %4d\n",
 					__FILE__, __FUNCTION__, __LINE__, t, i);
+*/					
 				
 				++i;			
 				switch (t){
@@ -407,6 +412,7 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 					case cftag_pairs:
 						memcpy(&ni, str+i, 4);
 						i+=4;
+						config->hasPairs = 1;
 						// FIXME: Feature add, multiple pair support 
 					break;
 					case cftag_publickey:	// 1+crypto_box_SECRETKEYBYTES
@@ -494,7 +500,10 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 		__FILE__, __FUNCTION__, __LINE__,  errno, c->socket );
 
 	
-//	assert (c->socket != -1 );
+	if (c->socket == -1 ) {
+		return;
+	}
+	
 	bzero( &(c->sockaddr),sizeof(c->sockaddr) );
 	c->sockaddr.sin_family = AF_INET;
 	if ( ip == 0 ) {
@@ -556,8 +565,11 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	if ( pair->state != STATE_PAIRED ) {
 		cp = chatPacket_init (config, pair, CMD_PAIR_REQUEST,  nullmsg, 0,  0);
 		chatPacket_encode ( cp, config, pair,  &mb, _CHATPACKET_ENCRYPTED, COMMAND);
-	} else {	
-		if ( config->msg == 0 || config->msg == NULL ) {
+	} else {
+		if ( a->action == ACTION_APP_LIST ) {
+			cp = chatPacket_init (config, pair, CMD_APP_LIST,  NULL, 0,  CMD_SEND_REPLY_TRUE);
+			
+		} else if ( config->msg == 0 || config->msg == NULL ) {
 			cp = chatPacket_init (config, pair, CMD_APP_MESSAGE,  NULL, 0,  CMD_SEND_REPLY_TRUE);
 		} else { 
 			cp = chatPacket_init (config, pair, CMD_APP_MESSAGE,  config->msg, strlen((const char *)config->msg),  CMD_SEND_REPLY_TRUE);
@@ -570,9 +582,9 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 
 		chatPacket_encode ( cp, config, pair,  &mb, _CHATPACKET_ENCRYPTED, DATA);
 	}
-
-#ifndef ESP8266
-
+#ifdef ESP8266
+		espconn_sent(c->conn, (uint8 *)mb.msg, mb.length);
+#else
 	len = sizeof(c->sockaddr);
 	
 	if ( c->type == SOCK_STREAM ) {
@@ -595,12 +607,25 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	mb.length = 0;
 	chatPacket_delete(cp);
 	
+	int getAppList = 0;
+	
+	if (pair->state != STATE_PAIRED) {
+		getAppList = 1;	
+	}
+	
 	do { 
 		e = chatFabric_device(c, pair, config, b);
 	} while ( (e == ERROR_OK) && (pair->state != STATE_PAIRED)  );
 	
+/*	
+	if ( getAppList ) {
+		a->action = ACTION_APP_LIST;
+		chatFabric_controller(c, pair, config, a, b);
+
+	}
+*/	
 #ifndef ESP8266	
-	close (c->socket);
+	//close (c->socket);
 #endif
 	return e;
 	
@@ -710,7 +735,12 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	
 	CHATFABRIC_DEBUG(config->debug, " == starting state machine == \n " );
 	stateMachine ( config, cp, pair, cp_reply, &replyCmd, &e);
-	if ( config->callback != NULL ) {
+	if ( config->callback != NULL && pair->state == STATE_PAIRED && 
+		( 
+			cp->cmd == CMD_APP_MESSAGE || cp->cmd == CMD_APP_MESSAGE_ACK || 
+			cp->cmd == CMD_APP_LIST || cp->cmd == CMD_APP_LIST_ACK 
+		) 
+	) {
 		config->callback(config, cp, pair, cp_reply, &replyCmd);	
 	}
 	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
@@ -731,6 +761,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 			case CMD_APP_MESSAGE_ACK:
 			case CMD_APP_REGISTER:
 			case CMD_APP_LIST:
+			case CMD_APP_LIST_ACK:
 				cptype = DATA;
 			break;			
 			default:
@@ -740,7 +771,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		chatPacket_encode ( cp_reply, config, pair, &mb, _CHATPACKET_ENCRYPTED, cptype);
 		// FIXME: Error check and handle sending error
 #ifdef ESP8266
-		espconn_sent(&c->conn, (uint8 *)mb.msg, mb.length);
+		espconn_sent(c->conn, (uint8 *)mb.msg, mb.length);
 #else
 	if ( c->type == SOCK_STREAM ) {
 		if ( c->bind == 1 ) 
@@ -770,16 +801,26 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		chatPacket_delete(cp_reply);	
 	}
 	
-	chatPacket_delete(cp);
 #ifndef ESP8266
-	if ( ( c->type == SOCK_STREAM ) && ( c->acceptedSocket != -1 ) &&  (pair->state == STATE_PAIRED) )
+	if ( ( c->type == SOCK_STREAM ) &&  (pair->state == STATE_PAIRED)  )
 	{
-		close(c->acceptedSocket);
-		// close(c->socket);
-		// c->socket = -1;
-		c->acceptedSocket = -1;
+		if ( c->acceptedSocket != -1 ) {
+			close(c->acceptedSocket);
+			c->acceptedSocket = -1;
+		} else if ( c->socket != -1 ) {
+		
+//			close(c->socket);
+//			c->socket = -1;
+	
+		}
+		
+		
+		CHATFABRIC_DEBUG_FMT(config->debug,  
+			"[DEBUG][%s:%s:%d] chatPacket TCP CLOSING Accepted Socket.  socket %d %d  SOCK_TYPE : %d  %s \n", 
+			__FILE__, __FUNCTION__, __LINE__,  c->acceptedSocket, c->socket, c->type, strerror(errno)  );
 	}
 #endif	
+	chatPacket_delete(cp);
 	CHATFABRIC_DEBUG(config->debug, "function return." );	
 	return e;
 }
@@ -892,7 +933,11 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 		case CMD_NONCE_ACK:
 			if  ( pair->state == STATE_NONCE_SETUP ) {
 					pair->state = STATE_PAIRED;
+//					reply->cmd = CMD_APP_LIST;
 					RETVAL = CMD_SEND_REPLY_FALSE;
+//					a->action = (uint32_t )ACTION_GET;
+//					a->action_control = 0;
+//					a->action_value = 0;
 			}		
 		break;
 		case CMD_NONCE_SEND:
@@ -1018,9 +1063,24 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 		case CMD_APP_REGISTER:
 				RETVAL = CMD_SEND_REPLY_FALSE;
 		break;
+		
 		case CMD_APP_LIST:
+			if  (  pair->state == STATE_PAIRED  ) {
+				RETVAL = CMD_SEND_REPLY_TRUE;
+//				a->action = (uint32_t )ACTION_READ;
+//				a->action_control = 0;
+//				a->action_value = 0;
+				reply->controlers = config->controlers;
+				reply->numOfControllers = config->numOfControllers;
+				
+				reply->cmd = CMD_APP_LIST_ACK;
+			}				
+		break;
+		
+		case CMD_APP_LIST_ACK:
 				RETVAL = CMD_SEND_REPLY_FALSE;
 		break;
+		
 		case CMD_CONFIG_MESSAGE:
 				RETVAL = CMD_SEND_REPLY_FALSE;
 		break;

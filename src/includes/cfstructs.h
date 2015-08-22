@@ -46,6 +46,19 @@ typedef struct  {
 	uuid_cp u1;
 } uuid_tuple;
 
+typedef struct {
+	uint32_t control; // index of the control to act on.
+	uint32_t type; // boolean(rw), dimmer(rw), gauge(ro), data(rw)
+	int32_t value; // 1/0 ; 0~2^32; 0~2^32; length of data
+	int32_t rangeLow;
+	int32_t rangeHigh;
+	uint32_t labelLength;
+	char *label;
+	unsigned char *data; 
+//	void (*callback)(void *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd);	
+} ESP_WORD_ALIGN cfControl;
+
+
 enum chatPacketDirection {
 	NONE,
 	IN,
@@ -119,6 +132,7 @@ enum chatPacketCommands {
 	CMD_APP_MESSAGE_ACK,
 	CMD_APP_REGISTER,
 	CMD_APP_LIST,
+	CMD_APP_LIST_ACK,	
 	CMD_CONFIG_MESSAGE,
 	CMD_CONFIG_DELIGATE,
 	CMD_CONFIG_PAIR,
@@ -169,6 +183,17 @@ enum chatPacketTags  {
 	 cptag_action_control,
 	 cptag_action_length,
 	 cptag_action_data,
+	 
+	 cptag_app_controls,
+	 cptag_app_control_i,
+	 cptag_app_control_type,
+	 cptag_app_control_value,
+	 cptag_app_control_rangeLow,
+	 cptag_app_control_rangeHigh,
+	 cptag_app_control_labelLength,
+	 cptag_app_control_label,
+	 cptag_app_control_data,
+	 
 	 	 	 
 	 cptag_cmd = 0xFF,
 	 	
@@ -179,7 +204,8 @@ enum chatPacketActions {
 	ACTION_NULL = 0,
 	ACTION_GET,
 	ACTION_SET,	
-	ACTION_READ, // send	
+	ACTION_READ, // send
+	ACTION_APP_LIST,
 } ESP_WORD_ALIGN;
 
 enum chatPacketActionsType {
@@ -195,7 +221,7 @@ typedef struct {
 	uint32_t action; // get/set/value
 	uint32_t action_control; // index of the control to act on.
 	uint32_t action_type; // boolean(rw), dimmer(rw), gauge(ro), data(rw)
-	uint32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
+	int32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
 	uint32_t action_length; 
 	unsigned char *action_data;
 	
@@ -212,6 +238,10 @@ typedef struct  {
 	uint32_t serial;	
 
 	uint32_t wasEncrypted;
+	
+	cfControl *controlers;
+	int numOfControllers;
+	
 	
 	unsigned char nonce[crypto_secretbox_NONCEBYTES];
 	uint32_t envelopeLength;
@@ -233,7 +263,7 @@ typedef struct  {
 	uint32_t action; // get/set/value
 	uint32_t action_control; // index of the control to act on.
 	uint32_t action_type; // boolean(rw), dimmer(rw), gauge(ro), data(rw)
-	uint32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
+	int32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
 	uint32_t action_length; 
 	unsigned char *action_data;
 	
@@ -245,7 +275,9 @@ typedef struct  {
 typedef struct {
 	int socket;
 #ifdef ESP8266
-	struct espconn conn;
+	struct espconn tcpconn;
+	struct espconn udpconn;
+	struct espconn *conn;
 	esp_tcp esptcp;
 #else
 	struct sockaddr_in sockaddr;
@@ -281,7 +313,7 @@ typedef struct {
 	uint32_t action; // get/set/value
 	uint32_t action_control; // index of the control to act on.
 	uint32_t action_type; // boolean(rw), dimmer(rw), gauge(ro), data(rw)
-	uint32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
+	int32_t action_value; // 1/0 ; 0~2^32; 0~2^32; undef
 	uint32_t action_length; 
 	unsigned char *action_data;
 } ESP_WORD_ALIGN msgbuffer;
@@ -293,6 +325,8 @@ typedef struct  {
 	char *pairfile;
 	char *ip;
 	unsigned char *msg;
+	cfControl *controlers;
+	int numOfControllers;
 	void (*callback)(void *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd);	
 	
 	int port;

@@ -54,18 +54,20 @@ util_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, 
 #else
 void CP_ICACHE_FLASH_ATTR
 util_print_bin2hex(unsigned char * x, int len) {
-
-#ifdef IOS_APP
-    return;
-#else
-
 	int i;
+	int z=0;
+	int l = (len/4) + len*2;
+	char *tmp = calloc(l,sizeof(char));
+	
 	for (i=0; i<len; i++) {
-		printf ( "%02x", x[i] );
-		if ( (i>0) && ( (i+1)%4 == 0 ) ) { printf (" "); }
+		sprintf(tmp+z, "%02x", x[i]);
+		z+=2;
+		if ( (i>0) && ( (i+1)%4 == 0 ) ) { 			
+			sprintf (tmp+z, " " );
+			z++;
+		}
 	}
-	printf ("\n");
-#endif
+	printf ("%s\n", tmp);
 
 }
 

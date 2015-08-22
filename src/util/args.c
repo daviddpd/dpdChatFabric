@@ -1,4 +1,5 @@
 #ifndef ESP8266
+#ifndef IOS_APP
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 #include "args.h"
@@ -190,4 +191,5 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 
 
 }
+#endif
 #endif

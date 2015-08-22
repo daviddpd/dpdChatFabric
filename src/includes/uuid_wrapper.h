@@ -33,11 +33,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #elif defined(ESP8266)
 #include "uuid_local.h"
 #elif defined(IOS_APP)
+#include <stdlib.h>
 #include <uuid/uuid.h>
 #endif 
 
 #ifndef uuid_cp
+#ifdef IOS_APP
+#define uuid_cp uuid_t
+#else
 typedef struct uuid uuid_cp;
+#endif
 #endif
 
 

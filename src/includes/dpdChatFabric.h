@@ -104,6 +104,7 @@ const char * cmdLookup (enum chatPacketCommands cmd);
 
 void chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int write );
 void chatFabric_pair_init(chatFabricPairing *pair);
+//enum chatFabricErrors chatFabric_processActions(chatFabricConfig *config, chatPacket *cp, chatPacket *reply);
 
 enum chatFabricErrors 
 chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config,  chatFabricAction *a, msgbuffer *b);

@@ -75,7 +75,7 @@ void CP_ICACHE_FLASH_ATTR uuidFromStr(void *str, uuid_cp *uuid)
 	// ESP8266 sscanf is problematic in this SDK.
 #elif defined(IOS_APP)
 	// this may not work, untested
-	uuid_parse( char *(str), uuid);
+	uuid_parse( (char *)str, uuid);
 #endif 
 	return;
 }
@@ -117,7 +117,7 @@ void CP_ICACHE_FLASH_ATTR uuidCopy(uuid_cp *from, uuid_cp *to )
 #elif defined(ESP8266)
 	*to = *from;
 #elif defined(IOS_APP)
-    memcpy(to, from, 16 );
+    uuid_copy(to, from);
 #endif
 
 }
@@ -133,16 +133,20 @@ int CP_ICACHE_FLASH_ATTR uuidCompare(uuid_cp *uuid0, uuid_cp *uuid1)
 	return uuid_compare(uuid0, uuid1, &status);
 #elif defined(IOS_APP)
 
+	return uuid_compare(uuid0, uuid1);
+/*
     unsigned char *tmp1 = malloc(36);
     unsigned char *tmp2 = malloc(36);
 
     uuid_unparse_lower(uuid0, tmp1);
     uuid_unparse_lower(uuid1, tmp2);
         
-    return strncmp(tmp1, tmp2, 36);
     free(tmp1);
     free(tmp2);
-#endif 
+    return strncmp(tmp1, tmp2, 36);
+*/
+
+#endif
 
 	return -1;
 }

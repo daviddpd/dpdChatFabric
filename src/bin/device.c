@@ -33,46 +33,47 @@ uint32_t controls[16];
 void deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd) 
 {
 
+	int i =0;
 	unsigned char *tmp;
 	if ( cp->payloadLength > 0 ) {
 
 		tmp=calloc(cp->payloadLength,sizeof(unsigned char));
 		memcpy(tmp, cp->payload, cp->payloadLength);
 		printf ( " === > Payload: %s \n", tmp ) ;
-		
-	}
 	
+	}
+
 	printf ( " === >deviceCallBack  %u %u %u %u\n",  cp->action, cp->action_type, cp->action_control,cp->action_value  ) ;
 
-	if ( cp->action_control < 16  ) 
+	
+	for (i=0; i<config->numOfControllers; i++) 
 	{
-
-		if (cp->action == ACTION_GET ) 
+		if ( config->controlers[i].control == cp->action_control ) 
 		{
-			reply->action = ACTION_READ;
-			reply->action_control = cp->action_control;
-			reply->action_type = ACTION_TYPE_BOOLEAN;
-			reply->action_value = controls[cp->action_control];
-			reply->action_length = 0;
-			
-			
-		} else if (cp->action == ACTION_SET ) 
-		{
-			reply->action = ACTION_READ;
-			reply->action_control = cp->action_control;
-			reply->action_type = ACTION_TYPE_BOOLEAN;
-			controls[cp->action_control] = cp->action_value;
-			reply->action_value = controls[cp->action_control];			
-			reply->action_length = 0;
+			if (cp->action == ACTION_GET ) 
+			{
+				reply->action = ACTION_READ;
+				reply->action_control = cp->action_control;
+				reply->action_type = config->controlers[i].type;
+				reply->action_value = config->controlers[i].value;
+				reply->action_length = 0;
 		
+		
+			} else if (cp->action == ACTION_SET ) 
+			{
+				config->controlers[i].value = cp->action_value;
+
+				reply->action = ACTION_READ;
+				reply->action_control = cp->action_control;
+				reply->action_type = config->controlers[i].type;
+				reply->action_value = config->controlers[i].value;
+				reply->action_length = 0;	
+			}			
 		}
-	}
 
+		printf ( "=== %10s: %4d %24s %4d \n", "Control", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value );
 
-	for (int i=0; i<16; i++) {	
-		printf ( " %2u ",  controls[i] );
 	}
-	printf ( "\n");
 
 }
 
@@ -125,6 +126,46 @@ int main(int argc, char**argv)
 	c.socket = -1;
 	c.acceptedSocket = -1;
 	c.bind = 1;
+
+	config.numOfControllers = 4;
+	config.controlers = malloc(config.numOfControllers * sizeof(cfControl));
+
+	i =	0;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+	config.controlers[i].value = 0;
+	config.controlers[i].label = "switch0";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 1;
+	
+
+	i =1;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_DIMMER;
+	config.controlers[i].value = 0;
+	config.controlers[i].label = "Dimmer0";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 7;
+	
+	i =2;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_GAUGE;
+	config.controlers[i].value = 0;
+	config.controlers[i].label = "Gauge0 - Temp (F)";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= -200;
+	config.controlers[i].rangeHigh= 300;
+
+	i =3;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_DATA;
+	config.controlers[i].value = 0;
+	config.controlers[i].label = "Binary Data";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+
 
 	do {		
 		while ( chatFabric_device(&c, &pair, &config,  &b) == ERROR_OK ) { 

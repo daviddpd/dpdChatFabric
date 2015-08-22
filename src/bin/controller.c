@@ -29,10 +29,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "args.h"
 #include "uuid_wrapper.h"
 
+#include <assert.h>
 
 void controllerCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd) 
 {
-	printf ( "{controllerCallBack} %8s %12s %u %u\n",  actionLookup(cp->action), actionTypeLookup(cp->action_type), cp->action_control, cp->action_value  ) ;
+//	printf ( "{controllerCallBack} %8s %12s %u %u\n",  actionLookup(cp->action), actionTypeLookup(cp->action_type), cp->action_control, cp->action_value  ) ;
+
+	if ( cp->numOfControllers > 0 ) {
+	
+		// FIXME: possible memory leak.
+		config->numOfControllers = cp->numOfControllers;
+		config->controlers = cp->controlers;	
+	
+	}
+	
+	
+
+	int i;
+	for (i=0; i<config->numOfControllers; i++) 
+	{
+		if ( config->controlers[i].control == cp->action_control ) 
+		{
+			if (cp->action == ACTION_READ ) 
+			{
+				config->controlers[i].value = cp->action_value;
+			}
+				
+		}
+
+		printf ( "=== %10s: %4d %24s %4d \n", "Control", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value );
+
+	}
+
 	return;
 }
 
@@ -104,6 +132,25 @@ int main(int argc, char**argv)
 		printf ( " === > setting off %u %u %u %u\n",  a.action, a.action_type, a.action_control,a.action_value  ) ;
 	}
 */
+
+	if ( config.hasPairs ) {
+		chatFabricAction applist;
+		applist.action_length = 0;
+		applist.action = ACTION_APP_LIST;	
+		if ( chatFabric_controller(&c, &pair, &config, &applist,  &b) == ERROR_OK  ) {  }	
+	} 
+
+	close(c.socket);
+	c.socket = -1;
+	
+	int i;
+	for (i=0; i<config.numOfControllers; i++) 
+	{
+		if ( config.controlers[i].control == a.action_control ) 
+		{
+			a.action_type = config.controlers[i].type;
+		}
+	}
 
 	if ( chatFabric_controller(&c, &pair, &config, &a,  &b) == ERROR_OK  ) { 
 	
