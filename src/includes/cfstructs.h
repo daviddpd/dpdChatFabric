@@ -52,6 +52,7 @@ typedef struct {
 	int32_t value; // 1/0 ; 0~2^32; 0~2^32; length of data
 	int32_t rangeLow;
 	int32_t rangeHigh;
+	int32_t gpio;
 	uint32_t labelLength;
 	char *label;
 	unsigned char *data; 
@@ -338,6 +339,15 @@ typedef struct  {
 	
 	int debug;
 	int writeconfig;
+	int mode;
+	
+	uint32_t ipv4; // 1+4
+	uint32_t ipv4netmask; // 1+4
+	uint32_t ipv4gw; // 1+4
+	uint32_t ipv4ns1; // 1+4
+	uint32_t ipv4ns2; // 1+4	
+
+
 	
 	unsigned char publickey[crypto_box_PUBLICKEYBYTES];
 	unsigned char privatekey[crypto_box_SECRETKEYBYTES];

@@ -57,25 +57,9 @@ chatFabric_configParse(chatFabricConfig *config)
 //	enum chatFabricConfigTags t;
 #ifdef ESP8266
 
-/*
-	CHATFABRIC_DEBUG_FMT(config->debug,  
-		"[DEBUG][%s:%s:%d] Reading in flash\n", 
-		__FILE__, __FUNCTION__, __LINE__ );
-*/		
-//	util_print_bin2hex((unsigned char *)&flashConfig, 256);	
-/*
-	CHATFABRIC_DEBUG_FMT(config->debug,  
-		"[DEBUG][%s:%s:%d] Readed in flash\n", 
-		__FILE__, __FUNCTION__, __LINE__ );
-*/
-
 	if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig), 4096) == FALSE ) {
 		CHATFABRIC_DEBUG_FMT(config->debug, "Read from flash failed." ); 	
 	}
-
-
-//	util_print_bin2hex((unsigned char *)&flashConfig, 256);	
-//	util_print_bin2hex((unsigned char *)&flashConfig+2048, 256);	
 
 	if ( flashConfig[0] == cftag_header ) {
 		filesize=4096;	
@@ -88,25 +72,21 @@ chatFabric_configParse(chatFabricConfig *config)
 
 		uint32_t status;
 		static const unsigned char basepoint[32] = {9};
-		config->writeconfig = 1;
-		config->configfile = NULL;
+        config->writeconfig = 1;
 		config->hasPairs = 0;
+        config->configfile = NULL;
 		config->pairfile = NULL;
 		config->callback = NULL;
-		
 		
 		filesize=0;
 		// These are created in args, so for the embedded solution
 		// putting here.
-#ifdef ESP8266
 		uuidCreateNil( &(config->to.u0));
 		uuidCreateNil( &(config->to.u1));
 		uuidCreateNil( &(config->uuid.u0));
 		uuidCreate( &(config->uuid.u1));
 		arc4random_buf((unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES);
-		curve25519_donna((unsigned char *)&config->publickey, (unsigned char *)&config->privatekey, (unsigned char *)&basepoint);
-#endif
-	
+		curve25519_donna((unsigned char *)&config->publickey, (unsigned char *)&config->privatekey, (unsigned char *)&basepoint);	
 
 	}
 	str = &(flashConfig[0]);
@@ -118,14 +98,17 @@ chatFabric_configParse(chatFabricConfig *config)
 	{
 #ifndef ESP8266
 			bzero(&fs, sizeof(fs));		
-			stat(config->configfile, &fs);
 			fp = fopen(config->configfile,"r");	
 			if ( fp == NULL ) {
-				fprintf(stderr, " Error, can't open file %s \n", config->configfile );			
-			}
-			str=(unsigned char *)calloc(fs.st_size,sizeof(unsigned char));
-			fread(str, sizeof (unsigned char), fs.st_size, fp );
-			filesize=fs.st_size;
+				fprintf(stderr, " Error, can't open file %s \n", config->configfile );
+				filesize=0;
+			} else {
+				stat(config->configfile, &fs);
+				str=(unsigned char *)calloc(fs.st_size,sizeof(unsigned char));
+				fread(str, sizeof (unsigned char), fs.st_size, fp );
+				filesize=fs.st_size;
+				fclose(fp);
+			}			
 #endif
 			
 			i=0;
@@ -133,22 +116,50 @@ chatFabric_configParse(chatFabricConfig *config)
 			while (i<filesize) 
 			{
 				memcpy(&t, str+i, 1);
-/*
-				CHATFABRIC_DEBUG_FMT(config->debug,  
-					"[DEBUG][%s:%s:%d] Parsing File %02x %4d\n", 
-					__FILE__, __FUNCTION__, __LINE__, t, i);
-*/
 				++i;
 							
 				switch (t){
 					case cftag_header:
 						i+=4;
 					break;
+					
 					case cftag_hasPairs:
 						memcpy(&ni, str+i, 4);
 						i+=4;
 						config->hasPairs = ntohl(ni);
-					break;			
+					break;
+
+					case cftag_mode:
+						memcpy(&ni, str+i, 4);
+						i+=4;
+						config->mode = ntohl(ni);
+					break;
+					case cftag_ipv4:
+						memcpy(&ni, str+i, 4);
+						i+=4;
+						config->ipv4 = ntohl(ni);
+					break;
+					case cftag_ipv4netmask:
+						memcpy(&ni, str+i, 4);
+						i+=4;
+						config->ipv4netmask = ntohl(ni);
+					break;
+					case cftag_ipv4gw:
+						memcpy(&ni, str+i, 4);
+						i+=4;
+						config->ipv4gw = ntohl(ni);
+					break;
+					case cftag_ipv4ns1:
+						memcpy(&ni, str+i, 4);
+						i+=4;
+						config->ipv4ns1 = ntohl(ni);
+					break;
+					case cftag_ipv4ns2:
+						memcpy(&ni, str+i, 4);
+						i+=4;
+						config->ipv4ns2 = ntohl(ni);
+					break;
+								
 					case cftag_configLength:
 						memcpy(&ni, str+i, 4);
 						i+=4;
@@ -189,6 +200,15 @@ chatFabric_configParse(chatFabricConfig *config)
 		len+=1+4; // length
 		len+=1+4; // haspairs
 		
+		len+=1+4; // mode
+		len+=1+4; // ipv4
+		len+=1+4; // ipv4nm
+		len+=1+4; // ipv4gw
+		len+=1+4; // ipv4ns1
+		len+=1+4; // ipv4ns2
+		
+		
+		
 
 #ifdef ESP8266
 		if ( 1 ) 
@@ -208,6 +228,15 @@ chatFabric_configParse(chatFabricConfig *config)
 			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_hasPairs, config->hasPairs, NULL, 0, NULL);
 			chatPacket_tagDataEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid0, 0, NULL, 0,  &config->uuid.u0);
 			chatPacket_tagDataEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
+			
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_mode, config->mode, NULL, 0, NULL);
+
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ipv4, config->ipv4, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ipv4netmask, config->ipv4netmask, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ipv4gw, config->ipv4gw, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ipv4ns1, config->ipv4ns1, NULL, 0, NULL);
+			chatPacket_tagDataEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ipv4ns2, config->ipv4ns2, NULL, 0, NULL);
+			
 			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
 			chatPacket_tagDataEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
 
@@ -225,10 +254,19 @@ chatFabric_configParse(chatFabricConfig *config)
 		}
 
 #else
-			fwrite (str, sizeof (unsigned char), len, fp );
-			fclose(fp);
+			int fwi = fwrite (str, sizeof (unsigned char), len, fp );
+			int fci = fclose(fp);
+			CHATFABRIC_DEBUG_FMT(config->debug,  
+				"[DEBUG][%s:%s:%d] cf Config Write (%d):(%d) \n",
+				__FILE__, __FUNCTION__, __LINE__, fwi, fci );
+			
 			free(str);
 #endif
+		} else {
+		CHATFABRIC_DEBUG_FMT(config->debug,  
+			"[DEBUG][%s:%s:%d] cf Config Write ERROR  errno %d, %s, =%s=\n",
+			__FILE__, __FUNCTION__, __LINE__,  errno, strerror(errno), config->configfile  );
+		
 		}
 	}
 
@@ -343,10 +381,19 @@ chatFabric_pairConfig(chatFabricConfig *config, chatFabricPairing *pair, int wri
 		}
 
 #else
-			fwrite (str, sizeof (unsigned char), len, fp );
-			fclose(fp);
+			int fwi = fwrite (str, sizeof (unsigned char), len, fp );
+			int fci = fclose(fp);
+			CHATFABRIC_DEBUG_FMT(config->debug,  
+				"[DEBUG][%s:%s:%d] Pair Config Write (%d):(%d) \n",
+				__FILE__, __FUNCTION__, __LINE__, fwi, fci );
+			
+			
 #endif
 		} else {
+		CHATFABRIC_DEBUG_FMT(config->debug,  
+			"[DEBUG][%s:%s:%d] pair Config Write ERROR  errno %d, %s  =%s=\n",
+			__FILE__, __FUNCTION__, __LINE__,  errno, strerror(errno), config->pairfile  );
+		
 			CHATFABRIC_DEBUG(config->debug, "fp null" );
 
 		}

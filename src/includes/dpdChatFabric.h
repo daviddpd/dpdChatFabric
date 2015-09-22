@@ -88,9 +88,26 @@ enum chatFabricConfigTags  {
 	 cftag_serial		= 10, // 1+4
 	 cftag_hasPairs		= 11, // 1+4
 
-	 
-	 cftag_header		= 0xA5, // 165
+	 cftag_debug, // 1+4
+	 cftag_port, // 1+4
 
+	 cftag_ipconfig, // 1+4, dhcp/auto, static, 
+
+	 cftag_ipv4, // 1+4
+	 cftag_ipv4netmask, // 1+4
+	 cftag_ipv4gw, // 1+4
+	 cftag_ipv4ns1, // 1+4
+	 cftag_ipv4ns2, // 1+4
+	 
+	 cftag_ipv6, // 1+16
+	 cftag_ipv6netmask, // 1+16
+	 cftag_ipv6gw, // 1+16
+	 cftag_ipv6ns1, // 1+16
+	 cftag_ipv6ns2, // 1+16
+	 
+	 cftag_mode, // 1+4
+
+	 cftag_header		= 0xA5, // 165
 	 cftag_configLength	= 0xF0, // 240
 	 cftag_pairLength	= 0xF1, // 241
 	 cftag_pairs	= 0xF2, // 241
