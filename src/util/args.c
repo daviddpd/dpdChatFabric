@@ -3,6 +3,7 @@
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 #include "args.h"
+#include "cfConfig.h"
 
 
 void CP_ICACHE_FLASH_ATTR
@@ -42,13 +43,9 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 	uint32_t status;
 	static const unsigned char basepoint[32] = {9};
 
-	config->configfile = NULL;
-	config->newconfigfile = NULL;
-	config->pairfile = NULL;
-	config->ip = NULL;
+//	cfConfigInit(&config);
+	
 	config->port = 32000;	
-	config->debug = 0;
-	config->writeconfig = 0;
 	config->type = SOCK_DGRAM;
 	
 	struct option longopts[] = {
@@ -109,19 +106,17 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 			case 6:
 				config->type = SOCK_DGRAM;
 			break;
-							
-			break;
 			case 'a':
-				uuid_from_string(
-					optarg, 
-					&(config->to.u0), 
-					&status);
+// 				uuid_from_string(
+// 					optarg, 
+// 					&(config->to.u0), 
+// 					&status);
 			break;
 			case 'b':
-				uuid_from_string(
-					optarg, 
-					&(config->to.u1), 
-					&status);	
+// 				uuid_from_string(
+// 					optarg, 
+// 					&(config->to.u1), 
+// 					&status);	
 			break;
 
 			case 'c':
@@ -173,7 +168,7 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 			case 'w':
 				//printf ( "Arg --config : Value : %s \n", optarg );
 				config->newconfigfile = optarg;
-				config->writeconfig = 1;				
+				config->writeconfig = 1;
 			break;			
 			case 'm':
 				//printf ( "Arg --ip : Value : %s \n", optarg );

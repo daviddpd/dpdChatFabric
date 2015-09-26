@@ -30,6 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef FREEBSD
 #include <uuid.h>
+//typedef struct uuid_t uuid_cp;
 #elif defined(ESP8266)
 #include "uuid_local.h"
 #elif defined(IOS_APP)

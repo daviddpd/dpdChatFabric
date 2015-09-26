@@ -4,6 +4,7 @@
 #define _CHATPACKET_ENCRYPTED 1
 #define _CHATPACKET_CLEARTEXT 0
 
+#include "uuid_wrapper.h"
 
 #ifdef IOS_APP
 #include "printf.h"
@@ -58,7 +59,6 @@ typedef struct {
 	unsigned char *data; 
 //	void (*callback)(void *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd);	
 } ESP_WORD_ALIGN cfControl;
-
 
 enum chatPacketDirection {
 	NONE,
@@ -335,7 +335,7 @@ typedef struct  {
 	
 	int hasPairs;
 	uuid_tuple uuid;
-	uuid_tuple to;
+//	uuid_tuple to;
 	
 	int debug;
 	int writeconfig;

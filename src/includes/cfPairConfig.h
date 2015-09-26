@@ -6,11 +6,11 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
 * Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+list of conditions and the following disclaimer.
 
 * Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -24,49 +24,19 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+#ifndef CFPAIRCONFIG_H
+#define CFPAIRCONFIG_H
+
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
-#include "args.h"
-#include "cfConfig.h"
+#include "util.h"
+#include "cfTagEncoder.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 
 
-int main(int argc, char**argv)
-{
-	chatFabricConnection c;
-	chatFabricPairing pair; 
-	chatFabricConfig config;  
-	msgbuffer b;
+void CP_ICACHE_FLASH_ATTR cfPairInit(chatFabricPairing *pair);
+void CP_ICACHE_FLASH_ATTR cfPairRead(chatFabricConfig *config, chatFabricPairing *pair);
+void CP_ICACHE_FLASH_ATTR cfPairWrite(chatFabricConfig *config, chatFabricPairing *pair);
 
-/*
-	Initialization of all the needed fields.
-	FIXME : Encapsulate this Initialization more.
-*/
-	bzero(&c,sizeof(c));	
-	bzero(&pair,sizeof(pair));	
-	bzero(&config,sizeof(config));	
-	bzero(&b,sizeof(b));
-
-	cfConfigInit(&config);
-	
-	pair.state = STATE_UNCONFIGURED;
-	pair.hasPublicKey = 0;
-	
-	uuidCreateNil( &(pair.uuid.u0));
-	uuidCreateNil( &(pair.uuid.u1));
-	pair.hasPublicKey = 0;
-	pair.hasNonce = 0;
-	b.length = -1;
-
-	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
-
-	chatFabricAction a;
-	
-	chatFabric_args(argc, argv, &config, &a);	
-	cfConfigRead(&config);
-	if ( config.newconfigfile != NULL ) {
-		cfConfigWrite(&config);	
-	}
-	
-	
-
-}
+#endif

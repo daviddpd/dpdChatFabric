@@ -369,7 +369,7 @@ chatPacket_calcNonce(uint32_t serial, unsigned char * nonce, unsigned char * ses
 	memcpy (  sessionNonce+last4Bytes, &ninc, 4);
 
 }
-
+/*
 void CP_ICACHE_FLASH_ATTR
 chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuid_cp *uuid)
 {
@@ -400,7 +400,7 @@ chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32
 
 	*i=x;
 }
-
+*/
 
 
 chatPacket*

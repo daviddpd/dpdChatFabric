@@ -28,6 +28,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatPacket.h"
 #include "args.h"
 #include "uuid_wrapper.h"
+#include "cfConfig.h"
+#include "cfPairConfig.h"
 
 #include <assert.h>
 
@@ -81,6 +83,7 @@ int main(int argc, char**argv)
 	bzero(&config,sizeof(config));	
 	bzero(&b,sizeof(b));
 
+	cfConfigInit(&config);
 
 	pair.state = STATE_UNCONFIGURED;
 	pair.hasPublicKey = 0;
@@ -99,14 +102,19 @@ int main(int argc, char**argv)
 	a.action_length = 0;
 
 	chatFabric_args(argc, argv, &config, &a);	
-	chatFabric_configParse(&config);
+	cfConfigRead(&config);
+	if ( config.newconfigfile != NULL ) {
+		cfConfigWrite(&config);	
+	}
+
+
 	config.callback = &controllerCallBack;
 
-	pair.uuid.u0 = config.to.u0;
-	pair.uuid.u1 = config.to.u1;
+//	pair.uuid.u0 = config.to.u0;
+//	pair.uuid.u1 = config.to.u1;
 	
 	if ( config.pairfile != NULL ) {
-		chatFabric_pairConfig(&config, &pair, 0 );
+		cfPairRead(&config, &pair);
 	}
 
 	c.type = config.type;
@@ -165,7 +173,7 @@ int main(int argc, char**argv)
 	
 	}
 
-	chatFabric_pairConfig(&config, &pair, 1);
+	cfPairWrite(&config, &pair);
 	
 }
 

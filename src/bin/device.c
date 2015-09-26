@@ -27,6 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 #include "args.h"
+#include "cfConfig.h"
 
 uint32_t controls[16];
 
@@ -107,7 +108,6 @@ int main(int argc, char**argv)
 	bzero(&(pair.nullnonce), crypto_secretbox_NONCEBYTES);
 */	
 
-	chatFabric_pair_init(&pair);
 
 	b.length = -1;
 
@@ -119,7 +119,16 @@ int main(int argc, char**argv)
 	a.action_length = 0;
 
 	chatFabric_args(argc, argv, &config, &a);	
-	chatFabric_configParse(&config);
+	cfConfigRead(&config);
+	if ( config.newconfigfile != NULL ) {
+		cfConfigWrite(&config);	
+	}
+	
+	cfPairInit(&pair);
+	if (config.pairfile != NULL ) {
+		cfPairRead(&config, &pair);
+	}
+	
 	
 	config.callback = &deviceCallBack;
 	c.type = config.type;

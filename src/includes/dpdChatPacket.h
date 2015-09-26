@@ -50,6 +50,7 @@
 
 #include "cfstructs.h"
 #include "dpdChatFabric.h"
+#include "cfTagEncoder.h"
 
 
 const char * stateLookup (enum chatPacketStates state);
