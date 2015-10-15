@@ -28,7 +28,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 #include "util.h"
-
+#include "cfConfig.h"
+#include "cfPairConfig.h"
 
 #include <assert.h>
 #include <sys/types.h>
@@ -46,15 +47,24 @@ void CP_ICACHE_FLASH_ATTR
 chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 {
 
-	int lowwater = 64;
+	int lowwater = 32;
 	
 	if ( c->type == SOCK_STREAM  &&  c->acceptedSocket == -1 && c->socket != -1 && c->bind == 1) {
 		socklen_t len;
 		c->acceptedSocket = accept(c->socket,(struct sockaddr *)&c->sockaddr,&len);
+// 		CHATFABRIC_DEBUG_FMT(1,  
+// 			"[DEBUG][%s:%s:%d] accpted socket: errno: %d  error: %s \n", 
+// 			__FILE__, __FUNCTION__, __LINE__,  errno,strerror(errno) );
 		return;
 	} else if ( c->type == SOCK_STREAM  &&  c->socket != -1 && c->bind == 0) {
+// 		CHATFABRIC_DEBUG_FMT(1,  
+// 			"[DEBUG][%s:%s:%d] stream, socket, not bound \n", 
+// 			__FILE__, __FUNCTION__, __LINE__,  errno,strerror(errno) );
 		return;	
 	} else if ( c->type == SOCK_DGRAM  &&  c->socket != -1 ) {
+// 		CHATFABRIC_DEBUG_FMT(1,  
+// 			"[DEBUG][%s:%s:%d] dgram, socket\n", 
+// 			__FILE__, __FUNCTION__, __LINE__,  errno,strerror(errno) );
 		return;	
 	}
 	// c->bind = doBind;
@@ -62,9 +72,9 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 	c->socket = -1;		
 	c->socket=socket(AF_INET,c->type,0);
 
-	CHATFABRIC_DEBUG_FMT(1,  
-		"[DEBUG][%s:%s:%d] ERRNO: %d  Socket FD %d \n", 
-		__FILE__, __FUNCTION__, __LINE__,  errno, c->socket );
+// 	CHATFABRIC_DEBUG_FMT(1,  
+// 		"[DEBUG][%s:%s:%d] ERRNO: %d  Socket FD %d \n", 
+// 		__FILE__, __FUNCTION__, __LINE__,  errno, c->socket );
 
 	
 	if (c->socket == -1 ) {
@@ -95,11 +105,9 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 	} else {
 		if ( c->type == SOCK_STREAM ) {
 			if ( connect(c->socket, (struct sockaddr *)&c->sockaddr, sizeof(c->sockaddr) ) < 0 ) {
-			CHATFABRIC_DEBUG_FMT(1,  
-				"[DEBUG][%s:%s:%d] ERRNO: %d  Socket Connect FD %d , %s \n", 
-				__FILE__, __FUNCTION__, __LINE__,  errno, c->socket, strerror(errno) );
-//				assert(0);
-			
+// 			CHATFABRIC_DEBUG_FMT(1,  
+// 				"[DEBUG][%s:%s:%d] ERRNO: %d  Socket Connect FD %d , %s \n", 
+// 				__FILE__, __FUNCTION__, __LINE__,  errno, c->socket, strerror(errno) );			
 			}
 
 		}
@@ -124,7 +132,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 #ifndef ESP8266
 	chatFabric_consetup(c, config->ip, config->port);
 	if ( c->socket == -1 ) {
-		CHATFABRIC_DEBUG(config->debug, "chatFabric connection setup failed" );
+//		CHATFABRIC_DEBUG(config->debug, "chatFabric connection setup failed" );
 		return ERROR_SOCKET;
 	}	
 #endif
@@ -146,7 +154,6 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 		cp->action_type = a->action_type;
 		cp->action_value = a->action_value;
 		cp->action_length = a->action_length;
-
 		chatPacket_encode ( cp, config, pair,  &mb, _CHATPACKET_ENCRYPTED, DATA);
 	}
 #ifdef ESP8266
@@ -165,8 +172,9 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	}
 #endif
 
-	if ( config->debug )
+	if ( config->debug ) {
 		chatPacket_print(cp, OUT);
+	}
 						
 //#ifndef ESP8266
 	free(mb.msg);
@@ -201,7 +209,15 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 enum chatFabricErrors CP_ICACHE_FLASH_ATTR
 chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config, msgbuffer *b) 
 {
-	CHATFABRIC_DEBUG(config->debug, " Start " );
+/*
+	CHATFABRIC_DEBUG_B2H(config->debug, "Device: pair shared key", (unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES );
+	CHATFABRIC_DEBUG_B2H(config->debug, "Device: pair public key", (unsigned char *)&pair->publickey, crypto_box_PUBLICKEYBYTES );
+	CHATFABRIC_DEBUG_B2H(config->debug, "Device:   nonce", (unsigned char *)&pair->nonce, crypto_secretbox_NONCEBYTES );
+
+	CHATFABRIC_DEBUG_B2H(config->debug, "Device: mynonce", (unsigned char *)&pair->mynonce, crypto_secretbox_NONCEBYTES );
+	CHATFABRIC_DEBUG_B2H(config->debug, "Device: my public",(unsigned char *)&config->publickey, crypto_box_PUBLICKEYBYTES );
+	CHATFABRIC_DEBUG_B2H(config->debug, "Device: my private", (unsigned char *)&config->privatekey, crypto_box_PUBLICKEYBYTES );
+*/
 
 	int n, buffersize=1460;
 	unsigned char *mesg;
@@ -229,7 +245,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 
 	mesg=(unsigned char *)calloc(buffersize,sizeof(unsigned char));
 
-	CHATFABRIC_DEBUG(config->debug, "Waiting for Packet.\n\n" );
+//	CHATFABRIC_DEBUG(config->debug, "Waiting for Packet.\n\n" );
 
 	len = sizeof(c->sockaddr);
 
@@ -249,15 +265,9 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		free(mesg); /* needed */ 
 #endif
 		CHATFABRIC_DEBUG(config->debug, "recvfrom returned an error" );
-		CHATFABRIC_DEBUG_FMT(config->debug,  
-			"[DEBUG][%s:%s:%d] ERRNO: %d \n", 
-			__FILE__, __FUNCTION__, __LINE__,  errno );
-//		assert (0);
-		return ERROR_OK;	
-	} else {
-		CHATFABRIC_DEBUG(config->debug, "Got Packet!" );	
-	}
-
+		CHATFABRIC_DEBUG_FMT(config->debug,  "ERRNO: %d, %s \n",   errno, strerror(errno) );
+		return ERROR_OK;
+	} 
 	cp = chatPacket_init0 ();
 
 	if ( chatPacket_decode (cp, pair, mesg, n, config ) != 0 ) {
@@ -265,14 +275,18 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 #ifndef ESP8266
 		free(mesg);
 #endif
-		chatPacket_delete(cp);
-		return ERROR_CHATPACKET_DECODING;		
+//		chatPacket_delete(cp);
+		cp->cmd = CMD_PACKET_DECRYPT_FAILED;
+
+//		return ERROR_CHATPACKET_DECODING;		
 	} else {
 	
+		CHATFABRIC_DEBUG(config->debug,  "chatPacket decoding successful ." );
 
 #ifndef ESP8266
-		if ( config->debug )
+		if ( config->debug ) { 
 			chatPacket_print (cp, IN);
+		}
 #endif
 
 		if ( cp->payloadLength > 0 )
@@ -290,6 +304,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 			b->action_type = cp->action_type;
 			b->action_value = cp->action_value;
 			b->action_length = cp->action_length;
+
 		}
 
 #ifndef ESP8266		
@@ -297,10 +312,8 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 #endif
 	}
 	
-	CHATFABRIC_DEBUG(config->debug, " == cp init0 " );
 	cp_reply = chatPacket_init0 ();
 	
-	CHATFABRIC_DEBUG(config->debug, " == starting state machine == \n " );
 	stateMachine ( config, cp, pair, cp_reply, &replyCmd, &e);
 	if ( config->callback != NULL && pair->state == STATE_PAIRED && 
 		( 
@@ -313,8 +326,9 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
 
 #ifndef ESP8266
-		if ( config->debug )
+		if ( config->debug ) {
 			chatPacket_print (cp_reply, OUT);
+		}
 #endif
 
 		switch (cp_reply->cmd) {
@@ -347,15 +361,15 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		} else {
 		    n = write(c->socket, mb.msg, mb.length);		
 		}
-		CHATFABRIC_DEBUG_FMT(config->debug,  
-			"[DEBUG][%s:%s:%d] chatPacket TCP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s \n", 
-			__FILE__, __FUNCTION__, __LINE__,  n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
+//		CHATFABRIC_DEBUG_FMT(config->debug,  
+//			"[DEBUG][%s:%s:%d] chatPacket TCP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s \n", 
+//			__FILE__, __FUNCTION__, __LINE__,  n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
 	} else {
 	
 		n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);	
-		CHATFABRIC_DEBUG_FMT(config->debug,  
-			"[DEBUG][%s:%s:%d] chatPacket UDP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s \n", 
-			__FILE__, __FUNCTION__, __LINE__,  n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
+//		CHATFABRIC_DEBUG_FMT(config->debug,  
+//			"[DEBUG][%s:%s:%d] chatPacket UDP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s \n", 
+//			__FILE__, __FUNCTION__, __LINE__,  n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
 	}
 #endif
 
@@ -382,13 +396,12 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		}
 		
 		
-		CHATFABRIC_DEBUG_FMT(config->debug,  
-			"[DEBUG][%s:%s:%d] chatPacket TCP CLOSING Accepted Socket.  socket %d %d  SOCK_TYPE : %d  %s \n", 
-			__FILE__, __FUNCTION__, __LINE__,  c->acceptedSocket, c->socket, c->type, strerror(errno)  );
+//		CHATFABRIC_DEBUG_FMT(config->debug,  
+//			"[DEBUG][%s:%s:%d] chatPacket TCP CLOSING Accepted Socket.  socket %d %d  SOCK_TYPE : %d  %s \n", 
+//			__FILE__, __FUNCTION__, __LINE__,  c->acceptedSocket, c->socket, c->type, strerror(errno)  );
 	}
 #endif	
 	chatPacket_delete(cp);
-	CHATFABRIC_DEBUG(config->debug, "function return." );	
 	return e;
 }
 
@@ -397,16 +410,12 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 void CP_ICACHE_FLASH_ATTR
 stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd, enum chatFabricErrors *e)
 {	
-	CHATFABRIC_DEBUG(config->debug, " Start " );
 
 	chatFabricPairing  previous_state;
 	
 	enum chatPacketCommands RETVAL;
 	int u0 = uuidCompare(&(cp->to.u0), &(config->uuid.u0));
 	int u1 = uuidCompare(&(cp->to.u1), &(config->uuid.u1));
-	CHATFABRIC_DEBUG_FMT(config->debug,  
-		"[DEBUG][%s:%s:%d] u0 %d u1 %d \n", 
-		__FILE__, __FUNCTION__, __LINE__,  u0, u1 );
 	
 	if (  
 		( ( u0 !=0 ) || ( u1 != 0 )  ) &&
@@ -415,12 +424,9 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 		( cp->cmd != CMD_PAIR_REQUEST) 
 	 ) 
 	{
-		CHATFABRIC_DEBUG(config->debug, " if " );
 		*e = ERROR_INVAILD_DEST;
 		RETVAL = CMD_SEND_REPLY_FALSE;
 		return;
-	} else {
-		CHATFABRIC_DEBUG(config->debug, " else " );
 	}
 
 
@@ -433,11 +439,6 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 	uuidCopy( &config->uuid.u1, &reply->from.u1);
 	
 	RETVAL = CMD_SEND_REPLY_FALSE;
-	
-	CHATFABRIC_DEBUG_FMT(config->debug,  
-		"[DEBUG][%s:%s:%d] STATE: %s COMMAND: %s \n", 
-		__FILE__, __FUNCTION__, __LINE__,  cmdLookup(cp->cmd), stateLookup(pair->state) );
-
 
 	switch ( cp->cmd ) {
 
@@ -509,7 +510,6 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 		break;
 		case CMD_NONCE_SEND:
 			if  ( pair->state == STATE_NONCE_SETUP ) {
-//				pair->nonce = cp->nonce;
 				memcpy( &(pair->nonce), &(cp->nonce), crypto_secretbox_NONCEBYTES );
 				
 				pair->hasNonce = 1;
@@ -553,14 +553,20 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 				pair->hasPublicKey = 1;
 				#ifdef HAVE_LOCAL_CRYPTO
 				curve25519_donna((unsigned char *)&pair->sharedkey, (unsigned char *)&config->privatekey, (unsigned char *)&pair->publickey);
-				if (config->debug) {
-					printf ( "   %24s: ", "Shared Key" );
-					util_print_bin2hex((unsigned char *)pair->sharedkey, crypto_box_PUBLICKEYBYTES);
-					printf ( "   %24s: ", "private Key" );
-					util_print_bin2hex((unsigned char *)config->privatekey, crypto_box_PUBLICKEYBYTES);
-					printf ( "   %24s: ", "public key" );
-					util_print_bin2hex((unsigned char *)pair->publickey, crypto_box_PUBLICKEYBYTES);
-				}
+// 				if (config->debug) {
+// 
+// 					printf ( "   %24s: ", "Shared Key" );
+//			util_debug_bin2hex("shared key", &pair->sharedkey, crypto_box_PUBLICKEYBYTES, 0, __FILE__, __FUNCTION__, __LINE__ );
+
+// 					util_print_bin2hex((unsigned char *)pair->sharedkey, crypto_box_PUBLICKEYBYTES);
+// 
+// 					printf ( "   %24s: ", "private Key");
+// 					util_print_bin2hex((unsigned char *)config->privatekey, crypto_box_PUBLICKEYBYTES);
+// 
+// 					printf ( "   %24s: ", "public key" );
+// 					util_print_bin2hex((unsigned char *)pair->publickey, crypto_box_PUBLICKEYBYTES);
+// 
+// 				}
 				
 				#endif					
 
@@ -663,6 +669,21 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 		case CMD_SEND_REPLY_TRUE:
 			RETVAL = CMD_SEND_REPLY_FALSE;
 		break;		
+
+		case CMD_PACKET_DECRYPT_FAILED:
+			reply->cmd = CMD_FAIL;
+//			RETVAL = CMD_SEND_REPLY_TRUE;
+			RETVAL = CMD_SEND_REPLY_FALSE;
+		break;
+
+		case CMD_FAIL:
+			RETVAL = CMD_SEND_REPLY_FALSE;
+		break;		
+		
+		case CMD_INVAILD_CMD:
+			RETVAL = CMD_SEND_REPLY_FALSE;
+		break;
+		
 		default:
 			reply->flags = 0;
 			reply->cmd = CMD_INVAILD_CMD;
@@ -674,27 +695,26 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 //#ifndef ESP8266	
 	if ( previous_state.state == pair->state ) 
 	{
-		CHATFABRIC_DEBUG_FMT(config->debug,
-			"[DEBUG][%s:%s:%d]  === [STATE] %-16s ==> %-16s %-36s \n", 
-			__FILE__, __FUNCTION__, __LINE__,
-			stateLookup(previous_state.state), stateLookup(pair->state), "STATE WAS UNCHANGED"  );
+//		CHATFABRIC_DEBUG_FMT(config->debug,
+//			"[DEBUG][%s:%s:%d]  === [STATE] %-16s ==> %-16s %-36s \n", 
+//			__FILE__, __FUNCTION__, __LINE__,
+//			stateLookup(previous_state.state), stateLookup(pair->state), "STATE WAS UNCHANGED"  );
 	} else {
 		if ( pair->state == STATE_PAIRED ) {
 #ifdef ESP8266
 			config->pairfile = "1";
 #endif
 			config->hasPairs = 1;
-			CHATFABRIC_DEBUG(config->debug, " Running Pair Config" );
-			cfPairWrite(config, pair, 1 );
+			cfPairWrite(config, pair);
 		}
-		CHATFABRIC_DEBUG_FMT(config->debug,
-			"[DEBUG][%s:%s:%d]  === [STATE] %-16s ==> %-16s %-36s \n",
-			__FILE__, __FUNCTION__, __LINE__,
-			stateLookup(previous_state.state), stateLookup(pair->state), "!!! STATE CHANGED !!" );
+//		CHATFABRIC_DEBUG_FMT(config->debug,
+//			"[DEBUG][%s:%s:%d]  === [STATE] %-16s ==> %-16s %-36s \n",
+//			__FILE__, __FUNCTION__, __LINE__,
+//			stateLookup(previous_state.state), stateLookup(pair->state), "!!! STATE CHANGED !!" );
 	}
 //#endif
 
 	*replyCmd = RETVAL;
 	*e = ERROR_OK;
-	CHATFABRIC_DEBUG(config->debug, " return" );
+//	CHATFABRIC_DEBUG(config->debug, " return" );
 }

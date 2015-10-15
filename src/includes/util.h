@@ -1,31 +1,45 @@
-#include "__attribute__.h"
-#include <string.h>
-
-#ifdef ESP8266
-#include "ets_sys.h"
-#include "osapi.h"
-#else 
-#include <sys/types.h>
-#include <stdio.h>
-#include <stdlib.h>
-extern int os_printf_plus(const char * format, ...);
-#endif
-
-
-
 #ifndef CF_UTIL_H
 #define CF_UTIL_H
 
+#include "__attribute__.h"
+#include <string.h>
+#include <stdarg.h>
+void CP_ICACHE_FLASH_ATTR util_bin2hex (char *cd, char* label, unsigned char * x, int len );
+void CP_ICACHE_FLASH_ATTR util_debug_bin2hex(char* label, unsigned char * x, int len,  char* file, const char* func, int line );
+#define util_print_bin2hex( a, b ) ((void)0)
+
+#ifdef ESP8266
+
+#include "ets_sys.h"
+#include "osapi.h"
+#include "mem.h"
+#include "user_interface.h"
 
 
-void util_print_bin2hex(unsigned char * x, int len);
+//#define sprintf os_sprintf
+#ifndef calloc 
+#define calloc os_zalloc
+extern int os_printf_plus(const char * format, ...);
 
-void 
-util_hexprint ( unsigned char *str, uint32_t len );
+#endif
 
-void
-util_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght );
+#define CHATFABRIC_PRINT(msg) os_printf("%s", msg );
+#define CHATFABRIC_DEBUG(d, msg) if (d) os_printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg );
+#define CHATFABRIC_DEBUG_FMT(d, fmt, ...) if (d) os_printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__ );
+#define CHATFABRIC_DEBUG_B2H(d, label, x, len) if (d) util_debug_bin2hex(label, x,len, __FILE__, __FUNCTION__, __LINE__ );
 
+#else 
+
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define CHATFABRIC_PRINT(msg) printf("%s", msg );
+#define CHATFABRIC_DEBUG(d, msg) if (d) printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg );
+#define CHATFABRIC_DEBUG_FMT(d, fmt, ...) if (d) printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__ );
+#define CHATFABRIC_DEBUG_B2H(d, label, x, len) if (d) util_debug_bin2hex(label, x,len, __FILE__, __FUNCTION__, __LINE__ );
+
+#endif
 
 
 #endif

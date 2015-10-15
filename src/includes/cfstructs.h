@@ -4,7 +4,11 @@
 #define _CHATPACKET_ENCRYPTED 1
 #define _CHATPACKET_CLEARTEXT 0
 
+#include "__attribute__.h"
 #include "uuid_wrapper.h"
+#include "util.h"
+
+extern int _GLOBAL_DEBUG;
 
 #ifdef IOS_APP
 #include "printf.h"
@@ -12,11 +16,10 @@
 
 
 #ifdef ESP8266
+#include "espconn.h"
+
 #include "endian.h"
 #include "mem.h"
-#define CHATFABRIC_DEBUG(d, msg) if (d)  os_printf("[DEBUG][%5d:%s:%s:%d] %s\n", heapLast - system_get_free_heap_size(), __FILE__, __FUNCTION__, __LINE__, msg );
-
-#define CHATFABRIC_DEBUG_FMT(d, ...) if (d) os_printf( __VA_ARGS__ )
 #define socklen_t int
 #define calloc os_zalloc
 #define malloc os_malloc
@@ -25,9 +28,10 @@
 
 
 #else
-
-#define CHATFABRIC_DEBUG(d, msg) if (d) fprintf(stderr, "[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg )
-#define CHATFABRIC_DEBUG_FMT(d, ...) if (d) fprintf(stderr, __VA_ARGS__ )
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h> // htonl, ntohl
 #endif
 
 #ifdef HAVE_LOCAL_CRYPTO
@@ -139,6 +143,8 @@ enum chatPacketCommands {
 	CMD_CONFIG_PAIR,
 	CMD_SEND_REPLY_FALSE,
 	CMD_SEND_REPLY_TRUE,
+	CMD_PACKET_DECRYPT_FAILED,
+	CMD_FAIL,
 
 } ESP_WORD_ALIGN;
 
@@ -195,6 +201,7 @@ enum chatPacketTags  {
 	 cptag_app_control_label,
 	 cptag_app_control_data,
 	 
+	 cptag_ENDTAG,
 	 	 	 
 	 cptag_cmd = 0xFF,
 	 	
@@ -341,6 +348,7 @@ typedef struct  {
 	int writeconfig;
 	int mode;
 	
+	char *hostname;
 	uint32_t ipv4; // 1+4
 	uint32_t ipv4netmask; // 1+4
 	uint32_t ipv4gw; // 1+4
@@ -354,4 +362,6 @@ typedef struct  {
 
 	
 } ESP_WORD_ALIGN chatFabricConfig;
+
+
 #endif

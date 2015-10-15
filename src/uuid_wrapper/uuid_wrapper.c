@@ -28,6 +28,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "uuid_wrapper.h"
 #include "__attribute__.h"
 
+#ifdef ESP8266
+#include "mem.h"
+#define malloc os_malloc
+#endif
+
+
 
 void CP_ICACHE_FLASH_ATTR uuidToBytes(void *str, uuid_cp *uuid)
 {
@@ -61,6 +67,10 @@ void CP_ICACHE_FLASH_ATTR uuidToStr(void *str, uuid_cp *uuid)
 	uuid_to_string(uuid, str, &status);
 #elif defined(ESP8266)
 	// Not implemented for ESP8266
+	str = (char*)malloc(38);
+	bzero(str, 38);
+	int s = snprintf_uuid(str, 38, uuid);
+	os_printf ( " => uuidToStr %d %s \n ", s, str );
 #elif defined(IOS_APP)
 	uuid_unparse_lower(uuid, str);
 #endif 

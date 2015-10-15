@@ -28,6 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatPacket.h"
 #include "args.h"
 #include "cfConfig.h"
+#include "cfPairConfig.h"
 
 
 int main(int argc, char**argv)
@@ -36,6 +37,7 @@ int main(int argc, char**argv)
 	chatFabricPairing pair; 
 	chatFabricConfig config;  
 	msgbuffer b;
+	unsigned char sessionNonce[crypto_secretbox_NONCEBYTES];
 
 /*
 	Initialization of all the needed fields.
@@ -48,16 +50,12 @@ int main(int argc, char**argv)
 
 	cfConfigInit(&config);
 	
-	pair.state = STATE_UNCONFIGURED;
-	pair.hasPublicKey = 0;
 	
-	uuidCreateNil( &(pair.uuid.u0));
-	uuidCreateNil( &(pair.uuid.u1));
-	pair.hasPublicKey = 0;
-	pair.hasNonce = 0;
 	b.length = -1;
 
-	arc4random_buf(&(pair.mynonce), crypto_secretbox_NONCEBYTES);
+	cfPairInit(&pair);
+	chatPacket_calcNonce(1, &pair.mynonce, &sessionNonce );
+
 
 	chatFabricAction a;
 	

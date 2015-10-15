@@ -33,9 +33,6 @@ cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsign
 
 	uint32_t x = *i;
 	uint32_t ni = 0;
-				CHATFABRIC_DEBUG_FMT(0,  
-					"[DEBUG][%s:%s:%d]  Encode(%4d) %-20s %02x %4d \n",
-					__FILE__, __FUNCTION__, __LINE__, x, tagLookup(tag), tag , value);
 	
 	memcpy(b+x, &tag, 1);
 	++x;

@@ -30,10 +30,10 @@
 #define _SYS_ENDIAN_H_
 
 #include <sys/cdefs.h>
-#include "os_type.h"
 #include <endian.h>
 
 #ifdef ESP8266
+#include "os_type.h"
 #define _LITTLE_ENDIAN 1
 #define _BYTE_ORDER  1
 #endif

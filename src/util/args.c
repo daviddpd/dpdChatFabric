@@ -42,6 +42,7 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 	int ch;
 	uint32_t status;
 	static const unsigned char basepoint[32] = {9};
+	enum chatPacketActions act;
 
 //	cfConfigInit(&config);
 	
@@ -86,13 +87,13 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 		switch (ch) {
 
 			case 0:
-				a->action = (uint32_t )ACTION_SET;
+				a->action = ACTION_SET;
 			break;
 			case 1:
-				a->action = (uint32_t )ACTION_GET;
+				a->action = ACTION_GET;
 			break;
 			case 2:
-				a->action = (uint32_t )ACTION_READ;
+				a->action = ACTION_READ;
 			break;
 			case 3:
 				a->action_control = (uint32_t )atoi(optarg);

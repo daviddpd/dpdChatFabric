@@ -19,9 +19,10 @@
 
 time_t ntp_unix_timestamp = 0;
 int ntp_status = -1;
-#define user_procTaskPrio        0
-#define user_procTaskQueueLen    1
+#define HOSTNAME_MAX_LENGTH 64
+
 int bootstatus = 0;  // 1 - network up, 2-ready
+int mdns_status = 0;
 // os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 static void loop();
 //uint32_t ninc = 0;
@@ -30,8 +31,8 @@ int uart0enabled = -1;
 int shiftCounter = -1;
 uint8 shiftBits0[8];
 uint8 shiftBits1[8];
-char ssid[32] = SSID;
-char password[64] = SSID_PASSWORD;
+//char ssid[32] = SSID;
+//char password[64] = SSID_PASSWORD;
 struct station_config stationConf;
 
 int SR_DATA = 5;
@@ -127,7 +128,7 @@ doButtonFunction(enum button b)
 			break;
 			
 			case MODE_MENU_UNPAIRALL:
-				chatFabric_pair_init(&pair[0]);
+				cfPairInit(&pair[0]);
 				currentMode = MODE_STA_UNPAIRED;
 				changeMode(MODE_STA_UNPAIRED);				
 				os_printf ( " ==> Unpaired : %d \n", menuItem );
@@ -145,7 +146,7 @@ doButtonFunction(enum button b)
 
 void CP_ICACHE_FLASH_ATTR
 changeMode(enum deviceModes m) {
-	os_printf ( " ==> changeMode %d\n", m );
+//	os_printf ( " ==> changeMode %d\n", m );
 
 	int i = 0;
 	for ( i=7; i>=0; i-- ) {
@@ -202,12 +203,13 @@ changeMode(enum deviceModes m) {
 			os_printf ( " ==> changeMode %d - mode not found, case default.\n", m );
 		break;
 	}
-
+/*
 	os_printf ( " ==> shiftBits: " );
 	for ( i=7; i>=0; i-- ) {
 		os_printf ( "%02x ", shiftBits1[i] );
 	}
 	os_printf ( "\n");	
+*/
 
 }
 
@@ -387,7 +389,7 @@ udp_callback(void *arg, char *data, unsigned short length)
 	uint32 t;
 	enum chatFabricErrors e;
 //	t = system_get_time();
-	CHATFABRIC_DEBUG(config.debug, "Got UDP Packet." );
+	printf ( "Got network Packet.\n" );
 //    os_printf("%12u %12u  GOT A UDP PACKET\n\r", t/100000, ntp_unix_timestamp);
 
     if (data == NULL) {
@@ -400,9 +402,9 @@ udp_callback(void *arg, char *data, unsigned short length)
     mbuff.length = (int)length;
     mbuff.msg = data;
 
-	CHATFABRIC_DEBUG(config.debug, "chatFabric_device call" );
+	printf ( "chatFabric_device call.\n" );
     e = chatFabric_device(&c, &pair[0], &config,  &payloadMsg);
-	CHATFABRIC_DEBUG(config.debug, "chatFabric_device return" );
+	printf( "chatFabric_device return.\n" );
 
     if  ( ( ERROR_OK == e ) && ( payloadMsg.length > 0) ) {
 /*
@@ -434,7 +436,7 @@ udp_callback(void *arg, char *data, unsigned short length)
 */		
 		free(payloadMsg.msg);
 	}
-	CHATFABRIC_DEBUG(config.debug, "udp_callback return." );
+	printf( "udp_callback return.\n" );
 	return;
 }
 
@@ -464,14 +466,10 @@ loop()
 	heap = system_get_free_heap_size();
 	
 	wifiStatus = wifi_station_get_connect_status();
-	
-//	nonceInc(cp100, &config, &pair[0]);
-//	printf (" Nonce : " );
-//	util_print_bin2hex( (unsigned char *)&cp100->nonce,  crypto_secretbox_NONCEBYTES);
-
-	//os_printf("%12u %12u heap: %12d heapDiff: %12d  wifi/bootmode: %d/%d\n\r", t/100000, ntp_unix_timestamp, heap, heapLast-heap, wifiStatus, bootstatus);
-	
+		
 	os_printf(".");
+//	os_printf(" %8d %064x\n", bootstatus, bootstatus );
+//	bootstatus++;
 
 }
 
@@ -485,11 +483,66 @@ statusLoop() {
 
 	shiftReg1();
 	
-	os_printf("^");
+//	os_printf("^");
 
 }
 
+static void CP_ICACHE_FLASH_ATTR
+mdns()
+{
+	
+	char buffer2[HOSTNAME_MAX_LENGTH] = {0};
+    char hwaddr[6];
 
+	if (mdns_status) {
+		os_printf ("Closing mDNS ... \n");
+		espconn_mdns_close();
+	}
+
+	struct ip_info ipconfig;
+	wifi_get_macaddr(STATION_IF, hwaddr);
+	wifi_get_ip_info(STATION_IF, &ipconfig);
+	
+	os_printf ("Setting Up mDNS ... \n");
+	struct mdns_info *info = (struct mdns_info *)os_zalloc(sizeof(struct mdns_info));
+	
+	info->ipAddr = ipconfig.ip.addr; //ESP8266 station IP
+	info->server_name = "chatFabric";
+	info->server_port = config.port;
+
+	if ( config.hostname == NULL ) {
+		os_sprintf(buffer2, "%s-%02x:%02x:%02x:%02x:%02x:%02x", "cf",  MAC2STR(hwaddr) );
+	} else {
+		os_sprintf(buffer2, "%s", config.hostname );
+	}
+
+	int len = strlen (buffer2) + 1;
+
+	info->host_name = (char*)malloc(len*sizeof(char));
+	bzero(info->host_name, len*sizeof(char));
+	os_memcpy(info->host_name, &buffer2, len);
+
+	bzero(buffer2, HOSTNAME_MAX_LENGTH);
+	info->txt_data[0] = (char*)malloc(HOSTNAME_MAX_LENGTH*sizeof(char));
+	bzero(info->txt_data[0], HOSTNAME_MAX_LENGTH*sizeof(char));	
+	os_sprintf(info->txt_data[0], "MAC=%02x:%02x:%02x:%02x:%02x:%02x", MAC2STR(hwaddr) );
+
+	info->txt_data[1] = (char*)malloc(44*sizeof(char));
+	bzero(info->txt_data[1], 44*sizeof(char));
+	char uuid_str[38] = {0};
+	
+	snprintf_uuid(&uuid_str[0], 38, &(config.uuid.u0));
+	os_sprintf(info->txt_data[1], "uuid0=%s", uuid_str );
+
+	info->txt_data[2] = (char*)malloc(44*sizeof(char));
+	bzero(info->txt_data[2], 44*sizeof(char));
+	snprintf_uuid(&uuid_str[0], 38, &(config.uuid.u1));
+	os_sprintf(info->txt_data[2], "uuid1=%s", uuid_str );
+	espconn_mdns_init(info);
+	mdns_status=1;
+	
+
+}
 
 static void CP_ICACHE_FLASH_ATTR
 startup_station()
@@ -502,7 +555,9 @@ startup_station()
     char hwaddr[6];
 	t = system_get_time();
 	wifiStatus = wifi_station_get_connect_status();
-    os_printf("%12u %12u wifi connect status -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+	heapLast = heap;
+	heap = system_get_free_heap_size();	
+    os_printf("[%6d] %12u %12u wifi connect status -  %d/%d\n\r", heapLast - heap, t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
 
 	if ( ( wifiStatus == STATION_GOT_IP ) &&  ( bootstatus == 0 ) ) {
 		os_timer_disarm(&boottimer);
@@ -516,27 +571,6 @@ startup_station()
 		
 		currentMode = MODE_STA_UNPAIRED;
 		changeMode(MODE_STA_UNPAIRED);
-
-		os_printf ("Setting Up mDNS ... \n");
-		struct mdns_info *info = (struct mdns_info *)os_zalloc(sizeof(struct mdns_info));
-		info->ipAddr = ipconfig.ip.addr; //ESP8266 station IP
-
-		info->server_name = "chatFabric";
-
-		os_sprintf(buffer2, "%s-%02x%02x%02x%02x%02x%02x", "cf",  MAC2STR(hwaddr) );
-		info->host_name = (char*)malloc(16*sizeof(char));
-		bzero(info->host_name, 16*sizeof(char));
-
-	    os_memcpy(info->host_name, &buffer2, 15);
-
-        wifi_get_macaddr(STATION_IF, hwaddr);
-        wifi_get_ip_info(STATION_IF, &ipconfig);
-		
-		info->server_port = 1288;
-		info->txt_data[0] = "version = 0.1";
-		info->txt_data[1] = "user1 = data1";
-		info->txt_data[2] = "user2 = data2";
-		espconn_mdns_init(info);
 
 
 		ntp_get_time();
@@ -579,83 +613,86 @@ startup_station()
 		arc4random_buf((unsigned char *)&(pair[0].mynonce), crypto_secretbox_NONCEBYTES);
 		bzero(&(pair[0].nullnonce), crypto_secretbox_NONCEBYTES);
 */
-		chatFabric_pair_init(&pair[0]);
 
-		config.pairfile = "1";
 		
 		b.length = -1;
-		config.debug = 0;
-		chatFabric_configParse(&config);
+
+		cfPairInit(&pair[0]);
+		cfConfigInit(&config);
+		cfConfigRead(&config);
+
+		config.pairfile = "1";		
 		config.callback = (void*)&deviceCallBack;
+		config.debug = 1;
 
-	config.numOfControllers = 3;
-	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
+		config.numOfControllers = 3;
+		config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
 		
-// 13 == red
-// 12 == green
-// 4 == yellow
+		// 13 == red
+		// 12 == green
+		// 4 == yellow
 
-	int i =	0;
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-	config.controlers[i].value = 0;
-	config.controlers[i].label = "yellow";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+		int i =	0;
+		config.controlers[i].control = i;
+		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+		config.controlers[i].value = 0;
+		config.controlers[i].label = "yellow";
+		config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 1;
+		config.controlers[i].rangeLow= 0;
+		config.controlers[i].rangeHigh= 1;
 	
-	config.controlers[i].gpio = 16;
+		config.controlers[i].gpio = 16;
 
 
-	i =	1;
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-	config.controlers[i].value = 0;
-	config.controlers[i].label = "green";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+		i =	1;
+		config.controlers[i].control = i;
+		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+		config.controlers[i].value = 0;
+		config.controlers[i].label = "green";
+		config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 1;
-	config.controlers[i].gpio = 13;
+		config.controlers[i].rangeLow= 0;
+		config.controlers[i].rangeHigh= 1;
+		config.controlers[i].gpio = 13;
 
-	i =	2;
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-	config.controlers[i].value = 0;
-	config.controlers[i].label = "red";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+		i =	2;
+		config.controlers[i].control = i;
+		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+		config.controlers[i].value = 0;
+		config.controlers[i].label = "red";
+		config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 1;
-	config.controlers[i].gpio = 12;
-/*
-	i =	1;
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-	config.controlers[i].value = 0;
-	config.controlers[i].label = "switch2";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+		config.controlers[i].rangeLow= 0;
+		config.controlers[i].rangeHigh= 1;
+		config.controlers[i].gpio = 12;
+	/*
+		i =	1;
+		config.controlers[i].control = i;
+		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+		config.controlers[i].value = 0;
+		config.controlers[i].label = "switch2";
+		config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 1;
+		config.controlers[i].rangeLow= 0;
+		config.controlers[i].rangeHigh= 1;
 	
-	i =1;
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_DIMMER;
-	config.controlers[i].value = 0;
-	config.controlers[i].label = "Dimmer0";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 8;
-*/
+		i =1;
+		config.controlers[i].control = i;
+		config.controlers[i].type = ACTION_TYPE_DIMMER;
+		config.controlers[i].value = 0;
+		config.controlers[i].label = "Dimmer0";
+		config.controlers[i].labelLength = strlen(config.controlers[i].label);
+		config.controlers[i].rangeLow= 0;
+		config.controlers[i].rangeHigh= 8;
+	*/
 			
 		
 	    os_printf("%12u %12u IDS -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
 
 		if ( flashConfig[2048] == cftag_header ) {
 			os_printf("reading pair config\n");
-			chatFabric_pairConfig(&config, (chatFabricPairing *)&(pair[0]), 0 );
+			cfPairRead(&config, (chatFabricPairing *)&(pair[0]) );
 		}
 		if ( config.hasPairs ) {
 			currentMode = MODE_STA_PAIRED;
@@ -679,36 +716,41 @@ startup_station()
 		os_printf ("\n\n");	    
 
 	    os_printf("%12u %12u BootStatus print keys -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
-//		os_printf ( "%2s %24s: \n", ' ', "publicKey");
-		util_print_bin2hex((unsigned char *)&config.publickey, crypto_box_PUBLICKEYBYTES);
-// 		os_printf ( "%2s %24s: \n", ' ', "privateKey");
-		util_print_bin2hex((unsigned char *)&config.privatekey, crypto_box_SECRETKEYBYTES);
 
-
+//		CHATFABRIC_DEBUG_B2H(1, "publicKey", (unsigned char *)&config.publickey, crypto_box_PUBLICKEYBYTES );
+//		CHATFABRIC_DEBUG_B2H(1, "privateKey", (unsigned char *)&config.privatekey, crypto_box_SECRETKEYBYTES );
 
 		bootstatus = 2; // timeset 
 	    os_printf("%12u %12u BootStatus -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
 
-
 		c.tcpconn.type = ESPCONN_TCP;
 		c.tcpconn.state = ESPCONN_NONE;
 		c.tcpconn.proto.tcp = &c.esptcp;
-		c.tcpconn.proto.tcp->local_port = 1288;
+		c.tcpconn.proto.tcp->local_port = config.port;
+	    os_printf("%12u %12u tcp_listen -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
 		espconn_regist_connectcb(&c.tcpconn, tcp_listen);
+	    os_printf("%12u %12u tcp_accpet -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
 		espconn_accept(&c.tcpconn);
-	    
+
     	c.udpconn.type = ESPCONN_UDP;
+	    os_printf("%12u %12u zalloc -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
     	c.udpconn.proto.udp = (esp_udp *)os_zalloc(sizeof(esp_udp));
-    	c.udpconn.proto.udp->local_port = 1288;
+    	c.udpconn.proto.udp->local_port = config.port;
+	    os_printf("%12u %12u udp callback -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
     	espconn_regist_recvcb(&c.udpconn, udp_callback);
+	    os_printf("%12u %12u udp conn -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
     	espconn_create(&c.udpconn);
+
+	    os_printf("%12u %12u mdns -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+		mdns();
+	    os_printf("%12u %12u configwrite -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+		cfConfigWrite(&config);
 
 	    os_printf("%12u %12u UDP setup complete -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
 	} 
 	
 }
 
-//			chatFabric_pair_init(&pair[0]);		
 
 
 void CP_ICACHE_FLASH_ATTR
@@ -769,8 +811,12 @@ userWifiInit()
 	changeMode(MODE_STA_NOWIFI);
 
     //Set ap settings
-    os_memcpy(&stationConf.ssid, ssid, 32);
-    os_memcpy(&stationConf.password, password, 64);
+    bzero ( &stationConf.ssid, 32);
+    bzero ( &stationConf.password, 64);
+    
+    os_memcpy(&stationConf.ssid, SSID, strlen(SSID));
+    os_memcpy(&stationConf.password, SSID_PASSWORD, strlen(SSID_PASSWORD));
+    
     wifi_station_set_config(&stationConf);
 
     os_timer_disarm(&boottimer);
@@ -841,6 +887,8 @@ chatFabricInit()
 
 	heap =0;
 	heapLast = 0;
+	heapLast = heap;
+	heap = system_get_free_heap_size();
 		
 
 }
@@ -954,6 +1002,7 @@ user_init()
 {
 	int i;
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
+	userWifiInit();	
 	uart0enabled = 1;
 	userGPIOInit();
 	shiftReg0();
@@ -988,6 +1037,5 @@ user_init()
 	// uart_init(BIT_RATE_115200,BIT_RATE_115200);
 	// Initialize the GPIO subsystem.
 	chatFabricInit();
-	userWifiInit();
 	
 }

@@ -28,6 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatPacket.h"
 #include "args.h"
 #include "cfConfig.h"
+#include "cfPairConfig.h"
 
 uint32_t controls[16];
 
@@ -35,16 +36,17 @@ void deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing
 {
 
 	int i =0;
+/*
 	unsigned char *tmp;
 	if ( cp->payloadLength > 0 ) {
 
 		tmp=calloc(cp->payloadLength,sizeof(unsigned char));
 		memcpy(tmp, cp->payload, cp->payloadLength);
-		printf ( " === > Payload: %s \n", tmp ) ;
 	
 	}
+*/
 
-	printf ( " === >deviceCallBack  %u %u %u %u\n",  cp->action, cp->action_type, cp->action_control,cp->action_value  ) ;
+	printf ( "===> deviceCallBack  %u %u %u %u\n",  cp->action, cp->action_type, cp->action_control,cp->action_value  ) ;
 
 	
 	for (i=0; i<config->numOfControllers; i++) 
@@ -177,11 +179,14 @@ int main(int argc, char**argv)
 
 
 	do {		
+		
 		while ( chatFabric_device(&c, &pair, &config,  &b) == ERROR_OK ) { 
 			free(b.msg);
-			b.length = -1;
-	
+			b.length = -1;	
+			printf ( "Pair Serial: %d\n", pair.serial );
 		}
+
+
 	} while (1);
 	
 

@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <assert.h>
 
+
 void controllerCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd) 
 {
 //	printf ( "{controllerCallBack} %8s %12s %u %u\n",  actionLookup(cp->action), actionTypeLookup(cp->action_type), cp->action_control, cp->action_value  ) ;
@@ -99,9 +100,20 @@ int main(int argc, char**argv)
 	bzero(&(pair.nullnonce), crypto_secretbox_NONCEBYTES);
 
 	chatFabricAction a;
-	a.action_length = 0;
+	bzero(&a,sizeof(a));
+
+	printf ( "====> ARGS Action <================== \n");
+	chatPacket_print_action2(&a);
+	printf ( "===================================== \n");
 
 	chatFabric_args(argc, argv, &config, &a);	
+
+	CHATFABRIC_DEBUG_B2H(config.debug, "action", (unsigned char *)&a.action, sizeof(a.action));
+	
+	printf ( "====> ARGS Action <================== \n");
+	chatPacket_print_action2(&a);
+	printf ( "===================================== \n");
+
 	cfConfigRead(&config);
 	if ( config.newconfigfile != NULL ) {
 		cfConfigWrite(&config);	
@@ -109,13 +121,18 @@ int main(int argc, char**argv)
 
 
 	config.callback = &controllerCallBack;
+	
+	_GLOBAL_DEBUG = config.debug;
+
 
 //	pair.uuid.u0 = config.to.u0;
 //	pair.uuid.u1 = config.to.u1;
 	
 	if ( config.pairfile != NULL ) {
+		printf ( "reading pair file\n");
 		cfPairRead(&config, &pair);
 	}
+
 
 	c.type = config.type;
 	c.socket = -1;

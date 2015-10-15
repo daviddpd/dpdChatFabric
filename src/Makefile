@@ -27,7 +27,7 @@ LOCAL_LIB_SRC+=dpdChatFabric/dpdChatFabric.c dpdChatFabric/cfTagEncoder.c dpdCha
 
 LOCAL_LIB_OBJ=$(LOCAL_LIB_SRC:.c=.o)
 
-BIN_SRC=bin/device.c bin/createConfig.c bin/controller.c
+BIN_SRC=bin/device.c bin/createConfig.c bin/controller.c  bin/cpTags.c
 BIN_OBJ=$(BIN_SRC:.c=.o)
 
 BIN_EXEC=$(BIN_SRC:.c=)

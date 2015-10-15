@@ -74,9 +74,9 @@ int main(int argc, char**argv)
 
 	arc4random_buf(&mysecret, 32);
 	arc4random_buf(&theirsecret, 32);
-	uint8_t nonce[8]; 
+	uint8_t nonce[12]; 
 
-	arc4random_buf(&nonce, 8);
+	arc4random_buf(&nonce, 12);
 	
 
 	unsigned char shared[32];
@@ -108,7 +108,7 @@ int main(int argc, char**argv)
 
 	
 	printf (" Nonce : " ) ;
-	print_bin2hex((unsigned char *)&nonce, 8);
+	print_bin2hex((unsigned char *)&nonce, 12);
 
 	unsigned char mac[16];
 	poly1305_auth(mac, (const unsigned char *)_lyrics, L, (const unsigned char *) &shared);
@@ -117,24 +117,27 @@ int main(int argc, char**argv)
 	print_bin2hex((unsigned char *)&mac, 16);
 	
 	unsigned char *data=calloc(L+16,sizeof(unsigned char));
+	unsigned char *dataout=calloc(L+16,sizeof(unsigned char));
 	memcpy(data, &mac, 16);
 	memcpy(data+16, _lyrics, L);
 	
 	printf("Plain Text : %d \n", L);		
 	hexprint( data, L+16);
 	
-	
 	printf ( "\n\n");
+	
 	if (s20_crypt((uint8_t*)&shared, S20_KEYLEN_256, nonce, 0, data, L+16)) {
-		printf("Error: encryption failed\n");
+		printf("Error: encryption failed (salsa20) \n");
 	} else {
-		printf("Successful encryption \n");
-		//hexprint( data, L+16);
+		printf("Successful encryption (salsa20) \n");
+		hexprint( data, L+16);
 		printf(" \n");
 	}
 
 	unsigned char * data2=calloc(L+16,sizeof(unsigned char));
+	unsigned char * data2out=calloc(L+16,sizeof(unsigned char));
 	memcpy(data2, data, L+16);
+
 	
 	if (s20_crypt((uint8_t*)&shared, S20_KEYLEN_256, nonce, 0, data2, L+16)) {
 		printf("Error: decryption failed\n");

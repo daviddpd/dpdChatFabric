@@ -1,119 +1,57 @@
 #include "util.h"
+#include "cfstructs.h"
+#include "assert.h"
 
-#ifdef ESP8266
+int _GLOBAL_DEBUG;
 
-void CP_ICACHE_FLASH_ATTR
-util_print_bin2hex(unsigned char * x, int len) {
-	int i;
-	for (i=0; i<len; i++) {
-		os_printf ( "%02x", x[i] );
-		if ( (i>0) && ( (i+1)%4 == 0 ) ) { os_printf (" "); }
-	}
-	os_printf ("\n");
+void CP_ICACHE_FLASH_ATTR util_debug_bin2hex(char* label, unsigned char * x, int len, char* file, const char* func, int line ){
 
-}
-
-void CP_ICACHE_FLASH_ATTR
-util_hexprint ( unsigned char *str, uint32_t len ){
-	int i;
-	unsigned char p;
-	os_printf ( "\n %4s: ", " " );		
-
-	for (i=0; i<len; i++) {
-		p = str[i];
-		if ( p < 32 ) {
-			os_printf (" ");
-		} else {
-			os_printf ("%c", p);
-		}
-		if ( (i > 0 ) && (i % 42) == 0 ) {
-			os_printf ( "\n %4s: ", ' ' );		
-		}
-	}
-
-	os_printf ("\n");
-
-}
-void CP_ICACHE_FLASH_ATTR
-util_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght ) {
-	char str[5] = { '0', 'x', '0', '0' , 0 };
-	int i=0,x=0;
-	uint32_t dst_int;
-	for ( i = 0; i<hexLength; i=i+2) {
-		str[2] = hex[i];
-		str[3] = hex[i+1];
-		if ( x < dstLenght ) {
-			os_sprintf (str, "%d", &dst_int );
-			dst_int = strtoull(str, NULL, 16);
-			dst[x] = (unsigned char)dst_int;
-		}
-		x++;
-	}
-
-}
-#else
-void CP_ICACHE_FLASH_ATTR
-util_print_bin2hex(unsigned char * x, int len) {
 	int i;
 	int z=0;
-	int l = (len/4) + len*2;
-	char *tmp = calloc(l,sizeof(char));
-	
+    int l = (len/4) + len*2;
+    if (len % 4 > 0) { ++l; }
+
+	char *_utilbuffer = (char *)malloc( (l+1) * sizeof(char) );
+    bzero(_utilbuffer, l+1);
+    
+    
 	for (i=0; i<len; i++) {
-		sprintf(tmp+z, "%02x", x[i]);
+		sprintf(_utilbuffer+z, "%02x", x[i]);
 		z+=2;
-		if ( (i>0) && ( (i+1)%4 == 0 ) ) { 			
-			sprintf (tmp+z, " " );
+
+		if ( (i>0) && ( (i+1)%4 == 0 ) ) {
+			sprintf (_utilbuffer+z, " " );
 			z++;
 		}
-	}
-	printf ("%s\n", tmp);
 
+	}
+
+	printf("[DEBUG][%s:%s:%d] %20s: %s\n", file, func, line, label, _utilbuffer );
+    free(_utilbuffer);
 }
 
-void CP_ICACHE_FLASH_ATTR
-util_hexprint ( unsigned char *str, uint32_t len ){
+
+
+void CP_ICACHE_FLASH_ATTR util_bin2hex (char *cd, char* label, unsigned char * x, int len ){
 	int i;
-	unsigned char p;
-	printf ( "\n %4s: ", " " );		
+	int z=0;
+    int l = (len/4) + len*2;
+    if (len % 4 > 0) { ++l; }
 
+    char *_utilbuffer = (char *)malloc( (l+1) * sizeof(char) );
+    bzero(_utilbuffer, l+1);
+    
 	for (i=0; i<len; i++) {
-		p = str[i];
-		if ( p < 32 ) {
-			printf (" ");
-		} else {
-			printf ("%c", p);
-		}
-		if ( (i > 0 ) && (i % 42) == 0 ) {
-			printf ( "\n %4c: ", ' ' );		
-		}
-	}
+		sprintf(_utilbuffer+z, "%02x", x[i]);
+		z+=2;
 
-	printf ("\n");
+		if ( (i>0) && ( (i+1)%4 == 0 ) ) {
+			sprintf (_utilbuffer+z, " " );
+			z++;
+		}
+
+	}
+	printf ( "%2s %24s: %42s\n", cd, label, _utilbuffer);
+    free(_utilbuffer);
 
 }
-
-void CP_ICACHE_FLASH_ATTR
-util_hex2int_bytes (unsigned char *hex, uint32_t hexLength, unsigned char *dst, uint32_t dstLenght ) {
-	char str[5] = { '0', 'x', '0', '0' , 0 };
-	int i=0,x=0;
-	uint32_t dst_int;
-	//str[2] = 0;
-//	printf ( "==> chatFabric_hex2int_bytes\n" );
-	for ( i = 0; i<hexLength; i=i+2) {
-		str[2] = hex[i];
-		str[3] = hex[i+1];
-		if ( x < dstLenght ) {
-			sscanf (str, "%d", &dst_int );
-			dst_int = strtoul(str, NULL, 16);
-			dst[x] = (unsigned char)dst_int;
-		}
-		
-//		printf ( " === %6s ?= %02x = %4d = ===========\n", str, dst[x], dst_int );
-		
-		x++;
-	}
-
-}
-
-#endif
