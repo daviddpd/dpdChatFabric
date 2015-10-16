@@ -52,9 +52,15 @@ actionTypeLookup (enum chatPacketActionsType tag) {
 		case ACTION_TYPE_GAUGE:
 			return "GAUGE";
 		break;
-		case ACTION_TYPE_DATA:
-			return "DATA";
+        case ACTION_TYPE_DATA:
+            return "DATA_UTF8";
+        break;
+		case ACTION_TYPE_DATA_UTF8:
+			return "DATA_UTF8";
 		break;
+        case ACTION_TYPE_DATA_BIN:
+            return "DATA_UTF8";
+        break;
 	}
 	return "UNKNWON";	
 }

@@ -59,6 +59,7 @@ cfConfigInit(chatFabricConfig *config) {
 	config->mode = 0;
 
 	config->hostname = NULL;
+//	config->defaulthostname = NULL:
 	config->ipv4 = 0; // 1+4
 	config->ipv4netmask = 0; // 1+4
 	config->ipv4gw  = 0; // 1+4

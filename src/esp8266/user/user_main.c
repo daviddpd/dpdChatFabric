@@ -36,7 +36,7 @@ uint8 shiftBits1[8];
 struct station_config stationConf;
 
 int SR_DATA = 5;
-int SR_SRCLK1 = -1;
+int SR_SRCLK1 = 12;
 int SR_SRCLK2 = 14;
 int SR_SRCLK;
 int SR_RCLK = 4;
@@ -261,7 +261,6 @@ shiftReg1() {
 //LOCAL os_timer_t buttonDebounce;
 void CP_ICACHE_FLASH_ATTR
 shiftReg0() {
-	return;
 
 	int i;
 
@@ -316,8 +315,13 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 	{
 		if ( config->controlers[i].control == cp->action_control ) 
 		{
+			if ( i == 0 ){
+			    config->controlers[0].value = ntp_unix_timestamp;
+			}
+	
 			if (cp->action == ACTION_GET ) 
 			{
+
 				reply->action = ACTION_READ;
 				reply->action_control = cp->action_control;
 				reply->action_type = config->controlers[i].type;
@@ -352,12 +356,9 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 						}
 					}
 				}
-/*				
-				if  ( cp->action_control == 1 ) {
+				if  ( 	config->controlers[i].type == ACTION_TYPE_DIMMER ) {
 					
-					for (x=1; x<=8; x++) {
-						//printf ( "=== %10s: %4d %24s %4d \n", "Control", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value );
-					
+					for (x=1; x<=8; x++) {					
 						if ( cp->action_value == 0  ) {
 							shiftBits0[x-1] = 0;
 						} else if ( x <= cp->action_value ) {
@@ -368,8 +369,9 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 						}
 					}
 					shiftReg0();
-				}
-*/
+				}				
+				
+				
 			}			
 		}
 
@@ -625,14 +627,24 @@ startup_station()
 		config.callback = (void*)&deviceCallBack;
 		config.debug = 1;
 
-		config.numOfControllers = 3;
+		config.numOfControllers = 4;
 		config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
 		
 		// 13 == red
 		// 12 == green
 		// 4 == yellow
 
-		int i =	0;
+		int i =	0;		
+		config.controlers[i].control = i;
+		config.controlers[i].type = ACTION_TYPE_GAUGE;
+		config.controlers[i].value = 0;
+		config.controlers[i].label = "Time";
+		config.controlers[i].labelLength = strlen(config.controlers[i].label);
+		config.controlers[i].rangeLow= 0;
+		config.controlers[i].rangeHigh= 0xffffffff;			
+
+		
+		i++;
 		config.controlers[i].control = i;
 		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
 		config.controlers[i].value = 0;
@@ -645,7 +657,7 @@ startup_station()
 		config.controlers[i].gpio = 16;
 
 
-		i =	1;
+		i++;
 		config.controlers[i].control = i;
 		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
 		config.controlers[i].value = 0;
@@ -655,8 +667,8 @@ startup_station()
 		config.controlers[i].rangeLow= 0;
 		config.controlers[i].rangeHigh= 1;
 		config.controlers[i].gpio = 13;
-
-		i =	2;
+/*
+		i++;
 		config.controlers[i].control = i;
 		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
 		config.controlers[i].value = 0;
@@ -666,7 +678,6 @@ startup_station()
 		config.controlers[i].rangeLow= 0;
 		config.controlers[i].rangeHigh= 1;
 		config.controlers[i].gpio = 12;
-	/*
 		i =	1;
 		config.controlers[i].control = i;
 		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
@@ -676,8 +687,9 @@ startup_station()
 	
 		config.controlers[i].rangeLow= 0;
 		config.controlers[i].rangeHigh= 1;
+	*/
 	
-		i =1;
+		i++;
 		config.controlers[i].control = i;
 		config.controlers[i].type = ACTION_TYPE_DIMMER;
 		config.controlers[i].value = 0;
@@ -685,8 +697,7 @@ startup_station()
 		config.controlers[i].labelLength = strlen(config.controlers[i].label);
 		config.controlers[i].rangeLow= 0;
 		config.controlers[i].rangeHigh= 8;
-	*/
-			
+
 		
 	    os_printf("%12u %12u IDS -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
 

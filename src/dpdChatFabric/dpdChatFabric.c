@@ -93,6 +93,11 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 	if ( c->type == SOCK_DGRAM ) {
 		setsockopt(c->socket, SOL_SOCKET, SO_RCVLOWAT, &lowwater, sizeof(lowwater));
 	}
+	
+	if ( c->type == SOCK_STREAM ) {
+		int set = 1;
+		setsockopt(c->socket, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
+	}
 
 	if ( c->bind ==  1 ) {
 		bind(c->socket,(struct sockaddr *)&c->sockaddr,sizeof(c->sockaddr));
