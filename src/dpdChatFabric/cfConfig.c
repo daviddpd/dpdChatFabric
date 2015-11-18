@@ -29,8 +29,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "util.h"
 #ifdef ESP8266
 #include "esp8266.h"
-//#define __error (void)0
 #endif
+
+extern hostmeta_t hostMeta;
 
 void CP_ICACHE_FLASH_ATTR
 cfConfigInit(chatFabricConfig *config) {
@@ -43,6 +44,13 @@ cfConfigInit(chatFabricConfig *config) {
 	config->controlers = NULL;
 	config->numOfControllers = -1;
 	config->callback = NULL;
+#ifdef ESP8266
+	config->mode = SOFTAP_MODE;
+#else
+    config->mode = 0;
+#endif
+    
+	
 
 	config->port = 1288;
 	config->type = -1; // SOCK_STREAM SOCK_DGRAM SOCK_RAW SOCK_RDM SOCK_SEQPACKET
@@ -56,15 +64,25 @@ cfConfigInit(chatFabricConfig *config) {
 
 	config->debug = 0;
 	config->writeconfig = 1;
-	config->mode = 0;
 
-	config->hostname = NULL;
 //	config->defaulthostname = NULL:
-	config->ipv4 = 0; // 1+4
-	config->ipv4netmask = 0; // 1+4
-	config->ipv4gw  = 0; // 1+4
-	config->ipv4ns1 = 0; // 1+4
-	config->ipv4ns2 = 0; // 1+4	
+	config->hostname = hostMeta.hostname;
+//  172.16.0.0 
+#ifdef ESP8266
+	struct ip_info info;
+	
+	IP4_ADDR(&info.ip, 172,16,250,1); // 1+4
+	IP4_ADDR(&info.netmask, 255,255,255,0); // 1+4
+	config->ipv4 = info.ip.addr; // 1+4
+	config->ipv4netmask = info.netmask.addr; // 1+4
+		
+#else
+	config->ipv4 = inet_addr("172.16.250.1"); // 1+4
+	config->ipv4netmask = inet_addr("255.255.255.0");; // 1+4
+#endif 
+	config->ipv4gw  = config->ipv4; // 1+4
+	config->ipv4ns1 = config->ipv4; // 1+4
+	config->ipv4ns2 = config->ipv4; // 1+4	
 
 	static const unsigned char basepoint[32] = {9};
 		

@@ -20,6 +20,9 @@
 #define ESP_WORD_ALIGN __attribute__ (())
 #endif
 
+time_t ntp_unix_timestamp;
+int ntp_status;
+
 typedef struct {
 	uint8 options;
 	uint8 stratum;

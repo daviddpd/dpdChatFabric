@@ -8,21 +8,26 @@
 #include "driver/uart.h"
 #include "espconn.h"
 #include "mem.h"
-#include "uuid_wrapper.h"
-#include "ntp.h"
 #include <salsa20.h>
 #include <poly1305-donna.h>
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 #include "esp8266.h"
 #include "util.h"
+#include "esp-cf-config.h"
+#include "esp-cf-wifi.h"
+#include "uuid_wrapper.h"
+#include "ntp.h"
 
-time_t ntp_unix_timestamp = 0;
-int ntp_status = -1;
-#define HOSTNAME_MAX_LENGTH 64
+//extern enum deviceModes currentMode;
+
+extern time_t ntp_unix_timestamp;
+extern int ntp_status;
+//extern char macAddr[];
+extern hostmeta_t hostMeta;
+
 
 int bootstatus = 0;  // 1 - network up, 2-ready
-int mdns_status = 0;
 // os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 static void loop();
 //uint32_t ninc = 0;
@@ -33,7 +38,6 @@ uint8 shiftBits0[8];
 uint8 shiftBits1[8];
 //char ssid[32] = SSID;
 //char password[64] = SSID_PASSWORD;
-struct station_config stationConf;
 
 int SR_DATA = 5;
 int SR_SRCLK1 = 12;
@@ -50,23 +54,7 @@ LOCAL os_timer_t buttonDebounce;
 LOCAL os_timer_t shiftReg;
 LOCAL os_timer_t statusReg;
 
-enum deviceModes {	
-	MODE_UNDEFINED,
-	MODE_UNCONFIGURED,
-	MODE_BOOTING,
-	MODE_AP_UNPAIRED,
-	MODE_AP_PAIRED,
-	MODE_STA_NOWIFI,
-	MODE_STA_UNPAIRED,
-	MODE_STA_PAIRED,
-	MODE_MENU_NONE,
-	MODE_MENU_IN,
-	MODE_MENU_APMODE,
-	MODE_MENU_STAMODE,
-	MODE_MENU_FACTORYRESET,
-	MODE_MENU_UNPAIRALL,
-	MODE_MENU_END,
-} ESP_WORD_ALIGN;
+
 
 enum button {	
 	BUTTON_UNDEFINED,
@@ -75,17 +63,16 @@ enum button {
 };
 
 
-void userWifiInit();
+//void userWifiInit();
 void chatFabricInit();
 
 void userGPIOInit();
 void statusLoop();
-static void udp_callback(void *arg, char *data, unsigned short length);
+void udp_callback(void *arg, char *data, unsigned short length);
 void shiftReg0();
 void shiftReg1();
 void changeMode(enum deviceModes m);
 enum deviceModes menuItem = MODE_MENU_NONE;
-enum deviceModes currentMode = MODE_UNDEFINED;
 
 void CP_ICACHE_FLASH_ATTR
 doButtonFunction(enum button b) 
@@ -124,7 +111,7 @@ doButtonFunction(enum button b)
 				// uart_init(BIT_RATE_115200,BIT_RATE_115200);
 				// Initialize the GPIO subsystem.
 				chatFabricInit();
-				userWifiInit();
+				//userWifiInit();
 			break;
 			
 			case MODE_MENU_UNPAIRALL:
@@ -382,7 +369,7 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 
 }
 
-LOCAL void CP_ICACHE_FLASH_ATTR
+void CP_ICACHE_FLASH_ATTR
 udp_callback(void *arg, char *data, unsigned short length)
 {
     msgbuffer payloadMsg;
@@ -469,83 +456,31 @@ loop()
 	
 	wifiStatus = wifi_station_get_connect_status();
 		
-	os_printf(".");
-//	os_printf(" %8d %064x\n", bootstatus, bootstatus );
+//	os_printf(".");
+//	os_printf(" Time: %8d \n", ntp_unix_timestamp );
 //	bootstatus++;
 
 }
 
 void CP_ICACHE_FLASH_ATTR
 statusLoop() {
-
+	uuid_cp u1;
+	
 	if ( pair[0].hasPublicKey && ( menuItem == MODE_MENU_NONE ) ) {
 		currentMode = MODE_STA_PAIRED;
 		changeMode(MODE_STA_PAIRED);
 	} 
 
 	shiftReg1();
-	
-//	os_printf("^");
-
+/*
+	uuidCreate( &(u1));	
+	os_printf("uuid 1: ");
+	printf_uuid(&(u1));
+	os_printf("\n");
+*/
 }
 
-static void CP_ICACHE_FLASH_ATTR
-mdns()
-{
-	
-	char buffer2[HOSTNAME_MAX_LENGTH] = {0};
-    char hwaddr[6];
-
-	if (mdns_status) {
-		os_printf ("Closing mDNS ... \n");
-		espconn_mdns_close();
-	}
-
-	struct ip_info ipconfig;
-	wifi_get_macaddr(STATION_IF, hwaddr);
-	wifi_get_ip_info(STATION_IF, &ipconfig);
-	
-	os_printf ("Setting Up mDNS ... \n");
-	struct mdns_info *info = (struct mdns_info *)os_zalloc(sizeof(struct mdns_info));
-	
-	info->ipAddr = ipconfig.ip.addr; //ESP8266 station IP
-	info->server_name = "chatFabric";
-	info->server_port = config.port;
-
-	if ( config.hostname == NULL ) {
-		os_sprintf(buffer2, "%s-%02x:%02x:%02x:%02x:%02x:%02x", "cf",  MAC2STR(hwaddr) );
-	} else {
-		os_sprintf(buffer2, "%s", config.hostname );
-	}
-
-	int len = strlen (buffer2) + 1;
-
-	info->host_name = (char*)malloc(len*sizeof(char));
-	bzero(info->host_name, len*sizeof(char));
-	os_memcpy(info->host_name, &buffer2, len);
-
-	bzero(buffer2, HOSTNAME_MAX_LENGTH);
-	info->txt_data[0] = (char*)malloc(HOSTNAME_MAX_LENGTH*sizeof(char));
-	bzero(info->txt_data[0], HOSTNAME_MAX_LENGTH*sizeof(char));	
-	os_sprintf(info->txt_data[0], "MAC=%02x:%02x:%02x:%02x:%02x:%02x", MAC2STR(hwaddr) );
-
-	info->txt_data[1] = (char*)malloc(44*sizeof(char));
-	bzero(info->txt_data[1], 44*sizeof(char));
-	char uuid_str[38] = {0};
-	
-	snprintf_uuid(&uuid_str[0], 38, &(config.uuid.u0));
-	os_sprintf(info->txt_data[1], "uuid0=%s", uuid_str );
-
-	info->txt_data[2] = (char*)malloc(44*sizeof(char));
-	bzero(info->txt_data[2], 44*sizeof(char));
-	snprintf_uuid(&uuid_str[0], 38, &(config.uuid.u1));
-	os_sprintf(info->txt_data[2], "uuid1=%s", uuid_str );
-	espconn_mdns_init(info);
-	mdns_status=1;
-	
-
-}
-
+/*
 static void CP_ICACHE_FLASH_ATTR
 startup_station()
 {
@@ -567,7 +502,7 @@ startup_station()
         wifi_get_macaddr(STATION_IF, hwaddr);
         os_sprintf(buffer, MACSTR " " IPSTR, 
                    MAC2STR(hwaddr), IP2STR(&ipconfig.ip));
-		os_printf("%s\n\r", buffer);
+		os_printf(" ==> GOT IP: %s\n\r", buffer);
 
 		bootstatus = 1; // network up
 		
@@ -575,6 +510,7 @@ startup_station()
 		changeMode(MODE_STA_UNPAIRED);
 
 
+		os_printf(" ==> Call NTP Time \n\r", buffer);
 		ntp_get_time();
 		// ntp_unix_timestamp = 1437438241;
 		os_timer_disarm(&boottimer);
@@ -582,6 +518,7 @@ startup_station()
     	os_timer_arm(&boottimer, 250, 1);
 		
 	} 
+
 	if ( (ntp_status == 2) && ( bootstatus == 1 ) ) {
 		os_printf ("ntp timed out ... retry.\n");
 		ntp_get_time();	
@@ -596,109 +533,13 @@ startup_station()
 
 
 	    os_printf("%12u %12u Initializing Chat Fabric -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
-
-//		bzero(&c,sizeof(c));	
-//		bzero(&pair[0],sizeof(pair[0]));	
-//		bzero(&config,sizeof(config));	
-//		bzero(&b,sizeof(b));
-
-
-/*
-		pair[0].state = STATE_UNCONFIGURED;
-		pair[0].hasPublicKey = 0;
-	
-		uuid_create_nil ( &(pair[0].uuid.u0), &status);
-		uuid_create_nil ( &(pair[0].uuid.u1), &status);
-		pair[0].hasPublicKey = 0;
-		pair[0].hasNonce = 0;
-		pair[0].serial = 0;
-		arc4random_buf((unsigned char *)&(pair[0].mynonce), crypto_secretbox_NONCEBYTES);
-		bzero(&(pair[0].nullnonce), crypto_secretbox_NONCEBYTES);
-*/
-
 		
 		b.length = -1;
 
 		cfPairInit(&pair[0]);
-		cfConfigInit(&config);
-		cfConfigRead(&config);
-
-		config.pairfile = "1";		
-		config.callback = (void*)&deviceCallBack;
-		config.debug = 1;
-
-		config.numOfControllers = 4;
-		config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
-		
-		// 13 == red
-		// 12 == green
-		// 4 == yellow
-
-		int i =	0;		
-		config.controlers[i].control = i;
-		config.controlers[i].type = ACTION_TYPE_GAUGE;
-		config.controlers[i].value = 0;
-		config.controlers[i].label = "Time";
-		config.controlers[i].labelLength = strlen(config.controlers[i].label);
-		config.controlers[i].rangeLow= 0;
-		config.controlers[i].rangeHigh= 0xffffffff;			
 
 		
-		i++;
-		config.controlers[i].control = i;
-		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-		config.controlers[i].value = 0;
-		config.controlers[i].label = "yellow";
-		config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	
-		config.controlers[i].rangeLow= 0;
-		config.controlers[i].rangeHigh= 1;
-	
-		config.controlers[i].gpio = 16;
-
-
-		i++;
-		config.controlers[i].control = i;
-		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-		config.controlers[i].value = 0;
-		config.controlers[i].label = "green";
-		config.controlers[i].labelLength = strlen(config.controlers[i].label);
-	
-		config.controlers[i].rangeLow= 0;
-		config.controlers[i].rangeHigh= 1;
-		config.controlers[i].gpio = 13;
-/*
-		i++;
-		config.controlers[i].control = i;
-		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-		config.controlers[i].value = 0;
-		config.controlers[i].label = "red";
-		config.controlers[i].labelLength = strlen(config.controlers[i].label);
-	
-		config.controlers[i].rangeLow= 0;
-		config.controlers[i].rangeHigh= 1;
-		config.controlers[i].gpio = 12;
-		i =	1;
-		config.controlers[i].control = i;
-		config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-		config.controlers[i].value = 0;
-		config.controlers[i].label = "switch2";
-		config.controlers[i].labelLength = strlen(config.controlers[i].label);
-	
-		config.controlers[i].rangeLow= 0;
-		config.controlers[i].rangeHigh= 1;
-	*/
-	
-		i++;
-		config.controlers[i].control = i;
-		config.controlers[i].type = ACTION_TYPE_DIMMER;
-		config.controlers[i].value = 0;
-		config.controlers[i].label = "Dimmer0";
-		config.controlers[i].labelLength = strlen(config.controlers[i].label);
-		config.controlers[i].rangeLow= 0;
-		config.controlers[i].rangeHigh= 8;
-
-		
 	    os_printf("%12u %12u IDS -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
 
 		if ( flashConfig[2048] == cftag_header ) {
@@ -753,7 +594,7 @@ startup_station()
     	espconn_create(&c.udpconn);
 
 	    os_printf("%12u %12u mdns -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
-		mdns();
+		espCfMdns();
 	    os_printf("%12u %12u configwrite -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
 		cfConfigWrite(&config);
 
@@ -762,7 +603,7 @@ startup_station()
 	
 }
 
-
+*/
 
 void CP_ICACHE_FLASH_ATTR
 doButton(uint8 gpio_pin)
@@ -809,31 +650,6 @@ buttonPress(void *n)
 		}		
 	}
 
-}
-
-
-void CP_ICACHE_FLASH_ATTR
-userWifiInit()
-{
-    //Set station mode
-    wifi_set_opmode( 0x1 );
-
-	currentMode = MODE_STA_NOWIFI;
-	changeMode(MODE_STA_NOWIFI);
-
-    //Set ap settings
-    bzero ( &stationConf.ssid, 32);
-    bzero ( &stationConf.password, 64);
-    
-    os_memcpy(&stationConf.ssid, SSID, strlen(SSID));
-    os_memcpy(&stationConf.password, SSID_PASSWORD, strlen(SSID_PASSWORD));
-    
-    wifi_station_set_config(&stationConf);
-
-    os_timer_disarm(&boottimer);
-    os_timer_setfn(&boottimer, (os_timer_func_t *)startup_station, NULL);
-    os_timer_arm(&boottimer, 250, 1);
-	//shiftReg0();
 }
 
 void CP_ICACHE_FLASH_ATTR
@@ -887,6 +703,8 @@ chatFabricInit()
 	bzero(&c,sizeof(c));
 	bzero(&config,sizeof(config));	
 	bzero(&b,sizeof(b));
+	bzero(&hostMeta, sizeof(hostMeta));
+	hostMeta.status = 0;
 
 	for (i=0; i<16; i++) {
 		cpStatus[i] = -1;
@@ -904,149 +722,52 @@ chatFabricInit()
 
 }
 
-
-int selfTestDone = 0;
-int selfTestCounter = 0;
-
-//Init function 
-void CP_ICACHE_FLASH_ATTR
-selfTestTimer()
-{
-	int i;
-	switch(selfTestCounter) {
-	
-		case 0:
-			os_printf (" ... 3\n");
-			selfTestCounter++;
-		break;
-		case 1:
-			os_printf (" ... 2\n");
-			selfTestCounter++;
-		break;
-		case 2:
-			os_printf (" ... 1\n");
-			selfTestCounter++;
-		break;		
-		case 3:
-			os_printf (" ... 0\n");
-			selfTestCounter++;
-		break;
-	
-		case 4:
-			os_printf (" Turning on LEDs on ... \n");
-			selfTestCounter++;
-
-			gpio16_output_set(1);
-			GPIO_OUTPUT_SET(12, 1);
-			GPIO_OUTPUT_SET(13, 1);
-			
-			for ( i=7; i>=0; i-- ) {
-				shiftBits1[i] = 1;
-			}
-			shiftReg1();
-			
-		break;
-	
-
-
-		case 9:
-			os_printf (" Turning on LEDs off ... \n");
-			selfTestCounter++;
-
-			gpio16_output_set(0);
-			GPIO_OUTPUT_SET(12, 0);
-			GPIO_OUTPUT_SET(13, 0);
-			
-			for ( i=7; i>=0; i-- ) {
-				shiftBits1[i] = 0;
-			}
-			shiftReg1();
-			
-		break;
-		case 15:
-			os_printf (" Self Test Complete. \n");
-			selfTestDone=1;
-			selfTestCounter++;
-		break;
-		default:
-			selfTestCounter++;
-		break;
-
-	
-	}
-
-
-	if (selfTestDone) { 		
-		os_timer_disarm(&statusReg);
-	
-		currentMode = MODE_BOOTING;
-		changeMode(MODE_BOOTING);
-	
-		os_timer_disarm(&statusReg);
-		os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
-		os_timer_arm(&statusReg, 300, 1);
-	
-		// uart_init(BIT_RATE_115200,BIT_RATE_115200);
-		// Initialize the GPIO subsystem.
-		chatFabricInit();
-		userWifiInit();
-	}
-
-}
-
-//Init function 
-void CP_ICACHE_FLASH_ATTR
-selfTest()
-{
-
-	os_printf ( "Starting Self Test ... " );
-	os_timer_disarm(&statusReg);
-	os_timer_setfn(&statusReg, (os_timer_func_t *)selfTestTimer, NULL);
-	os_timer_arm(&statusReg, 300, 1);
-
-}
-
-
 //Init function 
 void CP_ICACHE_FLASH_ATTR
 user_init()
 {
 	int i;
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
-	userWifiInit();	
-	uart0enabled = 1;
-	userGPIOInit();
-	shiftReg0();
-	shiftReg1();
-
-
-			gpio16_output_set(1);
-			GPIO_OUTPUT_SET(12, 1);
-			GPIO_OUTPUT_SET(13, 1);
-			
-			for ( i=7; i>=0; i-- ) {
-				shiftBits1[i] = 1;
-			}
-			shiftReg1();
-
-			gpio16_output_set(0);
-			GPIO_OUTPUT_SET(12, 0);
-			GPIO_OUTPUT_SET(13, 0);
-			
-			for ( i=7; i>=0; i-- ) {
-				shiftBits1[i] = 0;
-			}
-			shiftReg1();
 
 	currentMode = MODE_BOOTING;
 	changeMode(MODE_BOOTING);
+	uart0enabled = 1;
+	userGPIOInit();
+
+	chatFabricInit();
+
+	createHostMeta();
+	espCfConfigInit();
+
+	cfPairInit(&pair[0]);
+	if ( flashConfig[2048] == cftag_header ) {
+		os_printf("reading pair config\n");
+		cfPairRead(&config, (chatFabricPairing *)&(pair[0]) );
+	}
+	if ( config.hasPairs ) {
+		currentMode = MODE_STA_PAIRED;
+		changeMode(MODE_STA_PAIRED);
+	} else {
+		currentMode = MODE_STA_UNPAIRED;
+		changeMode(MODE_STA_UNPAIRED);
+	}
+
+	char buf[38];
+	snprintf_uuid(buf, sizeof(buf), &config.uuid.u0);
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s\n", buf );
+	
+	snprintf_uuid(buf, sizeof(buf), &config.uuid.u1);
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s\n", buf );
+	
+	espWiFiInit();
+
+	shiftReg0();
+	shiftReg1();
+
 
 	os_timer_disarm(&statusReg);
 	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
 	os_timer_arm(&statusReg, 300, 1);
 
-	// uart_init(BIT_RATE_115200,BIT_RATE_115200);
-	// Initialize the GPIO subsystem.
-	chatFabricInit();
 	
 }

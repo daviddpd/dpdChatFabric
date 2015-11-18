@@ -4,6 +4,8 @@
 #define _CHATPACKET_ENCRYPTED 1
 #define _CHATPACKET_CLEARTEXT 0
 
+#define HOSTNAME_MAX_LENGTH 32
+
 #include "__attribute__.h"
 #include "uuid_wrapper.h"
 #include "util.h"
@@ -21,8 +23,8 @@ extern int _GLOBAL_DEBUG;
 #include "endian.h"
 #include "mem.h"
 #define socklen_t int
-#define calloc os_zalloc
 #define malloc os_malloc
+#define calloc(len,size) calloc_wrapper(len,size);
 #define free os_free
 #define arc4random_uniform(x) os_random() % x
 
@@ -44,7 +46,11 @@ extern int _GLOBAL_DEBUG;
 #endif
 #endif
 
-
+typedef struct  {
+	char hwaddr[6];
+	char * hostname;
+	int status;
+} hostmeta_t;
 
 typedef struct  {
 	uuid_cp u0;

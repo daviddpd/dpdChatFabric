@@ -29,7 +29,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ESP8266
 #include "esp8266.h"
-//#define __error (void)0
 #endif
 extern int _GLOBAL_DEBUG;
 

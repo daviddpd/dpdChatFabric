@@ -2,7 +2,35 @@
 #include "cfstructs.h"
 #include "assert.h"
 
-int _GLOBAL_DEBUG;
+int _GLOBAL_DEBUG = 1;
+hostmeta_t hostMeta;
+
+#ifdef ESP8266
+void* calloc_wrapper(size_t len, size_t size) { void *x = (void*)malloc(len*size); bzero(x, len*size); return x; } 
+#endif
+
+void CP_ICACHE_FLASH_ATTR createHostMeta()
+{
+
+#ifdef ESP8266	
+	if ( hostMeta.status == 0 ) {
+		char buffer2[HOSTNAME_MAX_LENGTH] = {0};
+		wifi_get_macaddr(STATION_IF, hostMeta.hwaddr);
+		os_sprintf(buffer2, "%s-%02x%02x:%02x%02x:%02x%02x", "cf",  MAC2STR(hostMeta.hwaddr) );
+		int len = strlen (buffer2) + 1;
+		hostMeta.hostname = (char*)malloc(len*sizeof(char));
+		bzero(hostMeta.hostname, len*sizeof(char));
+		os_memcpy(hostMeta.hostname, &buffer2, len);
+		hostMeta.status = 1;
+	}
+#else 
+
+#endif
+
+
+}
+
+
 
 void CP_ICACHE_FLASH_ATTR util_debug_bin2hex(char* label, unsigned char * x, int len, char* file, const char* func, int line ){
 

@@ -15,10 +15,10 @@
 #include "ntp.h"
 
 // list of major public servers http://tf.nist.gov/tf-cgi/servers.cgi
-uint8 ntp_server[] = {192, 168, 1, 1}; // microsoft
+uint8 ntp_server[] = {192, 168, 1, 1}; 
 
-extern time_t ntp_unix_timestamp;
-extern int ntp_status;
+time_t ntp_unix_timestamp;
+int ntp_status;
 
 static os_timer_t ntp_timeout;
 static struct espconn *pCon = 0;

@@ -38,6 +38,7 @@
 #include "uuid_local.h"
 #include "user_interface.h"
 extern time_t ntp_unix_timestamp;
+time_t uuid_frac_time = 0;
 
 /*
  * See also:
@@ -107,7 +108,18 @@ uuid_time(void)
 
 	// bintime(&bt);
 	bt.sec = ntp_unix_timestamp;
-	bt.frac = system_get_time();
+	if (ntp_unix_timestamp == 0) 
+	{		
+		bt.sec = 1443942000 + arc4random();
+	} else {
+		bt.sec = ntp_unix_timestamp;
+	}	
+	if ( uuid_frac_time == 0 ) {
+		uuid_frac_time = system_get_time() + arc4random();
+	} else {
+		uuid_frac_time++;
+	}
+	bt.frac = uuid_frac_time;
 	
 	time += (uint64_t)bt.sec * 10000000LL;
 	time += (10000000LL * (uint32_t)(bt.frac >> 32)) >> 32;

@@ -3,6 +3,7 @@
 *.ko
 *.obj
 *.elf
+*.bin
 
 # Precompiled Headers
 *.gch
@@ -30,3 +31,12 @@
 
 # Debug files
 *.dSYM/
+
+# Apple
+.DS_Store
+
+#other
+disabled
+_other
+*.bbprojectd/
+*.conf

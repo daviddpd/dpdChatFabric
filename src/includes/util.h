@@ -8,20 +8,22 @@ void CP_ICACHE_FLASH_ATTR util_bin2hex (char *cd, char* label, unsigned char * x
 void CP_ICACHE_FLASH_ATTR util_debug_bin2hex(char* label, unsigned char * x, int len,  char* file, const char* func, int line );
 #define util_print_bin2hex( a, b ) ((void)0)
 
-#ifdef ESP8266
+extern int _GLOBAL_DEBUG;
+//extern macaddr_t macAddr;
 
+#ifdef ESP8266
 #include "ets_sys.h"
 #include "osapi.h"
 #include "mem.h"
 #include "user_interface.h"
-
+void* calloc_wrapper(size_t len, size_t size);
 
 //#define sprintf os_sprintf
-#ifndef calloc 
-#define calloc os_zalloc
+//#ifndef calloc 
+//#define calloc os_zalloc
 extern int os_printf_plus(const char * format, ...);
 
-#endif
+//#endif
 
 #define CHATFABRIC_PRINT(msg) os_printf("%s", msg );
 #define CHATFABRIC_DEBUG(d, msg) if (d) os_printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg );

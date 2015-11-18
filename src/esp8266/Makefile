@@ -31,7 +31,7 @@ ESPPORT		?= /dev/ttyUSB0
 TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= ../dpdChatFabric ../dpdChatPacket driver user ../crypto ../util ../uuid_wrapper ../uuid
+MODULES		= ../dpdChatFabric ../dpdChatPacket driver user espChatFabric ../crypto ../util ../uuid_wrapper ../uuid
 EXTRA_INCDIR    = include ../crypto ../includes 
 
 # libraries used in this project, mainly provided by the SDK
@@ -46,7 +46,8 @@ LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 
 # linker script used for the above linkier step
 # LD_SCRIPT	= eagle.app.v6.ld
- LD_SCRIPT  = eagle.app.v6.full512.ld
+# LD_SCRIPT  = eagle.app.v6.full512.ld
+ LD_SCRIPT  = eagle.app.v6.full2048.ld
 #LD_SCRIPT	= eagle.app.v6.new.1024.app1.ld
 #LD_SCRIPT	= eagle.app.v6.new.1024.app2.ld
 #LD_SCRIPT	= eagle.app.v6.new.2048.ld
@@ -138,6 +139,6 @@ flash: $(FW_FILE_1) $(FW_FILE_2)
 	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 clean:
-	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket ./util ./uuid_wrapper ./uuid
+	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket ./util ./uuid_wrapper ./uuid 
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
