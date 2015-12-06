@@ -99,29 +99,29 @@ cfConfigInit(chatFabricConfig *config) {
 	config->sta_ipv4ns1 = config->sta_ipv4; // 1+4
 	config->sta_ipv4ns2 = config->sta_ipv4; // 1+4	
 
-	bzero (char*&(sta_ipv6), 16);
-	bzero (char*&(sta_ipv6netmask), 16);
-	bzero (char*&(sta_ipv6gw), 16);
-	bzero (char*&(sta_ipv6ns1), 16);
-	bzero (char*&(sta_ipv6ns2), 16);
-	bzero (char*&(ntpv6), 16);
+	bzero ((char*)&(config->sta_ipv6), 16);
+	bzero ((char*)&(config->sta_ipv6netmask), 16);
+	bzero ((char*)&(config->sta_ipv6gw), 16);
+	bzero ((char*)&(config->sta_ipv6ns1), 16);
+	bzero ((char*)&(config->sta_ipv6ns2), 16);
+	bzero ((char*)&(config->ntpv6), 16);
 
-	bzero (char*&(ap_ipv6), 16);
-	bzero (char*&(ap_ipv6netmask), 16);
-	bzero (char*&(ap_ipv6gw), 16);
-	bzero (char*&(ap_ipv6ns1), 16);
-	bzero (char*&(ap_ipv6ns2), 16);
+	bzero ((char*)&(config->ap_ipv6), 16);
+	bzero ((char*)&(config->ap_ipv6netmask), 16);
+	bzero ((char*)&(config->ap_ipv6gw), 16);
+	bzero ((char*)&(config->ap_ipv6ns1), 16);
+	bzero ((char*)&(config->ap_ipv6ns2), 16);
 
 
-	wifi_ap_switch = 1;
-	wifi_ap_dhcps_switch = 1;
-	wifi_sta_switch = 0;
-	dhcp_client_switch = 0;
+	config->wifi_ap_switch = 1;
+	config->wifi_ap_dhcps_switch = 1;
+	config->wifi_sta_switch = 0;
+	config->dhcp_client_switch = 0;
 
-	bzero (char*&(wifi_ap_ssid), 33);
-	bzero (char*&(wifi_ap_passwd), 65);
-	bzero (char*&(wifi_sta_ssid), 33);
-	bzero (char*&(wifi_sta_passwd), 65);
+	bzero (char*&(config->wifi_ap_ssid), 33);
+	bzero (char*&(config->wifi_ap_passwd), 65);
+	bzero (char*&(config->wifi_sta_ssid), 33);
+	bzero (char*&(config->wifi_sta_passwd), 65);
 	
 	static const unsigned char basepoint[32] = {9};
 		
