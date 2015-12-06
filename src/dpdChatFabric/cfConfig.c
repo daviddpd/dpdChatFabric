@@ -68,7 +68,7 @@ cfConfigInit(chatFabricConfig *config) {
 //	config->defaulthostname = NULL:
 	bzero(&(config->hostname), 33);
 	
-	memcpy(char*&(config->hostname), (char*)&hostMeta.hostname, 32);
+	memcpy((char*)&(config->hostname), (char*)&hostMeta.hostname, 32);
 //  172.16.0.0 
 #ifdef ESP8266
 	struct ip_info info;
@@ -118,10 +118,10 @@ cfConfigInit(chatFabricConfig *config) {
 	config->wifi_sta_switch = 0;
 	config->dhcp_client_switch = 0;
 
-	bzero (char*&(config->wifi_ap_ssid), 33);
-	bzero (char*&(config->wifi_ap_passwd), 65);
-	bzero (char*&(config->wifi_sta_ssid), 33);
-	bzero (char*&(config->wifi_sta_passwd), 65);
+	bzero ((char*)&(config->wifi_ap_ssid), 33);
+	bzero ((char*)&(config->wifi_ap_passwd), 65);
+	bzero ((char*)&(config->wifi_sta_ssid), 33);
+	bzero ((char*)&(config->wifi_sta_passwd), 65);
 	
 	static const unsigned char basepoint[32] = {9};
 		
@@ -471,26 +471,26 @@ cfConfigWrite(chatFabricConfig *config) {
 	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ap_ipv4ns1, config->ap_ipv4ns1, NULL, 0, NULL);
 	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ap_ipv4ns2, config->ap_ipv4ns2, NULL, 0, NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6, 			0, (unsigned char *)&config->sta_ipv6), 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6netmask, 	0, (unsigned char *)&config->sta_ipv6netmask), 16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6gw, 		0, (unsigned char *)&config->sta_ipv6gw), 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6ns1, 		0, (unsigned char *)&config->sta_ipv6ns1), 	16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6ns2, 		0, (unsigned char *)&config->sta_ipv6ns2), 	16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ntpv6, 			0, (unsigned char *)&config->ntpv6), 			16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6, 			0, (unsigned char *)&config->sta_ipv6, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6netmask, 	0, (unsigned char *)&config->sta_ipv6netmask, 16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6gw, 		0, (unsigned char *)&config->sta_ipv6gw, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6ns1, 		0, (unsigned char *)&config->sta_ipv6ns1, 	16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6ns2, 		0, (unsigned char *)&config->sta_ipv6ns2, 	16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ntpv6, 			0, (unsigned char *)&config->ntpv6, 			16,  NULL);
 	
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6, 			0, (unsigned char *)&config->ap_ipv6), 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6netmask, 	0, (unsigned char *)&config->ap_ipv6netmask), 	16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6gw, 			0, (unsigned char *)&config->ap_ipv6gw), 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6ns1, 		0, (unsigned char *)&config->ap_ipv6ns1), 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6ns2, 		0, (unsigned char *)&config->ap_ipv6ns2), 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6, 			0, (unsigned char *)&config->ap_ipv6, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6netmask, 	0, (unsigned char *)&config->ap_ipv6netmask, 	16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6gw, 			0, (unsigned char *)&config->ap_ipv6gw, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6ns1, 		0, (unsigned char *)&config->ap_ipv6ns1, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6ns2, 		0, (unsigned char *)&config->ap_ipv6ns2, 		16,  NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_hostname, 			0, (unsigned char *)&config->hostname), 		32,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_hostname, 			0, (unsigned char *)&config->hostname, 		32,  NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_ap_ssid, 		0, (unsigned char *)&config->wifi_ap_ssid), 	32,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_ap_passwd, 	0, (unsigned char *)&config->wifi_ap_passwd), 	64,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_ap_ssid, 		0, (unsigned char *)&config->wifi_ap_ssid, 	32,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_ap_passwd, 	0, (unsigned char *)&config->wifi_ap_passwd, 	64,  NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_sta_ssid, 		0, (unsigned char *)&config->wifi_sta_ssid), 	32,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_sta_passwd, 	0, (unsigned char *)&config->wifi_sta_passwd), 	64,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_sta_ssid, 		0, (unsigned char *)&config->wifi_sta_ssid, 	32,  NULL);
+	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_sta_passwd, 	0, (unsigned char *)&config->wifi_sta_passwd, 	64,  NULL);
 
 	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
 	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
