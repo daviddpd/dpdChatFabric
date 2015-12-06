@@ -260,7 +260,6 @@ enum chatFabricConfigTags  {
 	cftag_ap_ipv4gw, // 1+4 wifi_sta_router
 	cftag_ap_ipv4ns1, // 1+4
 	cftag_ap_ipv4ns2, // 1+4
-	cftag_ap_ntpv4, // 1+4
 
 	cftag_ap_ipv6, // 1+16
 	cftag_ap_ipv6netmask, // 1+16
@@ -268,19 +267,19 @@ enum chatFabricConfigTags  {
 	cftag_ap_ipv6ns1, // 1+16
 	cftag_ap_ipv6ns2, // 1+16
 
-
 	cftag_sta_ipv4, // 1+4
 	cftag_sta_ipv4netmask, // 1+4
 	cftag_sta_ipv4gw, // 1+4 wifi_sta_router
 	cftag_sta_ipv4ns1, // 1+4
 	cftag_sta_ipv4ns2, // 1+4
-	cftag_sta_ntpv6, // 1+4
+	cftag_sta_ntpv4, // 1+4
 
 	cftag_sta_ipv6, // 1+16
 	cftag_sta_ipv6netmask, // 1+16
 	cftag_sta_ipv6gw, // 1+16
 	cftag_sta_ipv6ns1, // 1+16
 	cftag_sta_ipv6ns2, // 1+16
+	cftag_sta_ntpv6, // 1+4
 
 
 	cftag_mode, // 1+4
