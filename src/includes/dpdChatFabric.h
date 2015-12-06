@@ -71,48 +71,6 @@ void curve25519_donna(unsigned char *output, const unsigned char *a, const unsig
 #include "cfstructs.h"
 #include "dpdChatPacket.h"
 
-enum chatFabricConfigTags  {	
-
-	 cftag_publickey	= 1, // 1+crypto_box_PUBLICKEYBYTES
-	 cftag_privatekey	= 2, // 1+crypto_box_SECRETKEYBYTES
-
-	 cftag_nonce		= 3, // 1+crypto_secretbox_NONCEBYTES
-	 cftag_mynonce		= 4, // 1+crypto_secretbox_NONCEBYTES
-
-	 cftag_uuid0		= 5, // 1+16
-	 cftag_uuid1		= 6, // 1+16
-
-	 cftag_hasPublicKey	= 7, // 1+1
-	 cftag_hasNonce		= 8, // 1+1
-	 cftag_state		= 9, // 1+1
-	 cftag_serial		= 10, // 1+4
-	 cftag_hasPairs		= 11, // 1+4
-
-	 cftag_debug, // 1+4
-	 cftag_port, // 1+4
-
-	 cftag_ipconfig, // 1+4, dhcp/auto, static, 
-
-	 cftag_ipv4, // 1+4
-	 cftag_ipv4netmask, // 1+4
-	 cftag_ipv4gw, // 1+4
-	 cftag_ipv4ns1, // 1+4
-	 cftag_ipv4ns2, // 1+4
-	 
-	 cftag_ipv6, // 1+16
-	 cftag_ipv6netmask, // 1+16
-	 cftag_ipv6gw, // 1+16
-	 cftag_ipv6ns1, // 1+16
-	 cftag_ipv6ns2, // 1+16
-	 
-	 cftag_mode, // 1+4
-
-	 cftag_header		= 0xA5, // 165
-	 cftag_configLength	= 0xF0, // 240
-	 cftag_pairLength	= 0xF1, // 241
-	 cftag_pairs	= 0xF2, // 241
-	
-} ESP_WORD_ALIGN;
 
 
 

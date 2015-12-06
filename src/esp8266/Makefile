@@ -18,10 +18,11 @@ BUILD_BASE	= build
 FW_BASE		= firmware
 
 # base directory for the compiler
-XTENSA_TOOLS_ROOT ?= /home/vagrant/esp-open-sdk/xtensa-lx106-elf/bin
+#XTENSA_TOOLS_ROOT ?= /home/vagrant/esp-open-sdk/xtensa-lx106-elf/bin
+XTENSA_TOOLS_ROOT ?= /Volumes/esp8266/esp-open-sdk/xtensa-lx106-elf/bin
 
 # base directory of the ESP8266 SDK package, absolute
-SDK_BASE	?= /home/vagrant/esp-open-sdk/sdk
+SDK_BASE	?= /Volumes/esp8266/esp-open-sdk/sdk
 
 # esptool.py path and port
 ESPTOOL		?= esptool.py
@@ -61,6 +62,7 @@ SDK_INCDIR	= include include/json
 # these are the names and options to generate them
 FW_FILE_1_ADDR	= 0x00000
 FW_FILE_2_ADDR	= 0x10000
+FW_DATA_1_ADDR	= 0x7A000
 
 # select which tools to use as compiler, librarian and linker
 CC		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
@@ -93,6 +95,7 @@ MODULE_INCDIR	:= $(addsuffix /include,$(INCDIR))
 
 FW_FILE_1	:= $(addprefix $(FW_BASE)/,$(FW_FILE_1_ADDR).bin)
 FW_FILE_2	:= $(addprefix $(FW_BASE)/,$(FW_FILE_2_ADDR).bin)
+FW_DATA_1	:= 16kblank.bin
 
 V ?= $(VERBOSE)
 ifeq ("$(V)","1")
@@ -137,6 +140,10 @@ $(FW_BASE):
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
 	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+
+flashdata: $(FW_FILE_1) $(FW_FILE_2)
+	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_DATA_1_ADDR) $(FW_DATA_1) $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+	
 
 clean:
 	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket ./util ./uuid_wrapper ./uuid 

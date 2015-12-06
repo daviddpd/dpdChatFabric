@@ -144,6 +144,8 @@ enum chatPacketCommands {
 	CMD_APP_REGISTER,
 	CMD_APP_LIST,
 	CMD_APP_LIST_ACK,	
+	CMD_CONFIG_GET,
+	CMD_CONFIG_SET,
 	CMD_CONFIG_MESSAGE,
 	CMD_CONFIG_DELIGATE,
 	CMD_CONFIG_PAIR,
@@ -188,6 +190,10 @@ enum chatPacketTags  {
 	 cptag_publickeyId,
 	 cptag_publickey,
 
+	 cptag_configLength,
+	 cptag_config,
+
+
 	 cptag_mac,
 	 cptag_serial,
 	 cptag_action,
@@ -207,12 +213,84 @@ enum chatPacketTags  {
 	 cptag_app_control_label,
 	 cptag_app_control_data,
 	 
+	 
 	 cptag_ENDTAG,
 	 	 	 
 	 cptag_cmd = 0xFF,
 	 	
 } ESP_WORD_ALIGN;
 
+enum chatFabricConfigTags  {	
+
+	cftag_publickey	= 1, // 1+crypto_box_PUBLICKEYBYTES
+	cftag_privatekey	= 2, // 1+crypto_box_SECRETKEYBYTES
+
+	cftag_nonce		= 3, // 1+crypto_secretbox_NONCEBYTES
+	cftag_mynonce		= 4, // 1+crypto_secretbox_NONCEBYTES
+
+	cftag_uuid0		= 5, // 1+16
+	cftag_uuid1		= 6, // 1+16
+
+	cftag_hasPublicKey	= 7, // 1+1
+	cftag_hasNonce		= 8, // 1+1
+	cftag_state		= 9, // 1+1
+	cftag_serial		= 10, // 1+4
+	cftag_hasPairs		= 11, // 1+4
+
+	cftag_debug, // 1+4
+	cftag_port, // 1+4
+
+	cftag_hostname, //  1+33 - hostname limit is 32char+null
+
+	cftag_wifi_ap, // 1+1, wifi_ap_switch 
+	cftag_wifi_ap_ssid, // 1+33, wifi_ap_ssid
+	cftag_wifi_ap_passwd, // 1+65, wifi_ap_ssid
+
+	cftag_wifi_ap_dhcps, // 1+1, wifi_ap_dhcps - server on AP.
+	cftag_dhcps_range_low, // 1+4
+	cftag_dhcps_range_high, // 1+4
+	
+	cftag_wifi_sta, // 1+1, wifi_sta_switch - be a station/client
+	cftag_wifi_sta_ssid, // 1+33, wifi_ap_ssid
+	cftag_wifi_sta_passwd, // 1+65, wifi_ap_ssid
+	cftag_wifi_sta_dhcpc, // 1+1, dhcp_client_switch - server on AP.
+
+	cftag_ap_ipv4, // 1+4
+	cftag_ap_ipv4netmask, // 1+4
+	cftag_ap_ipv4gw, // 1+4 wifi_sta_router
+	cftag_ap_ipv4ns1, // 1+4
+	cftag_ap_ipv4ns2, // 1+4
+	cftag_ap_ntpv4, // 1+4
+
+	cftag_ap_ipv6, // 1+16
+	cftag_ap_ipv6netmask, // 1+16
+	cftag_ap_ipv6gw, // 1+16
+	cftag_ap_ipv6ns1, // 1+16
+	cftag_ap_ipv6ns2, // 1+16
+
+
+	cftag_sta_ipv4, // 1+4
+	cftag_sta_ipv4netmask, // 1+4
+	cftag_sta_ipv4gw, // 1+4 wifi_sta_router
+	cftag_sta_ipv4ns1, // 1+4
+	cftag_sta_ipv4ns2, // 1+4
+	cftag_sta_ntpv4, // 1+4
+
+	cftag_sta_ipv6, // 1+16
+	cftag_sta_ipv6netmask, // 1+16
+	cftag_sta_ipv6gw, // 1+16
+	cftag_sta_ipv6ns1, // 1+16
+	cftag_sta_ipv6ns2, // 1+16
+
+
+	cftag_mode, // 1+4
+
+	cftag_header		= 0xA5, // 165
+	cftag_configLength	= 0xF0, // 240
+	cftag_pairLength	= 0xF1, // 241
+	cftag_pairs	= 0xF2, // 241
+
+} ESP_WORD_ALIGN;
 
 enum chatPacketActions {
 	ACTION_NULL = 0,
@@ -356,14 +434,54 @@ typedef struct  {
 	int writeconfig;
 	int mode;
 	
-	char *hostname;
-	uint32_t ipv4; // 1+4
-	uint32_t ipv4netmask; // 1+4
-	uint32_t ipv4gw; // 1+4
-	uint32_t ipv4ns1; // 1+4
-	uint32_t ipv4ns2; // 1+4	
+	char hostname[33];
+
+    // WiFi Station IP Configuation
+	uint32_t sta_ipv4; // 1+4
+	uint32_t sta_ipv4netmask; // 1+4
+	uint32_t sta_ipv4gw; // 1+4
+	uint32_t sta_ipv4ns1; // 1+4
+	uint32_t sta_ipv4ns2; // 1+4	
+	uint32_t ntpv4; // 1+4	
+
+	unsigned char sta_ipv6[16]; // 1+16
+	unsigned char sta_ipv6netmask[16]; // 1+16
+	unsigned char sta_ipv6gw[16]; // 1+16
+	unsigned char sta_ipv6ns1[16]; // 1+16
+	unsigned char sta_ipv6ns2[16]; // 1+16	
+	unsigned char ntpv6[16]; // 1+16
 
 
+    // WiFi Access Point IP Configuation
+	uint32_t ap_ipv4; // 1+4
+	uint32_t ap_ipv4netmask; // 1+4
+	uint32_t ap_ipv4gw; // 1+4
+	uint32_t ap_ipv4ns1; // 1+4
+	uint32_t ap_ipv4ns2; // 1+4	
+
+	unsigned char ap_ipv6[16]; // 1+16
+	unsigned char ap_ipv6netmask[16]; // 1+16
+	unsigned char ap_ipv6gw[16]; // 1+16
+	unsigned char ap_ipv6ns1[16]; // 1+16
+	unsigned char ap_ipv6ns2[16]; // 1+16
+
+
+	int wifi_ap_switch; 
+	char wifi_ap_ssid[33];
+    char wifi_ap_passwd[65];
+
+    // Wifi Access Point - DHCP Server
+	int wifi_ap_dhcps_switch;
+	uint32_t dhcps_range_low;
+	uint32_t dhcps_range_high;
+        
+    // Wifi Station/Client
+	int wifi_sta_switch;
+	char wifi_sta_ssid[33];
+	char wifi_sta_passwd[65];
+
+    // WiFi Station DHCP Client
+	int dhcp_client_switch;
 	
 	unsigned char publickey[crypto_box_PUBLICKEYBYTES];
 	unsigned char privatekey[crypto_box_SECRETKEYBYTES];

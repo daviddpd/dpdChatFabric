@@ -20,10 +20,13 @@ espCfMdns()
 	bzero(&ipconfig, sizeof(ipconfig) );
 
 	if ( config.mode == SOFTAP_MODE || config.mode == STATIONAP_MODE ) {
-		wifi_get_ip_info(SOFTAP_IF, &ipconfig);	
+		// wifi_get_ip_info(SOFTAP_IF, &ipconfig);	
+		ipconfig.ip.addr = config.ipv4;
+		wifi_set_broadcast_if(SOFTAP_MODE);
 		CHATFABRIC_DEBUG (_GLOBAL_DEBUG, "softap_if ip \n");
 	} else {
 		wifi_get_ip_info(STATION_IF, &ipconfig);
+		wifi_set_broadcast_if(STATION_MODE);
 		CHATFABRIC_DEBUG (_GLOBAL_DEBUG, "station_if ip \n");	
 	}
 	

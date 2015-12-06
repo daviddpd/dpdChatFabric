@@ -74,6 +74,7 @@ espCfWiFi_callBack(System_Event_t *evt)
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "station: " MACSTR "join, AID = %d\n",
 			MAC2STR(evt->event_info.sta_connected.mac),
 			evt->event_info.sta_connected.aid);
+			espCfMdns();
 
 		break;
 		case EVENT_SOFTAPMODE_STADISCONNECTED:
@@ -156,8 +157,7 @@ espWiFiInit()
 	    
 	} 
 
-		espCfMdns();
-		espCfWiFi_listen();
+	espCfWiFi_listen();
 
 	    
 }

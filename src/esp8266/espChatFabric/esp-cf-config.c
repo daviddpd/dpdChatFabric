@@ -69,6 +69,8 @@ espCfConfigInit()
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
 	config.controlers[i].gpio = 12;
+	
+	config.mode = SOFTAP_MODE;
 /*
 	i =	1;
 	config.controlers[i].control = i;

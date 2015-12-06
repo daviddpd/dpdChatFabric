@@ -764,6 +764,7 @@ user_init()
 	shiftReg0();
 	shiftReg1();
 
+	cfConfigWrite(&config);
 
 	os_timer_disarm(&statusReg);
 	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
