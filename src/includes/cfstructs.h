@@ -274,7 +274,7 @@ enum chatFabricConfigTags  {
 	cftag_sta_ipv4gw, // 1+4 wifi_sta_router
 	cftag_sta_ipv4ns1, // 1+4
 	cftag_sta_ipv4ns2, // 1+4
-	cftag_sta_ntpv4, // 1+4
+	cftag_sta_ntpv6, // 1+4
 
 	cftag_sta_ipv6, // 1+16
 	cftag_sta_ipv6netmask, // 1+16

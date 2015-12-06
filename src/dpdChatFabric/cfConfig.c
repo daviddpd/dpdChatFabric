@@ -406,18 +406,17 @@ cfConfigWrite(chatFabricConfig *config) {
 	len+=1+4; // ipv4ns1
 	len+=1+4; // ipv4ns2
 
-	len+=1+16; // ipv4
-	len+=1+16; // ipv4nm
-	len+=1+16; // ipv4gw
-	len+=1+16; // ipv4ns1
-	len+=1+16; // ipv4ns2
-	len+=1+16; // ipv4 ntp
+	len+=1+16; // ipv66	len+=1+16; // ipv4nm
+	len+=1+16; // ipv6gw
+	len+=1+16; // ipv6ns1
+	len+=1+16; // ipv6ns2
+	len+=1+16; // ipv6 ntp
 
-	len+=1+16; // ipv4
-	len+=1+16; // ipv4nm
-	len+=1+16; // ipv4gw
-	len+=1+16; // ipv4ns1
-	len+=1+16; // ipv4ns2
+	len+=1+16; // ipv6
+	len+=1+16; // ipv6nm
+	len+=1+16; // ipv6gw
+	len+=1+16; // ipv6ns1
+	len+=1+16; // ipv6ns2
 
 	len+=1+32; // hostname
 	len+=1+32; // ssid
