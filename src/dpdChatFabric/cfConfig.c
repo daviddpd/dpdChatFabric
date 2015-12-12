@@ -199,7 +199,7 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 			
 	i=0;
 
-    CHATFABRIC_DEBUG_FMT(1, "Filesize: %d  Index : %d ", filesize, i);
+    CHATFABRIC_DEBUG_FMT(config->debug, "Filesize: %d  Index : %d ", filesize, i);
 
 	while (i<filesize) 
 	{
@@ -460,13 +460,13 @@ _cfConfigWrite(chatFabricConfig *config, int nokeys, int returnConfig, unsigned 
 	len+=1+32; // ssid
 	len+=1+64; // passwd
 	
-    CHATFABRIC_DEBUG_FMT(1, "Filesize: %d ", len);
+    CHATFABRIC_DEBUG_FMT(config->debug, "Filesize: %d ", len);
 
 	if ( nokeys == 0 ) {
 		len+=1+crypto_box_PUBLICKEYBYTES;
 		len+=1+crypto_box_SECRETKEYBYTES;
 	}
-    CHATFABRIC_DEBUG_FMT(1, "Filesize: %d ", len);
+    CHATFABRIC_DEBUG_FMT(config->debug, "Filesize: %d ", len);
 
 #ifdef ESP8266
 	i=0;

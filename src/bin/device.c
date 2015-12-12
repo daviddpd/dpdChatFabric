@@ -177,6 +177,11 @@ int main(int argc, char**argv)
 	config.controlers[i].label = "Binary Data";
 	config.controlers[i].labelLength = strlen(config.controlers[i].label);
 
+	uuid_to_string(&(config.uuid.u0), &str, &status2);
+	printf (" uuid0       : %s\n", str);
+	uuid_to_string(&(config.uuid.u1), &str, &status2);
+	printf (" uuid1       : %s\n", str);
+
 
 	do {		
 		
