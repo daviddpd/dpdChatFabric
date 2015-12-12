@@ -58,9 +58,9 @@ int main(int argc, char**argv)
 
 
 	chatFabricAction a;
-	
-	chatFabric_args(argc, argv, &config, &a);	
+
 	cfConfigRead(&config);
+	chatFabric_args(argc, argv, &config, &a);		
 	if ( config.newconfigfile != NULL ) {
 		cfConfigWrite(&config);	
 	}

@@ -25,7 +25,9 @@ espCfConfigInit()
 	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
 	
 	memcpy( &config.wifi_ap_passwd, "esp8266!demo", 12 );
-	
+	memcpy( &config.wifi_sta_passwd, SSID_PASSWORD, strlen(SSID_PASSWORD) );
+	memcpy( &config.wifi_sta_ssid, SSID, strlen(SSID) );
+
 	// 13 == red
 	// 12 == green
 	// 4 == yellow
@@ -73,6 +75,10 @@ espCfConfigInit()
 	config.controlers[i].gpio = 12;
 	
 	config.mode = SOFTAP_MODE;
+	config.mode = STATION_MODE;
+	config.wifi_ap_switch = 0;
+	config.wifi_sta_switch = 1;
+	
 /*
 	i =	1;
 	config.controlers[i].control = i;
