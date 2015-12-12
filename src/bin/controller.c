@@ -102,17 +102,17 @@ int main(int argc, char**argv)
 	chatFabricAction a;
 	bzero(&a,sizeof(a));
 
-	printf ( "====> ARGS Action <================== \n");
-	chatPacket_print_action2(&a);
-	printf ( "===================================== \n");
+//	printf ( "====> ARGS Action <================== \n");
+//	chatPacket_print_action2(&a);
+//	printf ( "===================================== \n");
 
 	chatFabric_args(argc, argv, &config, &a);	
 
 	CHATFABRIC_DEBUG_B2H(config.debug, "action", (unsigned char *)&a.action, sizeof(a.action));
 	
-	printf ( "====> ARGS Action <================== \n");
-	chatPacket_print_action2(&a);
-	printf ( "===================================== \n");
+//	printf ( "====> ARGS Action <================== \n");
+//	chatPacket_print_action2(&a);
+//	printf ( "===================================== \n");
 
 	cfConfigRead(&config);
 	if ( config.newconfigfile != NULL ) {
