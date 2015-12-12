@@ -25,9 +25,10 @@ extern int os_printf_plus(const char * format, ...);
 
 //#endif
 
-#define CHATFABRIC_PRINT(msg) os_printf("%s", msg );
+#define CHATFABRIC_PRINT(msg) os_printf("%s\n", msg );
 #define CHATFABRIC_DEBUG(d, msg) if (d) os_printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg );
 #define CHATFABRIC_DEBUG_FMT(d, fmt, ...) if (d) os_printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__ );
+#define CHATFABRIC_DEBUG_FMT2(d, func, line, fmt, ...) if (d) os_printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, func, line, __VA_ARGS__ );
 #define CHATFABRIC_DEBUG_B2H(d, label, x, len) if (d) util_debug_bin2hex(label, x,len, __FILE__, __FUNCTION__, __LINE__ );
 
 #else 
@@ -36,9 +37,10 @@ extern int os_printf_plus(const char * format, ...);
 #include <stdio.h>
 #include <stdlib.h>
 
-#define CHATFABRIC_PRINT(msg) printf("%s", msg );
+#define CHATFABRIC_PRINT(msg) printf("%s\n", msg );
 #define CHATFABRIC_DEBUG(d, msg) if (d) printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg );
 #define CHATFABRIC_DEBUG_FMT(d, fmt, ...) if (d) printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__ );
+#define CHATFABRIC_DEBUG_FMT2(d, func, line, fmt, ...) if (d) printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, func, line, __VA_ARGS__ );
 #define CHATFABRIC_DEBUG_B2H(d, label, x, len) if (d) util_debug_bin2hex(label, x,len, __FILE__, __FUNCTION__, __LINE__ );
 
 #endif

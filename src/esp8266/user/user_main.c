@@ -30,6 +30,7 @@ extern hostmeta_t hostMeta;
 int bootstatus = 0;  // 1 - network up, 2-ready
 // os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 static void loop();
+void CP_ICACHE_FLASH_ATTR user_init_stage2();
 //uint32_t ninc = 0;
 
 int uart0enabled = -1;
@@ -610,20 +611,31 @@ doButton(uint8 gpio_pin)
 {
 	uint8 i = gpio_pin;	
 	os_printf ( " ==> Starting doButton %d \n", i );		
-	switch(i) {
-		case 0:
-			os_printf ( " ==> Pin %d pressed - Menu\n", i );
-			doButtonFunction(BUTTON_MENU);
-		break;
-		case 2:
-			os_printf ( " ==> Pin %d pressed - Select\n", i );
-			doButtonFunction(BUTTON_SELECT);
-		break;
-		default:
-			os_printf ( " ==> Pin %d pressed \n", i );			
-		break;
-	}
+	if ( currentMode == MODE_BOOTING ) {
+		os_timer_disarm(&statusReg);	
+		switch(i) {
+			case 0:
+				os_printf ( " ==> Pin %d pressed - Booting stage 2\n", i );
+				user_init_stage2();
+			break;
+		}	
+	} else {
 
+		switch(i) {
+			case 0:
+				os_printf ( " ==> Pin %d pressed - Menu\n", i );
+				doButtonFunction(BUTTON_MENU);
+			break;
+			case 2:
+				os_printf ( " ==> Pin %d pressed - Select\n", i );
+				doButtonFunction(BUTTON_SELECT);
+			break;
+			default:
+				os_printf ( " ==> Pin %d pressed \n", i );			
+			break;
+		}
+
+	}
 	gpio_pin_intr_state_set(GPIO_ID_PIN(i), GPIO_PIN_INTR_NEGEDGE);
 }
 
@@ -722,18 +734,10 @@ chatFabricInit()
 
 }
 
-//Init function 
+
 void CP_ICACHE_FLASH_ATTR
-user_init()
+user_init_stage2() 
 {
-	int i;
-	uart_init(BIT_RATE_115200,BIT_RATE_115200);
-
-	currentMode = MODE_BOOTING;
-	changeMode(MODE_BOOTING);
-	uart0enabled = 1;
-	userGPIOInit();
-
 	chatFabricInit();
 
 	createHostMeta();
@@ -754,10 +758,10 @@ user_init()
 
 	char buf[38];
 	snprintf_uuid(buf, sizeof(buf), &config.uuid.u0);
-	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s\n", buf );
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s", buf );
 	
 	snprintf_uuid(buf, sizeof(buf), &config.uuid.u1);
-	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s\n", buf );
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s", buf );
 	
 	espWiFiInit();
 
@@ -771,4 +775,27 @@ user_init()
 	os_timer_arm(&statusReg, 300, 1);
 
 	
+}
+void CP_ICACHE_FLASH_ATTR
+bootwait() {
+	CHATFABRIC_PRINT ("Press Button to Boot\n");
+}
+
+
+//Init function 
+void CP_ICACHE_FLASH_ATTR
+user_init()
+{
+	int i;
+	uart_init(BIT_RATE_115200,BIT_RATE_115200);
+
+	currentMode = MODE_BOOTING;
+	changeMode(MODE_BOOTING);
+	uart0enabled = 1;
+	userGPIOInit();
+
+	os_timer_disarm(&statusReg);
+	os_timer_setfn(&statusReg, (os_timer_func_t *)bootwait, NULL);
+	os_timer_arm(&statusReg, 250, 1);
+
 }

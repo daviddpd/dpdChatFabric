@@ -148,7 +148,8 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 	} else {
 		if ( a->action == ACTION_APP_LIST ) {
 			cp = chatPacket_init (config, pair, CMD_APP_LIST,  NULL, 0,  CMD_SEND_REPLY_TRUE);
-			
+		} else if ( a->action == ACTION_GET_CONFIG ) {
+			cp = chatPacket_init (config, pair, CMD_CONFIG_GET,  NULL, 0,  CMD_SEND_REPLY_TRUE);
 		} else if ( config->msg == 0 || config->msg == NULL ) {
 			cp = chatPacket_init (config, pair, CMD_APP_MESSAGE,  NULL, 0,  CMD_SEND_REPLY_TRUE);
 		} else { 
@@ -166,15 +167,32 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 #else
 	len = sizeof(c->sockaddr);
 	
-	if ( c->type == SOCK_STREAM ) {
-		if (c->bind == 1 ) {
-		    n = write(c->acceptedSocket, mb.msg, mb.length);
-		} else {
-		    n = write(c->socket, mb.msg, mb.length);		
+	int retry = 3;
+	do {
+		if ( c->type == SOCK_STREAM ) {
+			if (c->bind == 1 ) {
+				n = write(c->acceptedSocket, mb.msg, mb.length);
+			} else {
+				n = write(c->socket, mb.msg, mb.length);		
+			}
+		} else {	
+			n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);
 		}
-	} else {	
-		n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);
-	}
+		if ( n == -1 ) {
+			retry--;
+			if ( c->type == SOCK_STREAM ) {
+				close(c->socket);
+			}			
+			c->acceptedSocket = -1;
+			c->socket = -1;
+			chatFabric_consetup(c, config->ip, config->port);
+			if ( c->socket == -1 ) {
+				return ERROR_SOCKET;
+			}
+		} else {
+			retry = 0;
+		}
+	} while ( retry );
 #endif
 
 	if ( config->debug ) {
@@ -348,6 +366,9 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 			case CMD_APP_REGISTER:
 			case CMD_APP_LIST:
 			case CMD_APP_LIST_ACK:
+			case CMD_CONFIG_GET:
+			case CMD_CONFIG_SET:
+			case CMD_CONFIG_MESSAGE:			
 				cptype = DATA;
 			break;			
 			default:
@@ -657,6 +678,24 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 		
 		case CMD_APP_LIST_ACK:
 				RETVAL = CMD_SEND_REPLY_FALSE;
+		break;
+
+		case CMD_CONFIG_GET:
+			reply->cmd = CMD_CONFIG_MESSAGE;
+			unsigned char *str =NULL;
+			int len =0;
+			cfConfigGet(config, str, &len );
+			reply->payload = str;
+			reply->payloadLength = len;
+			CHATFABRIC_DEBUG_FMT( _GLOBAL_DEBUG,  "Length: %d", len );
+			CHATFABRIC_DEBUG_FMT( _GLOBAL_DEBUG,  "First Char: %02x", str[0] );
+			
+			CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Local ConfigPayLoad", str, len );
+			CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Replay ConfigPayLoad", reply->payload, reply->payloadLength );
+			RETVAL = CMD_SEND_REPLY_TRUE;	
+		break;
+		case CMD_CONFIG_SET:
+			RETVAL = CMD_SEND_REPLY_TRUE;			
 		break;
 		
 		case CMD_CONFIG_MESSAGE:

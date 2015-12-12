@@ -93,18 +93,31 @@ void CP_ICACHE_FLASH_ATTR
 espWiFiInit()
 {
     //Set station mode
+
+	if ( config.wifi_ap_switch == 1 && config.wifi_sta_switch == 0 ) 
+	{
+		config.mode = SOFTAP_MODE;
+	} else if ( config.wifi_ap_switch == 1 && config.wifi_sta_switch == 1 ) 
+	{
+		config.mode = STATIONAP_MODE;
+	} else if ( config.wifi_ap_switch == 0 && config.wifi_sta_switch == 1 )
+	{
+		config.mode = STATION_MODE;
+	} else {
+		config.mode = SOFTAP_MODE;
+	}
+    
     wifi_set_event_handler_cb(&espCfWiFi_callBack);
     wifi_set_opmode( config.mode);
-
 
 	if ( config.mode == SOFTAP_MODE || config.mode == STATIONAP_MODE ) {
 		currentMode = MODE_STA_NOWIFI;
 		changeMode(currentMode);
 		struct ip_info info;
 		bzero(&info, sizeof(info) );
-		info.ip.addr = config.ipv4;
-		info.netmask.addr = config.ipv4netmask;
-		info.gw.addr = config.ipv4gw;
+		info.ip.addr = config.ap_ipv4;
+		info.netmask.addr = config.ap_ipv4netmask;
+		info.gw.addr = config.ap_ipv4gw;
 		
 		wifi_station_dhcpc_stop();
 		wifi_softap_dhcps_stop();
@@ -130,16 +143,36 @@ espWiFiInit()
 		struct softap_config apconfig;
 		bzero(&apconfig, sizeof(apconfig) );
 		
-		os_memcpy (&apconfig.ssid, config.hostname, strlen(config.hostname) );
-		apconfig.ssid_len = strlen(config.hostname);			
-		os_memcpy (&apconfig.password, SSID_PASSWORD, strlen(SSID_PASSWORD) );
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "wifi config hostname: (%d) (%s)", strlen(config.hostname), config.hostname);
+
+		os_memcpy (&apconfig.ssid, &config.hostname[0], strlen(config.hostname) );
+		apconfig.ssid_len = strlen(config.hostname);
+		if ( config.wifi_ap_ssid[0] != 0 ) 
+		{
+			os_memcpy (&apconfig.ssid, config.wifi_ap_ssid, strlen(config.wifi_ap_ssid) );
+			apconfig.ssid_len = strlen(config.wifi_ap_ssid);
+		}
+		
+		os_memcpy (&apconfig.password, config.wifi_ap_passwd, strlen(config.wifi_ap_passwd) );
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "wifi password : (%d) (%s)", strlen(config.wifi_ap_passwd), config.wifi_ap_passwd);
+
 		apconfig.authmode = AUTH_WPA2_PSK;
 		apconfig.max_connection = 4;
 		apconfig.ssid_hidden = 0;
+
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "wifi SSID: (%d) (%s)", apconfig.ssid_len, apconfig.ssid);
 		
-		wifi_softap_set_config(&apconfig);		
+		if ( wifi_softap_set_config(&apconfig) ) {
+			CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "wifi_softap_set_config OK ");
+		} else {
+			CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "wifi_softap_set_config failed ");	
+		}
+
 		wifi_set_ip_info(SOFTAP_IF, &info);
-		wifi_softap_dhcps_start();		
+		if ( config.wifi_ap_dhcps_switch == 1 ) 
+		{
+			wifi_softap_dhcps_start();
+		}
 	}
     
     if ( config.mode == STATIONAP_MODE || config.mode == STATION_MODE ) {
@@ -149,11 +182,13 @@ espWiFiInit()
     	bzero ( &stationConf.ssid, 32);
 	    bzero ( &stationConf.password, 64);
     
-    	// FIXME: ssid/pw needs to be in cf Config
-	    os_memcpy(&stationConf.ssid, SSID, strlen(SSID));
-    	os_memcpy(&stationConf.password, SSID_PASSWORD, strlen(SSID_PASSWORD));    
+	    os_memcpy(&stationConf.ssid, config.wifi_sta_ssid, strlen(config.wifi_sta_ssid));
+    	os_memcpy(&stationConf.password, config.wifi_sta_passwd, strlen(config.wifi_sta_passwd));    
 	    wifi_station_set_config(&stationConf);
-	    wifi_station_dhcpc_start();
+	    if ( config.dhcp_client_switch == 1 )
+	    {
+	    	wifi_station_dhcpc_start();
+	    }
 	    
 	} 
 

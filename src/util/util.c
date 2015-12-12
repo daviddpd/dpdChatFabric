@@ -22,6 +22,7 @@ void CP_ICACHE_FLASH_ATTR createHostMeta()
 		bzero(hostMeta.hostname, len*sizeof(char));
 		os_memcpy(hostMeta.hostname, &buffer2, len);
 		hostMeta.status = 1;
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "Setting hostMeta Name:  %s ", hostMeta.hostname );
 	}
 #else 
 
@@ -54,7 +55,7 @@ void CP_ICACHE_FLASH_ATTR util_debug_bin2hex(char* label, unsigned char * x, int
 
 	}
 
-	printf("[DEBUG][%s:%s:%d] %20s: %s\n", file, func, line, label, _utilbuffer );
+	CHATFABRIC_DEBUG_FMT2(_GLOBAL_DEBUG, func, line, "%20s: %s",  label, _utilbuffer );
     free(_utilbuffer);
 }
 

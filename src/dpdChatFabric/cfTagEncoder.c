@@ -53,4 +53,7 @@ cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsign
 	}
 
 	*i=x;
+
+//    CHATFABRIC_DEBUG_FMT(1, "last index: %d ", x );
+
 }

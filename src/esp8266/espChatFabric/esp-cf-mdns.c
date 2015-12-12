@@ -17,11 +17,11 @@ espCfMdns()
 
 	struct ip_info ipconfig;
 	
-	bzero(&ipconfig, sizeof(ipconfig) );
+	bzero(&ipconfig, sizeof(ipconfig) );	
 
-	if ( config.mode == SOFTAP_MODE || config.mode == STATIONAP_MODE ) {
+	if ( config.mode == SOFTAP_MODE || 	config.mode == STATIONAP_MODE ) {
 		// wifi_get_ip_info(SOFTAP_IF, &ipconfig);	
-		ipconfig.ip.addr = config.ipv4;
+		ipconfig.ip.addr = config.ap_ipv4;
 		wifi_set_broadcast_if(SOFTAP_MODE);
 		CHATFABRIC_DEBUG (_GLOBAL_DEBUG, "softap_if ip \n");
 	} else {
@@ -39,7 +39,7 @@ espCfMdns()
 	info->server_name = "chatFabric";
 	info->server_port = config.port;
 
-	if ( config.hostname == NULL ) {
+	if ( config.hostname[0] == 0 ) {
 		os_sprintf(buffer2, "%s-%02x:%02x:%02x:%02x:%02x:%02x", "cf",  MAC2STR(hostMeta.hwaddr) );
 	} else {
 		os_sprintf(buffer2, "%s", config.hostname );

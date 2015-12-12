@@ -59,16 +59,16 @@ cfConfigInit(chatFabricConfig *config) {
 	uuidCreateNil( &(config->uuid.u0));
 	uuidCreate( &(config->uuid.u1));
 
-	//uuidCreateNil( &(config->to.u0));
-	//uuidCreateNil( &(config->to.u1));
-
 	config->debug = 0;
 	config->writeconfig = 1;
 
 //	config->defaulthostname = NULL:
 	bzero(&(config->hostname), 33);
-	
-	memcpy((char*)&(config->hostname), (char*)&hostMeta.hostname, 32);
+
+    if ( hostMeta.status ) {
+        CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "Using hostMeta Name:  %s ", hostMeta.hostname );
+        memcpy((char*)&(config->hostname), (char*)hostMeta.hostname, strlen(hostMeta.hostname));
+    }
 //  172.16.0.0 
 #ifdef ESP8266
 	struct ip_info info;
@@ -116,7 +116,7 @@ cfConfigInit(chatFabricConfig *config) {
 	config->wifi_ap_switch = 1;
 	config->wifi_ap_dhcps_switch = 1;
 	config->wifi_sta_switch = 0;
-	config->dhcp_client_switch = 0;
+	config->dhcp_client_switch = 1;
 
 	bzero ((char*)&(config->wifi_ap_ssid), 33);
 	bzero ((char*)&(config->wifi_ap_passwd), 65);
@@ -128,11 +128,22 @@ cfConfigInit(chatFabricConfig *config) {
 	arc4random_buf((unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES);
 	curve25519_donna((unsigned char *)&config->publickey, (unsigned char *)&config->privatekey, (unsigned char *)&basepoint);	
 
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "return");
+}
+
+void CP_ICACHE_FLASH_ATTR
+cfConfigSetFromStr(chatFabricConfig *config, unsigned char* cstr, int cstr_len) {
+	_cfConfigRead(config, 1, cstr, cstr_len);
 }
 
 
 void CP_ICACHE_FLASH_ATTR
 cfConfigRead(chatFabricConfig *config) {
+	_cfConfigRead(config, 0, NULL, 0);
+}
+
+void CP_ICACHE_FLASH_ATTR
+_cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cstr_len) {
 
 	struct stat fs;
 	uint32_t ni;
@@ -144,11 +155,14 @@ cfConfigRead(chatFabricConfig *config) {
 #ifdef ESP8266
 	int fp=0;
 	if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig), 4096) == FALSE ) {
-		//CHATFABRIC_DEBUG_FMT(config->debug, "Read from flash failed." ); 
+		CHATFABRIC_DEBUG(config->debug, "Read from flash failed." ); 
 		return;
 	}
 
-	if ( flashConfig[0] == cftag_header ) {
+	if ( fromStr ) {
+		filesize = cstr_len;
+		str = cstr;
+	} else if ( flashConfig[0] == cftag_header ) {
 		filesize=4096;	
 		config->configfile = "1";
 		str = &(flashConfig[0]);
@@ -160,31 +174,38 @@ cfConfigRead(chatFabricConfig *config) {
 #else
 
 	FILE *fp=0;
-	if ( config->configfile == NULL ) 
-	{
-			return;
-		
-	}
-	bzero(&fs, sizeof(fs));
-	fp = fopen(config->configfile,"r");	
-	if ( fp == NULL ) {
-			return;
+
+	if ( fromStr ) {
+		filesize = cstr_len;
+		str = cstr;
 	} else {
-		stat(config->configfile, &fs);
-		str=(unsigned char *)calloc(fs.st_size,sizeof(unsigned char));
-		fread(str, sizeof (unsigned char), fs.st_size, fp );
-		filesize=fs.st_size;
-		fclose(fp);
-		
-	}			
+		if ( config->configfile == NULL ) 
+		{
+			return;		
+		}
+		bzero(&fs, sizeof(fs));
+		fp = fopen(config->configfile,"r");	
+		if ( fp == NULL ) {
+			return;
+		} else {
+			stat(config->configfile, &fs);
+			str=(unsigned char *)calloc(fs.st_size,sizeof(unsigned char));
+			fread(str, sizeof (unsigned char), fs.st_size, fp );
+			filesize=fs.st_size;
+			fclose(fp);		
+		}
+	}
 #endif
 			
 	i=0;
-	
+
+    CHATFABRIC_DEBUG_FMT(1, "Filesize: %d  Index : %d ", filesize, i);
+
 	while (i<filesize) 
 	{
 		memcpy(&t, str+i, 1);
 		++i;
+        CHATFABRIC_DEBUG_FMT(1, "Filesize: %d; Index: %d; Tag %02x ", filesize, i, t);
 					
 		switch (t){
 			case cftag_header:
@@ -347,7 +368,7 @@ cfConfigRead(chatFabricConfig *config) {
 			case cftag_publickey:	// 1+crypto_box_SECRETKEYBYTES
 				memcpy(&(config->publickey), str+i, crypto_box_PUBLICKEYBYTES);
 				i+=crypto_box_PUBLICKEYBYTES;
-			break;		
+			break;
 			case cftag_privatekey:	// 1+crypto_box_SECRETKEYBYTES
 				memcpy(&(config->privatekey), str+i, crypto_box_SECRETKEYBYTES);
 				i+=crypto_box_SECRETKEYBYTES;
@@ -361,8 +382,20 @@ cfConfigRead(chatFabricConfig *config) {
 	}
 }
 
+
+void CP_ICACHE_FLASH_ATTR
+cfConfigGet(chatFabricConfig *config, unsigned char * cstr, int *cstr_len) {
+	_cfConfigWrite(config, 1, 1, cstr, cstr_len);
+}
+
+
 void CP_ICACHE_FLASH_ATTR
 cfConfigWrite(chatFabricConfig *config) {
+	_cfConfigWrite(config, 0, 0, NULL, 0);
+}
+
+void CP_ICACHE_FLASH_ATTR
+_cfConfigWrite(chatFabricConfig *config, int nokeys, int returnConfig, unsigned char * cstr, int  *cstr_len) {
 
 	struct stat fs;
 	uint32_t ni;
@@ -407,6 +440,7 @@ cfConfigWrite(chatFabricConfig *config) {
 	len+=1+4; // ipv4ns2
 
 	len+=1+16; // ipv66	len+=1+16; // ipv4nm
+	len+=1+16; // ipv6 netmask
 	len+=1+16; // ipv6gw
 	len+=1+16; // ipv6ns1
 	len+=1+16; // ipv6ns2
@@ -419,13 +453,20 @@ cfConfigWrite(chatFabricConfig *config) {
 	len+=1+16; // ipv6ns2
 
 	len+=1+32; // hostname
-	len+=1+32; // ssid
-	len+=1+64; // passwd
+
 	len+=1+32; // ssid
 	len+=1+64; // passwd
 
-	len+=1+crypto_box_PUBLICKEYBYTES;
-	len+=1+crypto_box_SECRETKEYBYTES;
+	len+=1+32; // ssid
+	len+=1+64; // passwd
+	
+    CHATFABRIC_DEBUG_FMT(1, "Filesize: %d ", len);
+
+	if ( nokeys == 0 ) {
+		len+=1+crypto_box_PUBLICKEYBYTES;
+		len+=1+crypto_box_SECRETKEYBYTES;
+	}
+    CHATFABRIC_DEBUG_FMT(1, "Filesize: %d ", len);
 
 #ifdef ESP8266
 	i=0;
@@ -449,10 +490,11 @@ cfConfigWrite(chatFabricConfig *config) {
 	cfTagEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
 
 	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_mode, config->mode, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_ap, 0, NULL, 0,  &config->wifi_ap_switch);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_ap_dhcps, 0, NULL, 0,  &config->wifi_ap_dhcps_switch);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_sta, 0, NULL, 0,  &config->wifi_sta_switch);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_sta_dhcpc, 0, NULL, 0,  &config->dhcp_client_switch);
+
+	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_ap, 		config->wifi_ap_switch,  NULL, 0, NULL );
+	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_ap_dhcps, 	config->wifi_ap_dhcps_switch, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_sta, 		config->wifi_sta_switch, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_sta_dhcpc, config->dhcp_client_switch, NULL, 0, NULL);
 
 	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_dhcps_range_low, config->dhcps_range_low, NULL, 0, NULL);
 	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_dhcps_range_high, config->dhcps_range_high, NULL, 0, NULL);
@@ -491,47 +533,30 @@ cfConfigWrite(chatFabricConfig *config) {
 	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_sta_ssid, 		0, (unsigned char *)&config->wifi_sta_ssid, 	32,  NULL);
 	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_sta_passwd, 	0, (unsigned char *)&config->wifi_sta_passwd, 	64,  NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
+    CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "Filesize: %d ", i );
+
+	if ( nokeys == 0 ) {
+		cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
+		cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
+	}
+
+    CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "Filesize: %d ", i );
+
+    if (returnConfig) {
+        cstr		= str;
+        *cstr_len	= len;
+		CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Internet Config", str, len);
+		// CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Return Config", cstr, cstr_len);
+        return;
+    }
 
 #ifdef ESP8266
 	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
-// 		CHATFABRIC_DEBUG_FMT(1,  
-// 			"[DEBUG][%s:%s:%d] Failed to Save Config to Flash\n", 
-// 			__FILE__, __FUNCTION__, __LINE__ );
-			return;
-	} else {
-// 		CHATFABRIC_DEBUG_FMT(1,  
-// 			"[DEBUG][%s:%s:%d] Save Succesful.\n", 
-// 			__FILE__, __FUNCTION__, __LINE__ );						
-	}
-
+		return;
+	}	
 #else
 	size_t fwi = fwrite (str, sizeof (unsigned char), len, fp );
-	
-// 	if ( fwi == 0 ) {
-// 		CHATFABRIC_DEBUG_FMT(config->debug,  
-// 			"[DEBUG][%s:%s:%d] cf Config Write ERROR  errno %d, %s, =%s=\n",
-// 			__FILE__, __FUNCTION__, __LINE__,  errno, strerror(errno), config->configfile  );	
-// 	}
-
-	int fci = fclose(fp);
-
-// 	if ( fci != 0 ) {
-// 		CHATFABRIC_DEBUG_FMT(config->debug,  
-// 			"[DEBUG][%s:%s:%d] cf Config fclose ERROR  errno %d, %s, =%s=\n",
-// 			__FILE__, __FUNCTION__, __LINE__,  errno, strerror(errno), config->configfile  );		
-// 	}
-// 	
-// 	CHATFABRIC_DEBUG_FMT(config->debug,  
-// 		"[DEBUG][%s:%s:%d] cf Config Write (%zu):(%d) \n",
-// 		__FILE__, __FUNCTION__, __LINE__, fwi, fci );
-// 
-// 
-// 	CHATFABRIC_DEBUG_FMT(config->debug,  
-// 		"[DEBUG][%s:%s:%d] Config Data: \n",
-// 		__FILE__, __FUNCTION__, __LINE__);
-// 	util_print_bin2hex(str, len);
+	int fci = fclose(fp);	
 	free(str);
 
 #endif

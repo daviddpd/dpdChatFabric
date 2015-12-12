@@ -893,29 +893,29 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->cmd = ntohl(ni);
-//				CHATFABRIC_DEBUG_FMT(config_debug, "%8s : %-20s %20s (i<len : %4d %4d )",  "CASE" , tagLookup(c), cmdLookup (cp->cmd), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 					
 			break;
 			case cptag_serial:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->serial = ntohl(ni);					
-//				CHATFABRIC_DEBUG_FMT(config_debug, "%8s : %-20s (i<len : %4d %4d )",  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_nonce:
 				memcpy(&cp->nonce, b+i, crypto_secretbox_NONCEBYTES);
 				i += crypto_secretbox_NONCEBYTES;				
-//				CHATFABRIC_DEBUG_FMT(config_debug, "%8s : %-20s (i<len : %4d %4d )",  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			
 			case cptag_envelopeLength:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->envelopeLength = ntohl(ni);
-//				CHATFABRIC_DEBUG_FMT(config_debug, "%8s : %-20s (i<len : %4d %4d )",  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;				
 			case cptag_encryptedEnvelope:
-//					CHATFABRIC_DEBUG_FMT(config_debug, "%8s : %-20s (i<len : %4d %4d )",  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 					cp->wasEncrypted = cp->wasEncrypted | 0x02;
 					decrypted=(unsigned char*)calloc(cp->envelopeLength - crypto_box_SEALBYTES,sizeof(unsigned char));
 
@@ -981,7 +981,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 						free(mac);	
 					return -1;
 					}
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_envelopeRandomPaddingLength:
 				memcpy(&(cp->envelopeRandomPaddingLength), b+i, 1);
@@ -989,7 +989,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				h = cp->envelopeRandomPaddingLength & 0xF0;				
 				h = h >> 4;
 				l = cp->envelopeRandomPaddingLength & 0x0F;				
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_envelopeRandomPaddingHigh:
 				if ( h == 0 ) {
@@ -999,7 +999,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				}
 				memcpy(&(cp->envelopeRandomPadding), b+i, h);
 				i+=h;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;			
 			case cptag_envelopeRandomPaddingLow:
 				if ( l == 0 ) {
@@ -1009,33 +1009,33 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				}
 				memcpy(&(cp->envelopeRandomPadding[h]), b+i, l);
 				i+=l;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_to0:
 				uuidFromBytes(b+i, &cp->to.u0);
 				i+=16;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_to1:
 				uuidFromBytes(b+i, &cp->to.u1);
 				i+=16;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_from0:
 				uuidFromBytes(b+i, &cp->from.u0);
 				i+=16;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_from1:
 				uuidFromBytes(b+i, &cp->from.u1);
 				i+=16;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_flags:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->flags = ntohl(ni);			
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			
 			case cptag_payloadLength:
@@ -1048,7 +1048,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				}				
 				cp->payloadLength = length;
 				
-//				CHATFABRIC_DEBUG_FMT(config_debug, "%8s : %-20s (i<len : %4d %4d ) payloadLength %d", "CASE" , tagLookup(c), i, len, length);
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;			
 			case cptag_payloadRandomPaddingLength:
 				memcpy(&(cp->payloadRandomPaddingLength), b+i, 1);
@@ -1056,7 +1056,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				hp = cp->payloadRandomPaddingLength & 0xF0;
 				hp = hp >> 4;
 				lp = cp->payloadRandomPaddingLength & 0x0F;			
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_payloadRandomPaddingHigh:
 				if ( hp == 0 ) {
@@ -1066,7 +1066,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				}
 				memcpy(&(cp->payloadRandomPadding), b+i, hp);
 				i+=hp;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;			 
 			
 			case cptag_payloadRandomPaddingLow:
@@ -1136,45 +1136,44 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 					return -1;
 				}
 
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_payload:
-//                CHATFABRIC_DEBUG_FMT(config_debug, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) %d \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len, cp->payloadLength );
 				memcpy(cp->payload, b+i, cp->payloadLength);
 				i+=cp->payloadLength;		
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_publickey:
 				memcpy(&(cp->publickey), b+i, crypto_box_PUBLICKEYBYTES);
 				i+=crypto_box_PUBLICKEYBYTES;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_envelope:
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_action:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->action = ntohl(ni);			
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_action_control:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->action_control = ntohl(ni);			
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_action_type:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->action_type = ntohl(ni);			
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_action_value:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->action_value = ntohl(ni);			
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_action_length:
 				memcpy(&ni, b+i, 4);
@@ -1183,12 +1182,12 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				if ( cp->action_length > 0 ) {
 					cp->action_data=(unsigned char*)calloc(cp->action_length,sizeof(unsigned char));
 				}				
-//				CHATFABRIC_DEBUG_FMT(config_debug  & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_action_data:
 				memcpy(cp->action_data, b+i, cp->action_length);
 				i+=cp->payloadLength;			
-//				CHATFABRIC_DEBUG_FMT(config_debug  & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_app_controls:
 				memcpy(&ni, b+i, 4);
@@ -1201,7 +1200,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 // 					__FILE__, __FUNCTION__, __LINE__, cp->numOfControllers,  curControler);
 
 				cp->controlers = (cfControl*)malloc(cp->numOfControllers * sizeof(cfControl));
-//				CHATFABRIC_DEBUG_FMT(config_debug  & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s  %d", tagLookup(c), cp->numOfControllers );
 				
 			break;
 			
@@ -1213,56 +1212,55 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 // 					"[DEBUG][%s:%s:%d]  App Controls Num(%4d) CurControler(%4d) \n",
 // 					__FILE__, __FUNCTION__, __LINE__, ntohl(ni),  curControler);
 				cp->controlers[curControler].control = ntohl(ni);
-//				CHATFABRIC_DEBUG_FMT(config_debug  & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %d", tagLookup(c), cp->controlers[curControler].control );
 			break;
 			
 			case cptag_app_control_type:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->controlers[curControler].type = ntohl(ni);
-//				CHATFABRIC_DEBUG_FMT(config_debug  & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %d", tagLookup(c), cp->controlers[curControler].type  );
 			break;
 			case cptag_app_control_value:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->controlers[curControler].value = ntohl(ni);
-//				CHATFABRIC_DEBUG_FMT(config_debug  & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %d", tagLookup(c), cp->controlers[curControler].value );
 			break;
 			case cptag_app_control_rangeLow:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->controlers[curControler].rangeLow = ntohl(ni);
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %d", tagLookup(c), cp->controlers[curControler].rangeLow );
 			break;
 			case cptag_app_control_rangeHigh:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->controlers[curControler].rangeHigh = ntohl(ni);
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %d", tagLookup(c), cp->controlers[curControler].rangeHigh );
 			break;
 			case cptag_app_control_labelLength:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->controlers[curControler].labelLength = ntohl(ni);
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %d", tagLookup(c), cp->controlers[curControler].labelLength );
 			break;
 			case cptag_app_control_label:
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
-				cp->controlers[curControler].label =  (char *)calloc(cp->controlers[curControler].labelLength, sizeof(char));
+				cp->controlers[curControler].label =  (char *)calloc(cp->controlers[curControler].labelLength + 1, sizeof(char));
+				bzero(cp->controlers[curControler].label, cp->controlers[curControler].labelLength + 1 );
 				memcpy(cp->controlers[curControler].label, b+i, cp->controlers[curControler].labelLength);
 				i+=cp->controlers[curControler].labelLength;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %s", tagLookup(c), cp->controlers[curControler].label );
 			break;
 			case cptag_app_control_data:
 				cp->controlers[curControler].data = (char *)calloc(cp->controlers[curControler].value, sizeof(char));
 				memcpy(&ni, b+i, cp->controlers[curControler].value);
 				i+=cp->controlers[curControler].value;
-//				CHATFABRIC_DEBUG_FMT(config_debug & 0x02, "[DEBUG][%s:%s:%d] %8s : %-20s (i<len : %4d %4d ) \n", __FILE__, __FUNCTION__, __LINE__,  "CASE" , tagLookup(c), i, len );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 						
 			default:
- 				CHATFABRIC_DEBUG_FMT(config_debug, "BAD CHAT PACKET (%02x) =>> ", c );
-// 				CHATFABRIC_DEBUG_FMT(config_debug, "%8s : %-20s (i<len : %4d %4d )"  "CASE" , tagLookup(c), i, len );
+ 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "BAD CHAT PACKET (%02x) =>> ", c );
                 ++i;
 				return -1;
 			break;
@@ -1281,6 +1279,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 
 }
 
+/*
 void CP_ICACHE_FLASH_ATTR
 chatPacket_print_action2 (chatFabricAction *cp) {
 	char *cd = " " ;
@@ -1291,23 +1290,17 @@ chatPacket_print_action2 (chatFabricAction *cp) {
 	printf ( "%2s %24s: %16x %16x\n", cd, "Control Value", cp->action_value, cp->action_value);
 	
 }
+*/
 
 void CP_ICACHE_FLASH_ATTR
 chatPacket_print_action (chatPacket *cp) {
 	char *cd = " " ;
-#ifdef ESP8266
-	return;
-#else
-	
 	
 	printf ( "%2s %24s: %16lx %16u %s\n", cd, "Action", cp->action, cp->action,  actionLookup (cp->action) );
 	printf ( "%2s %24s: %16lx %16x\n", cd, "Control Index", cp->action_control, cp->action_control);
 	printf ( "%2s %24s: %16lx %s\n", cd, "Control Type", cp->action_type, actionTypeLookup(cp->action_type));
 	printf ( "%2s %24s: %16x %16x\n", cd, "Control Value", cp->action_value, cp->action_value);
 	
-
-#endif
-
 }
 
 

@@ -24,6 +24,8 @@ espCfConfigInit()
 	config.numOfControllers = 4;
 	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
 	
+	memcpy( &config.wifi_ap_passwd, "esp8266!demo", 12 );
+	
 	// 13 == red
 	// 12 == green
 	// 4 == yellow
