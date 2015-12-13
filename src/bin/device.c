@@ -178,6 +178,8 @@ int main(int argc, char**argv)
 	config.controlers[i].labelLength = strlen(config.controlers[i].label);
 
 	config.debug = 1;
+	_GLOBAL_DEBUG = config.debug;
+
 	char *str;
 	uint32_t status2;
 
