@@ -798,6 +798,8 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 			CHATFABRIC_DEBUG_FMT(config->debug, "%20s: %s ",  "========>" , "Encrypting Envolope" );						
 			CHATFABRIC_DEBUG_B2H(config->debug, "shared key (EV)", (unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES );
 			CHATFABRIC_DEBUG_B2H(config->debug, "null Nonce (EV)", (unsigned char *)&pair->nullnonce, crypto_secretbox_NONCEBYTES );
+			CHATFABRIC_DEBUG_B2H(config->debug, "MAC        (EV)", (unsigned char *)envelope_encrypted+e_length, crypto_secretbox_MACBYTES );
+			
 //			CHATFABRIC_DEBUG_B2H(config->debug, "raw envelope (EV)", (unsigned char *)&envelope, e_length );
 			#endif			
 
@@ -931,6 +933,11 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 					mac=(unsigned char*)calloc(crypto_secretbox_MACBYTES,sizeof(unsigned char) );					
 					poly1305_auth(mac,  b+i, cp->envelopeLength - crypto_box_SEALBYTES, (unsigned char *)&pair->sharedkey);
 					ret = poly1305_verify(mac, b+i+cp->envelopeLength-crypto_secretbox_MACBYTES);
+
+					CHATFABRIC_DEBUG_B2H(config->debug, "shared key (EV)", (unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES );
+					CHATFABRIC_DEBUG_B2H(config->debug, "null Nonce (EV)", (unsigned char *)&pair->nullnonce, crypto_secretbox_NONCEBYTES );
+					CHATFABRIC_DEBUG_B2H(config->debug, "MAC        (EV)", (unsigned char *)mac, crypto_secretbox_MACBYTES );
+					
 					if ( ret == 1 ) {					
 						memcpy ( decrypted, b+i, cp->envelopeLength-crypto_box_SEALBYTES );
 						s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, pair->nullnonce, 0, decrypted, cp->envelopeLength - crypto_box_SEALBYTES);
