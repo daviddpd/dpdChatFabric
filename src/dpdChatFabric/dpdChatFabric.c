@@ -271,17 +271,34 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 //	CHATFABRIC_DEBUG(config->debug, "Waiting for Packet.\n\n" );
 
 	len = sizeof(c->sockaddr);
-
-	if ( c->type == SOCK_STREAM ) { 
-		if ( c->bind == 1 ) {
-			n = read(c->acceptedSocket,mesg,buffersize);
+	int retry = 3;
+	do {
+		if ( c->type == SOCK_STREAM ) { 
+			if ( c->bind == 1 ) {
+				n = read(c->acceptedSocket,mesg,buffersize);
+			} else {
+				n = read(c->socket,mesg,buffersize);
+			}
+			// n = recvfrom(c->acceptedSocket,mesg,buffersize,0,(struct sockaddr *)&(c->sockaddr),&len);
 		} else {
-			n = read(c->socket,mesg,buffersize);
+			n = recvfrom(c->socket,mesg,buffersize,0,(struct sockaddr *)&(c->sockaddr),&len);
 		}
-		// n = recvfrom(c->acceptedSocket,mesg,buffersize,0,(struct sockaddr *)&(c->sockaddr),&len);
-	} else {
-		n = recvfrom(c->socket,mesg,buffersize,0,(struct sockaddr *)&(c->sockaddr),&len);
-	}
+		if ( n == -1 ) {
+			retry--;
+			if ( c->type == SOCK_STREAM ) {
+				close(c->socket);
+			}			
+			c->acceptedSocket = -1;
+			c->socket = -1;
+			chatFabric_consetup(c, config->ip, config->port);
+			if ( c->socket == -1 ) {
+				return ERROR_SOCKET;
+			}
+		} else {
+			retry = 0;
+		}
+
+	} while(retry);
 #endif 	
 	if ( n == -1 ) {
 #ifndef ESP8266
