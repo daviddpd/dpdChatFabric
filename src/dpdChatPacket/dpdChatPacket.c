@@ -850,14 +850,18 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 
 	
 	if (packetType == DATA ) {
+		CHATFABRIC_DEBUG(config->debug, "packetType: DATA" );
 		if ( encrypted == _CHATPACKET_ENCRYPTED ) {
 			chatPacket_tagDataEncoder ( CP_INT32, ob->msg, &i, cptag_payloadLength, p_length_encrpyted, NULL, 0, NULL);
 			chatPacket_tagDataEncoder ( CP_DATA8, ob->msg, &i, cptag_encryptedPayload, 0, payload_encrypted, p_length_encrpyted, NULL);
+			CHATFABRIC_DEBUG(config->debug, "encrypted payload Free" );
 			free(payload_encrypted);
 			//free(payload);
 		} else {
+			CHATFABRIC_DEBUG(config->debug, "packetType: NOT DATA" );
 			chatPacket_tagDataEncoder ( CP_INT32, ob->msg, &i, cptag_payloadLength, cp->payloadLength, NULL, 0, NULL);
 			chatPacket_tagDataEncoder ( CP_DATA8, ob->msg, &i, cptag_encryptedPayload, 0, payload, p_length, NULL);
+			CHATFABRIC_DEBUG(config->debug, "payload Free" );
 			free(payload);		
 		}
 	} 
