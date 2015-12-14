@@ -547,7 +547,7 @@ _cfConfigWrite(chatFabricConfig *config, int nokeys, int returnConfig, unsigned 
         *cstr_len	= len;
 		CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Internet Config", str, len);
 		memcpy (cstr, str, len);
-		// CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Return Config", cstr, cstr_len);
+		CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Return Config", cstr, cstr_len);
         return;
     }
 

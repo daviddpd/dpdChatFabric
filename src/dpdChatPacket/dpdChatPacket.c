@@ -609,6 +609,8 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 		l = cp->payloadRandomPaddingLength  & 0x0F;	
 		i = 0;
 	
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "CP Payload Length : %d ", cp->payloadLength  );
+
         if ( cp->payloadLength > 0 ) {
             p_length += 1+cp->payloadLength;
         }
@@ -1049,6 +1051,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				length = ntohl(ni);
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "CP Payload Length : %d / %d ", cp->payloadLength, length  );
 				if ( length > cp->payloadLength ) {
 					free(cp->payload);
 					cp->payload=(unsigned char*)calloc(length,sizeof(unsigned char));
