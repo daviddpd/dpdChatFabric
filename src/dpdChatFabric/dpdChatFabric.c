@@ -699,7 +699,7 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 
 		case CMD_CONFIG_GET:
 			reply->cmd = CMD_CONFIG_MESSAGE;
-			unsigned char *str =NULL;
+			unsigned char *str;
 			int len =0;
 			cfConfigGet(config, str, &len );
 			reply->payload = str;
