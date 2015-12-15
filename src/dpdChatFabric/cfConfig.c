@@ -389,6 +389,7 @@ cfConfigWrite(chatFabricConfig *config) {
 
 	msgbuffer configstr;
 	msgbuffer keys;
+	unsigned char ch =(unsigned char)cftag_eof; 
 	
 	_createConfigString (config, &configstr);
     CHATFABRIC_DEBUG_B2H(config->debug, "Config String", 
@@ -402,7 +403,7 @@ cfConfigWrite(chatFabricConfig *config) {
 #ifdef ESP8266
 	memcpy( &(flashConfig[0]), configstr.msg, configstr.length);
 	memcpy( &(flashConfig[configstr.length]), keys.msg, keys.length);
-	memcpy( &(flashConfig[configstr.length+keys.length]), (unsigned char)cftag_eof, 1);
+	memcpy( &(flashConfig[configstr.length+keys.length]), &ch, 1);
 	
 	
 	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
@@ -414,7 +415,7 @@ cfConfigWrite(chatFabricConfig *config) {
 	if ( fp != 0 ) {  
 		size_t fwi = fwrite (configstr.msg, sizeof (unsigned char), configstr.length, fp );
 		fwi = fwrite (keys.msg, sizeof (unsigned char), keys.length, fp );
-		fwi = fwrite ((unsigned char)cftag_eof, sizeof (unsigned char), 1, fp );
+		fwi = fwrite (&ch, sizeof (unsigned char), 1, fp );
 		
 		fclose(fp);	
 	}
