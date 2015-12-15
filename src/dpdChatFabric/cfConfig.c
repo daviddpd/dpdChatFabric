@@ -435,6 +435,12 @@ _createKeyString (chatFabricConfig *config, msgbuffer *str)
 	str->msg =  (unsigned char *)calloc(len,sizeof(unsigned char));
 	str->length = len;
 
+    CHATFABRIC_DEBUG_B2H(config->debug, "Keys Public", 
+    	(unsigned char*)&(config->publickey), crypto_box_PUBLICKEYBYTES  );
+    CHATFABRIC_DEBUG_B2H(config->debug, "Keys Private", 
+    	&(config->privatekey), crypto_box_SECRETKEYBYTES  );
+
+
 	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
 	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
 	
