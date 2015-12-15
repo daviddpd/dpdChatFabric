@@ -188,6 +188,10 @@ int main(int argc, char**argv)
 	uuid_to_string(&(config.uuid.u1), &str, &status2);
 	printf (" uuid1       : %s\n", str);
 
+    CHATFABRIC_DEBUG_B2H(config.debug, "Keys Public", 
+    	(unsigned char*)&(config.publickey), crypto_box_PUBLICKEYBYTES  );
+    CHATFABRIC_DEBUG_B2H(config.debug, "Keys Private", 
+    	&(config.privatekey), crypto_box_SECRETKEYBYTES  );
 
 	do {		
 		
