@@ -229,9 +229,6 @@ tagLookup (enum chatPacketTags tag) {
 		case cptag_ENDTAG:
 			return "ENDTAG";
 		break;
-		case cptag_cmd:
-			return "cmd";
-		break;
 	 	 	 	 		
 	}
 	return "UNKNOWN";
@@ -382,7 +379,7 @@ const char *
 CP_ICACHE_FLASH_ATTR
 cfTagLookup (enum chatFabricConfigTags tag) {
 
-	switch (cmd) {	
+	switch (tag) {	
 		case cftag_publickey:
 			return "publickey";
 		break;
