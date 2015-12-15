@@ -702,7 +702,7 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 			
 			_createConfigString(config, &configstr);
 			
-			configstr.msg =  (unsigned char *)calloc(configstr.length,sizeof(unsigned char));
+			reply->payload =  (unsigned char *)calloc(configstr.length,sizeof(unsigned char));
 			memcpy( reply->payload, configstr.msg, configstr.length);
 			reply->payloadLength = configstr.length;
 			free(configstr.msg);
