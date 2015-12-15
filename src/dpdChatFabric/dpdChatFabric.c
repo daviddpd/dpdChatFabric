@@ -404,15 +404,14 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		} else {
 		    n = write(c->socket, mb.msg, mb.length);		
 		}
-//		CHATFABRIC_DEBUG_FMT(config->debug,  
-//			"[DEBUG][%s:%s:%d] chatPacket TCP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s \n", 
-//			__FILE__, __FUNCTION__, __LINE__,  n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
-	} else {
-	
+		CHATFABRIC_DEBUG_FMT(config->debug,  
+			"chatPacket TCP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s", 
+			n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
+	} else {	
 		n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);	
-//		CHATFABRIC_DEBUG_FMT(config->debug,  
-//			"[DEBUG][%s:%s:%d] chatPacket UDP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s \n", 
-//			__FILE__, __FUNCTION__, __LINE__,  n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
+		CHATFABRIC_DEBUG_FMT(config->debug,  
+			"chatPacket UDP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s", 
+			n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
 	}
 #endif
 

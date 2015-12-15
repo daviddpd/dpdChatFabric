@@ -390,7 +390,12 @@ cfConfigWrite(chatFabricConfig *config) {
 	msgbuffer keys;
 	
 	_createConfigString (config, &configstr);
+    CHATFABRIC_DEBUG_B2H(config->debug, "Config String", 
+    	(unsigned char*)configstr->msg, configstr->length  );
+
 	_createKeyString (config, &keys);
+    CHATFABRIC_DEBUG_B2H(config->debug, "Keys String", 
+    	(unsigned char*)keys->msg, keys->length  );
 
 
 #ifdef ESP8266

@@ -1160,6 +1160,8 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 				memcpy(&(cp->publickey), b+i, crypto_box_PUBLICKEYBYTES);
 				i+=crypto_box_PUBLICKEYBYTES;
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+                CHATFABRIC_DEBUG_B2H(config->debug, "PublicKey", (unsigned char*)&(cp->publickey),  crypto_box_PUBLICKEYBYTES );
+                
 			break;
 			case cptag_envelope:
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
