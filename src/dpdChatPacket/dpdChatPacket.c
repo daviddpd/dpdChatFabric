@@ -832,7 +832,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 			p_length_encrpyted = p_length + crypto_secretbox_MACBYTES; 
 			payload_encrypted=(unsigned char*)calloc(p_length_encrpyted,sizeof(unsigned char));	
 			
-			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_payloadLength, p_length, NULL, 0, NULL);			
+			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_payloadLength, cp->payloadLength, NULL, 0, NULL);			
 			
 			ob_length+=p_length_encrpyted + 1+4 + 1;
 				
@@ -1064,7 +1064,9 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 
 int 
 CP_ICACHE_FLASH_ATTR
-chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, const int len, chatFabricConfig *config) {
+chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, 
+					unsigned char *b, const int len, chatFabricConfig *config) {
+					
 	uint32_t ni=0, i=0, length = 0, curControler=0;
 	unsigned char c=0, h=0, l=0, hp=0, lp = 0;
 	unsigned char *decrypted=0;
@@ -1338,10 +1340,12 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair, unsigned char *b, c
 
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
-			case cptag_payload:
+			case cptag_payload:			
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s Payload Length %d", tagLookup(c), cp->payloadLength );
+                CHATFABRIC_DEBUG_B2H(config->debug, "Payload (plaintext)", (unsigned char*)b,  cp->payloadLength );
+                CHATFABRIC_DEBUG_B2H(config->debug, "Payload (plaintext)", (unsigned char*)cp->payload,  cp->payloadLength );
 				memcpy(cp->payload, b+i, cp->payloadLength);
 				i+=cp->payloadLength;		
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_publickey:
 				memcpy(&(cp->publickey), b+i, crypto_box_PUBLICKEYBYTES);
