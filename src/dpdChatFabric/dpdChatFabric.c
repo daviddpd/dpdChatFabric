@@ -699,15 +699,15 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 
 		case CMD_CONFIG_GET:
 			reply->cmd = CMD_CONFIG_MESSAGE;
-			unsigned char *str;
-			int len =0;
-			cfConfigGet(config, str, &len );
-			reply->payload = str;
-			reply->payloadLength = len;
-			CHATFABRIC_DEBUG_FMT( _GLOBAL_DEBUG,  "Length: %d", len );
-			CHATFABRIC_DEBUG_FMT( _GLOBAL_DEBUG,  "First Char: %02x", str[0] );
+			msgbuffer configstr;
 			
-			CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Local ConfigPayLoad", str, len );
+			_createConfigString(config, &configstr);
+			
+			configstr.msg =  (unsigned char *)calloc(configstr.length,sizeof(unsigned char));
+			memcpy( reply->payload, configstr.msg, configstr.length);
+			reply->payloadLength = configstr.length;
+			free(configstr.msg);
+			
 			CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Replay ConfigPayLoad", reply->payload, reply->payloadLength );
 			RETVAL = CMD_SEND_REPLY_TRUE;	
 		break;

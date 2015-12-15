@@ -199,13 +199,13 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 			
 	i=0;
 
-    CHATFABRIC_DEBUG_FMT(config->debug, "Filesize: %d  Index : %d ", filesize, i);
+//    CHATFABRIC_DEBUG_FMT(config->debug, "Filesize: %d  Index : %d ", filesize, i);
 
 	while (i<filesize) 
 	{
 		memcpy(&t, str+i, 1);
 		++i;
-        CHATFABRIC_DEBUG_FMT(1, "Filesize: %d; Index: %d; Tag %02x ", filesize, i, t);
+//        CHATFABRIC_DEBUG_FMT(config->debug, "Filesize: %d; Index: %d; Tag %02x ", filesize, i, t);
 					
 		switch (t){
 			case cftag_header:
@@ -384,30 +384,63 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 
 
 void CP_ICACHE_FLASH_ATTR
-cfConfigGet(chatFabricConfig *config, unsigned char * cstr, int *cstr_len) {
-	_cfConfigWrite(config, 1, 1, cstr, cstr_len);
-}
-
-
-void CP_ICACHE_FLASH_ATTR
 cfConfigWrite(chatFabricConfig *config) {
-	_cfConfigWrite(config, 0, 0, NULL, 0);
-}
 
-void CP_ICACHE_FLASH_ATTR
-_cfConfigWrite(chatFabricConfig *config, int nokeys, int returnConfig, unsigned char * cstr, int  *cstr_len) {
+	msgbuffer configstr;
+	msgbuffer keys;
+	
+	_createConfigString (config, &configstr);
+	_createKeyString (config, &keys);
 
-	struct stat fs;
-	uint32_t ni;
-	int len =0, i=0, filesize=0;
-	unsigned char *str;
-	unsigned char t;
 
 #ifdef ESP8266
-	int fp=0;
-#else 	
+	memcpy( &(flashConfig[0]), configstr->msg, configstr->length);
+	memcpy( &(flashConfig[configstr->length]), keys->msg, keys->length);
+	
+	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
+		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect Failed.");
+	}	
+#else
 	FILE *fp=0;
+	fp = fopen(config->newconfigfile,"w");
+	if ( fp != 0 ) {  
+		size_t fwi = fwrite (configstr.msg, sizeof (unsigned char), configstr.length, fp );
+		fwi = fwrite (keys.msg, sizeof (unsigned char), keys.length, fp );
+		fclose(fp);	
+	}
+
 #endif
+
+	free(configstr.msg);
+	free(keys.msg);
+
+
+}
+
+
+
+void CP_ICACHE_FLASH_ATTR 
+_createKeyString (chatFabricConfig *config, msgbuffer *str) 
+{
+	int len =0, i=0;
+
+	len+=1+crypto_box_PUBLICKEYBYTES;
+	len+=1+crypto_box_SECRETKEYBYTES;
+	
+	str->msg =  (unsigned char *)calloc(len,sizeof(unsigned char));
+	str->length = len;
+
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
+	
+	
+}
+
+void CP_ICACHE_FLASH_ATTR 
+_createConfigString (chatFabricConfig *config, msgbuffer *str) 
+{
+
+	int len =0, i=0;
 
 	len+=1+4; // header
 	len+=1+4; // length
@@ -460,108 +493,59 @@ _cfConfigWrite(chatFabricConfig *config, int nokeys, int returnConfig, unsigned 
 	len+=1+32; // ssid
 	len+=1+64; // passwd
 	
-    CHATFABRIC_DEBUG_FMT(config->debug, "Filesize: %d ", len);
+	str->msg =  (unsigned char *)calloc(len,sizeof(unsigned char));
+	str->length = len;
 
-	if ( nokeys == 0 ) {
-		len+=1+crypto_box_PUBLICKEYBYTES;
-		len+=1+crypto_box_SECRETKEYBYTES;
-	}
-    CHATFABRIC_DEBUG_FMT(config->debug, "Filesize: %d ", len);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_header, 0, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_configLength, len, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_hasPairs, config->hasPairs, NULL, 0, NULL);
+	cfTagEncoder ( CP_UUID, str->msg, (uint32_t *)&i, cftag_uuid0, 0, NULL, 0,  &config->uuid.u0);
+	cfTagEncoder ( CP_UUID, str->msg, (uint32_t *)&i, cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
 
-#ifdef ESP8266
-	i=0;
-	str = &(flashConfig[0]);
-#else
-	fp = fopen(config->newconfigfile,"w");
-	if ( fp == 0 ) { 
-// 		CHATFABRIC_DEBUG_FMT(config->debug,  
-// 			"[DEBUG][%s:%s:%d] Cannot open configfile for writing %s \n", 
-// 			__FILE__, __FUNCTION__, __LINE__, config->configfile );
-		return;
-	}
-	i=0;
-	str=(unsigned char *)calloc(len,sizeof(unsigned char));
-#endif
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_mode, config->mode, NULL, 0, NULL);
 
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_header, 0, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_configLength, len, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_hasPairs, config->hasPairs, NULL, 0, NULL);
-	cfTagEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid0, 0, NULL, 0,  &config->uuid.u0);
-	cfTagEncoder ( CP_UUID, str, (uint32_t *)&i, cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_wifi_ap, 		config->wifi_ap_switch,  NULL, 0, NULL );
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_wifi_ap_dhcps, 	config->wifi_ap_dhcps_switch, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_wifi_sta, 		config->wifi_sta_switch, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_wifi_sta_dhcpc, config->dhcp_client_switch, NULL, 0, NULL);
 
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_mode, config->mode, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_dhcps_range_low, config->dhcps_range_low, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_dhcps_range_high, config->dhcps_range_high, NULL, 0, NULL);
 
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_ap, 		config->wifi_ap_switch,  NULL, 0, NULL );
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_ap_dhcps, 	config->wifi_ap_dhcps_switch, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_sta, 		config->wifi_sta_switch, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_wifi_sta_dhcpc, config->dhcp_client_switch, NULL, 0, NULL);
-
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_dhcps_range_low, config->dhcps_range_low, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_dhcps_range_high, config->dhcps_range_high, NULL, 0, NULL);
-
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_sta_ipv4, config->sta_ipv4, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_sta_ipv4netmask, config->sta_ipv4netmask, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_sta_ipv4gw, config->sta_ipv4gw, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_sta_ipv4ns1, config->sta_ipv4ns1, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_sta_ipv4ns2, config->sta_ipv4ns2, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_sta_ntpv4, config->ntpv4, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_sta_ipv4, config->sta_ipv4, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_sta_ipv4netmask, config->sta_ipv4netmask, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_sta_ipv4gw, config->sta_ipv4gw, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_sta_ipv4ns1, config->sta_ipv4ns1, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_sta_ipv4ns2, config->sta_ipv4ns2, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_sta_ntpv4, config->ntpv4, NULL, 0, NULL);
 	
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ap_ipv4, config->ap_ipv4, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ap_ipv4netmask, config->ap_ipv4netmask, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ap_ipv4gw, config->ap_ipv4gw, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ap_ipv4ns1, config->ap_ipv4ns1, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str, (uint32_t *)&i, cftag_ap_ipv4ns2, config->ap_ipv4ns2, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_ap_ipv4, config->ap_ipv4, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_ap_ipv4netmask, config->ap_ipv4netmask, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_ap_ipv4gw, config->ap_ipv4gw, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_ap_ipv4ns1, config->ap_ipv4ns1, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_ap_ipv4ns2, config->ap_ipv4ns2, NULL, 0, NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6, 			0, (unsigned char *)&config->sta_ipv6, 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6netmask, 	0, (unsigned char *)&config->sta_ipv6netmask, 16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6gw, 		0, (unsigned char *)&config->sta_ipv6gw, 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6ns1, 		0, (unsigned char *)&config->sta_ipv6ns1, 	16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ipv6ns2, 		0, (unsigned char *)&config->sta_ipv6ns2, 	16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_sta_ntpv6, 			0, (unsigned char *)&config->ntpv6, 			16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_sta_ipv6, 			0, (unsigned char *)&config->sta_ipv6, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_sta_ipv6netmask, 	0, (unsigned char *)&config->sta_ipv6netmask, 16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_sta_ipv6gw, 		0, (unsigned char *)&config->sta_ipv6gw, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_sta_ipv6ns1, 		0, (unsigned char *)&config->sta_ipv6ns1, 	16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_sta_ipv6ns2, 		0, (unsigned char *)&config->sta_ipv6ns2, 	16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_sta_ntpv6, 			0, (unsigned char *)&config->ntpv6, 			16,  NULL);
 	
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6, 			0, (unsigned char *)&config->ap_ipv6, 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6netmask, 	0, (unsigned char *)&config->ap_ipv6netmask, 	16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6gw, 			0, (unsigned char *)&config->ap_ipv6gw, 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6ns1, 		0, (unsigned char *)&config->ap_ipv6ns1, 		16,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_ap_ipv6ns2, 		0, (unsigned char *)&config->ap_ipv6ns2, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_ap_ipv6, 			0, (unsigned char *)&config->ap_ipv6, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_ap_ipv6netmask, 	0, (unsigned char *)&config->ap_ipv6netmask, 	16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_ap_ipv6gw, 			0, (unsigned char *)&config->ap_ipv6gw, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_ap_ipv6ns1, 		0, (unsigned char *)&config->ap_ipv6ns1, 		16,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_ap_ipv6ns2, 		0, (unsigned char *)&config->ap_ipv6ns2, 		16,  NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_hostname, 			0, (unsigned char *)&config->hostname, 		32,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_hostname, 			0, (unsigned char *)&config->hostname, 		32,  NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_ap_ssid, 		0, (unsigned char *)&config->wifi_ap_ssid, 	32,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_ap_passwd, 	0, (unsigned char *)&config->wifi_ap_passwd, 	64,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_wifi_ap_ssid, 		0, (unsigned char *)&config->wifi_ap_ssid, 	32,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_wifi_ap_passwd, 	0, (unsigned char *)&config->wifi_ap_passwd, 	64,  NULL);
 
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_sta_ssid, 		0, (unsigned char *)&config->wifi_sta_ssid, 	32,  NULL);
-	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_wifi_sta_passwd, 	0, (unsigned char *)&config->wifi_sta_passwd, 	64,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_wifi_sta_ssid, 		0, (unsigned char *)&config->wifi_sta_ssid, 	32,  NULL);
+	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_wifi_sta_passwd, 	0, (unsigned char *)&config->wifi_sta_passwd, 	64,  NULL);
 
-    CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "Filesize: %d ", i );
-
-	if ( nokeys == 0 ) {
-		cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);
-		cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_privatekey, 0,(unsigned char *)&(config->privatekey), crypto_box_SECRETKEYBYTES, NULL);
-	}
-
-    CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "Filesize: %d ", i );
-
-    if (returnConfig) {
-        cstr		= (unsigned char *)calloc(len,sizeof(unsigned char));
-        *cstr_len	= len;
-		CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Internet Config", str, len);
-		memcpy (cstr, str, len);
-		CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Return Config", cstr, len);
-        return;
-    }
-
-#ifdef ESP8266
-	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
-		return;
-	}	
-#else
-	size_t fwi = fwrite (str, sizeof (unsigned char), len, fp );
-	int fci = fclose(fp);	
-	free(str);
-
-#endif
 
 
 }
-

@@ -33,7 +33,6 @@ cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsign
 
 	uint32_t x = *i;
 	uint32_t ni = 0;
-	
 	memcpy(b+x, &tag, 1);
 	++x;
 	if ( type == CP_INT32 ) {
@@ -44,7 +43,7 @@ cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsign
 #endif
 		memcpy(b+x, &ni, 4);
 		x += 4;		
-	} else if (  type == CP_DATA8 ) {	
+	} else if (  type == CP_DATA8 ) {
 		memcpy(b+x, s, len);
 		x += len;
 	} else if (  type == CP_UUID ) {
@@ -54,6 +53,5 @@ cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsign
 
 	*i=x;
 
-//    CHATFABRIC_DEBUG_FMT(1, "last index: %d ", x );
 
 }

@@ -18,12 +18,13 @@ void CP_ICACHE_FLASH_ATTR
 cfConfigSetFromStr(chatFabricConfig *config, unsigned char* cstr, int cstr_len);
 
 void CP_ICACHE_FLASH_ATTR
-cfConfigGet(chatFabricConfig *config, unsigned char * cstr, int *cstr_len);
+cfConfigWrite(chatFabricConfig *config);
 
-void CP_ICACHE_FLASH_ATTR
-_cfConfigWrite(chatFabricConfig *config, int nokeys, int returnConfig, unsigned char * cstr, int  *cstr_len);
+void CP_ICACHE_FLASH_ATTR 
+_createKeyString (chatFabricConfig *config, msgbuffer *str);
 
-
+void CP_ICACHE_FLASH_ATTR 
+_createConfigString (chatFabricConfig *config, msgbuffer *str);
 
 // void CP_ICACHE_FLASH_ATTR chatFabric_configParse(chatFabricConfig *config);
 

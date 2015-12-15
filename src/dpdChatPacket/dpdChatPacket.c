@@ -1,4 +1,4 @@
-/* 
+/*
 Copyright (c) 2015, David P. Discher
 All rights reserved.
 
@@ -451,7 +451,7 @@ chatPacket_init0 (void) {
 
 	cp->payloadRandomPaddingLength = 0;
 	
-	cp->payload = 0;
+	cp->payload = NULL;
 	
 	h =  arc4random_uniform(15) + 1;
 	l = 16 - h;
@@ -870,8 +870,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 		printf ( " WARNING = OB Length => index didn't match e_length! %u != %u\n", i, ob_length );	
 	}
 	
-//	CHATFABRIC_DEBUG_B2H(config->debug, "CP ENC", (unsigned char *)ob->msg, ob_length);
-
+	CHATFABRIC_DEBUG(config->debug, "return" );
 		
 }
 
