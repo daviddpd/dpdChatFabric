@@ -287,7 +287,10 @@ enum chatFabricConfigTags  {
 	cftag_header		= 0xA5, // 165
 	cftag_configLength	= 0xF0, // 240
 	cftag_pairLength	= 0xF1, // 241
-	cftag_pairs	= 0xF2, // 241
+	cftag_pairs			= 0xF2, // 241
+	
+	cftag_eof			= 0xFA, // 250
+	
 
 } ESP_WORD_ALIGN;
 

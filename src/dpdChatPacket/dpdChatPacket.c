@@ -80,6 +80,14 @@ actionLookup (enum chatPacketActions tag) {
 		case ACTION_SET:
 			return "SET";
 		break;
+
+		case ACTION_GET_CONFIG:
+			return "GET_CONFIG";
+		break;
+		case ACTION_SET_CONFIG:
+			return "SET_CONFIG";
+		break;
+		
 		case ACTION_READ:
 			return "READ";
 		break;
@@ -218,6 +226,12 @@ tagLookup (enum chatPacketTags tag) {
 		case cptag_app_control_data:
 			return "app_control_data";
 		break;
+		case cptag_ENDTAG:
+			return "ENDTAG";
+		break;
+		case cptag_cmd:
+			return "cmd";
+		break;
 	 	 	 	 		
 	}
 	return "UNKNOWN";
@@ -316,6 +330,12 @@ cmdLookup (enum chatPacketCommands cmd) {
 	case CMD_APP_LIST:
 		return "CMD_APP_LIST";
 	break;
+	case CMD_CONFIG_GET:
+		return "CMD_CONFIG_GET";
+	break;
+	case CMD_CONFIG_SET:
+		return "CMD_CONFIG_SET";
+	break;
 	case CMD_CONFIG_MESSAGE:
 		return "CMD_CONFIG_MESSAGE";
 	break;
@@ -356,6 +376,176 @@ cmdLookup (enum chatPacketCommands cmd) {
 
 
 }
+
+
+const char * 
+CP_ICACHE_FLASH_ATTR
+cfTagLookup (enum chatFabricConfigTags tag) {
+
+	switch (cmd) {	
+		case cftag_publickey:
+			return "publickey";
+		break;
+		case cftag_privatekey:
+			return "privatekey";
+		break;
+		case cftag_nonce:
+			return "nonce";
+		break;
+		case cftag_mynonce:
+			return "mynonce";
+		break;
+		case cftag_uuid0:
+			return "uuid0";
+		break;
+		case cftag_uuid1:
+			return "uuid1";
+		break;
+		case cftag_hasPublicKey:
+			return "hasPublicKey";
+		break;
+		case cftag_hasNonce:
+			return "hasNonce";
+		break;
+		case cftag_state:
+			return "state";
+		break;
+		case cftag_serial:
+			return "serial";
+		break;
+		case cftag_hasPairs:
+			return "hasPairs";
+		break;
+		case cftag_debug:
+			return "debug";
+		break;
+		case cftag_port:
+			return "port";
+		break;
+		case cftag_hostname:
+			return "hostname";
+		break;
+		case cftag_wifi_ap:
+			return "wifi_ap";
+		break;
+		case cftag_wifi_ap_ssid:
+			return "wifi_ap_ssid";
+		break;
+		case cftag_wifi_ap_passwd:
+			return "wifi_ap_passwd";
+		break;
+		case cftag_wifi_ap_dhcps:
+			return "wifi_ap_dhcps";
+		break;
+		case cftag_dhcps_range_low:
+			return "dhcps_range_low";
+		break;
+		case cftag_dhcps_range_high:	
+			return "dhcps_range_high";
+		break;
+		case cftag_wifi_sta:
+			return "wifi_sta";
+		break;
+		case cftag_wifi_sta_ssid:
+			return "wifi_sta_ssid";
+		break;
+		case cftag_wifi_sta_passwd:
+			return "wifi_sta_passwd";
+		break;
+		case cftag_wifi_sta_dhcpc:
+			return "wifi_sta_dhcpc";
+		break;
+		case cftag_ap_ipv4:
+			return "ap_ipv4";
+		break;
+		case cftag_ap_ipv4netmask:
+			return "ap_ipv4netmask";
+		break;
+		case cftag_ap_ipv4gw:
+			return "ap_ipv4gw";
+		break;
+		case cftag_ap_ipv4ns1:
+			return "ap_ipv4ns1";
+		break;
+		case cftag_ap_ipv4ns2:
+			return "ap_ipv4ns2";
+		break;
+		case cftag_ap_ipv6:
+			return "ap_ipv6";
+		break;
+		case cftag_ap_ipv6netmask:
+			return "ap_ipv6netmask";
+		break;
+		case cftag_ap_ipv6gw:
+			return "ap_ipv6gw";
+		break;
+		case cftag_ap_ipv6ns1:
+			return "ap_ipv6ns1";
+		break;
+		case cftag_ap_ipv6ns2:
+			return "ap_ipv6ns2";
+		break;
+		case cftag_sta_ipv4:
+			return "sta_ipv4";
+		break;
+		case cftag_sta_ipv4netmask:
+			return "sta_ipv4netmask";
+		break;
+		case cftag_sta_ipv4gw:
+			return "sta_ipv4gw";
+		break;
+		case cftag_sta_ipv4ns1:
+			return "sta_ipv4ns1";
+		break;
+		case cftag_sta_ipv4ns2:
+			return "sta_ipv4ns2";
+		break;
+		case cftag_sta_ntpv4:
+			return "sta_ntpv4";
+		break;
+		case cftag_sta_ipv6:
+			return "sta_ipv6";
+		break;
+		case cftag_sta_ipv6netmask:
+			return "sta_ipv6netmask";
+		break;
+		case cftag_sta_ipv6gw:
+			return "sta_ipv6gw";
+		break;
+		case cftag_sta_ipv6ns1:
+			return "sta_ipv6ns1";
+		break;
+		case cftag_sta_ipv6ns2:
+			return "sta_ipv6ns2";
+		break;
+		case cftag_sta_ntpv6:
+			return "sta_ntpv6";
+		break;
+		case cftag_mode:
+			return "mode";
+		break;
+		case cftag_header:
+			return "header";
+		break;
+		case cftag_configLength:
+			return "configLength";
+		break;
+		case cftag_pairLength:
+			return "pairLength";
+		break;
+		case cftag_pairs:
+			return "pairs";
+		break;
+		case cftag_eof:
+			return "eof";
+		break;
+		default:
+			return "unknown";
+		break;
+	}
+
+}
+
 
 void CP_ICACHE_FLASH_ATTR
 chatPacket_calcNonce(uint32_t serial, unsigned char * nonce, unsigned char * sessionNonce )

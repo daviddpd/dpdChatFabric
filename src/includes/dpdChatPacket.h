@@ -60,6 +60,8 @@ void nonceInc(chatPacket *cp, chatFabricConfig *config, chatFabricPairing *pair)
 const char *  CP_ICACHE_FLASH_ATTR actionTypeLookup (enum chatPacketActionsType tag);
 const char *  CP_ICACHE_FLASH_ATTR actionLookup (enum chatPacketActions tag);
 const char *  CP_ICACHE_FLASH_ATTR tagLookup (enum chatPacketTags tag);
+const char *  CP_ICACHE_FLASH_ATTR cfTagLookup (enum chatFabricConfigTags tag);
+
 void CP_ICACHE_FLASH_ATTR chatPacket_calcNonce(uint32_t serial, unsigned char * nonce, unsigned char * sessionNonce );
 
 void 

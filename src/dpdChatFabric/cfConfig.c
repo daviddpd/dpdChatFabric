@@ -253,9 +253,7 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 				memcpy(&ni, str+i, 4);
 				i+=4;
 				config->dhcp_client_switch = ntohl(ni);
-			break;
-
-			
+			break;			
 			case cftag_dhcps_range_low:
 				memcpy(&ni, str+i, 4);
 				i+=4;
@@ -372,7 +370,10 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 			case cftag_privatekey:	// 1+crypto_box_SECRETKEYBYTES
 				memcpy(&(config->privatekey), str+i, crypto_box_SECRETKEYBYTES);
 				i+=crypto_box_SECRETKEYBYTES;
-			break;		
+			break;
+			case cftag_eof:
+				filesize=i;
+			break;				
 			default:
 // 				CHATFABRIC_DEBUG_FMT(config->debug,  
 // 					"[DEBUG][%s:%s:%d] Bad Config File Tag : %02x \n", 
@@ -401,6 +402,8 @@ cfConfigWrite(chatFabricConfig *config) {
 #ifdef ESP8266
 	memcpy( &(flashConfig[0]), configstr.msg, configstr.length);
 	memcpy( &(flashConfig[configstr.length]), keys.msg, keys.length);
+	memcpy( &(flashConfig[configstr.length+keys.length]), (unsigned char)cftag_eof, 1);
+	
 	
 	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
 		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect Failed.");
@@ -411,6 +414,8 @@ cfConfigWrite(chatFabricConfig *config) {
 	if ( fp != 0 ) {  
 		size_t fwi = fwrite (configstr.msg, sizeof (unsigned char), configstr.length, fp );
 		fwi = fwrite (keys.msg, sizeof (unsigned char), keys.length, fp );
+		fwi = fwrite ((unsigned char)cftag_eof, sizeof (unsigned char), 1, fp );
+		
 		fclose(fp);	
 	}
 
@@ -508,7 +513,7 @@ _createConfigString (chatFabricConfig *config, msgbuffer *str)
 	str->length = len;
 
 	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_header, 0, NULL, 0, NULL);
-	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_configLength, len, NULL, 0, NULL);
+//	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_configLength, len, NULL, 0, NULL);
 	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_hasPairs, config->hasPairs, NULL, 0, NULL);
 	cfTagEncoder ( CP_UUID, str->msg, (uint32_t *)&i, cftag_uuid0, 0, NULL, 0,  &config->uuid.u0);
 	cfTagEncoder ( CP_UUID, str->msg, (uint32_t *)&i, cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
