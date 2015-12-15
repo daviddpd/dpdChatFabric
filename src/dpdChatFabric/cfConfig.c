@@ -391,16 +391,16 @@ cfConfigWrite(chatFabricConfig *config) {
 	
 	_createConfigString (config, &configstr);
     CHATFABRIC_DEBUG_B2H(config->debug, "Config String", 
-    	(unsigned char*)configstr->msg, configstr->length  );
+    	(unsigned char*)configstr.msg, configstr.length  );
 
 	_createKeyString (config, &keys);
     CHATFABRIC_DEBUG_B2H(config->debug, "Keys String", 
-    	(unsigned char*)keys->msg, keys->length  );
+    	(unsigned char*)keys.msg, keys.length  );
 
 
 #ifdef ESP8266
-	memcpy( &(flashConfig[0]), configstr->msg, configstr->length);
-	memcpy( &(flashConfig[configstr->length]), keys->msg, keys->length);
+	memcpy( &(flashConfig[0]), configstr.msg, configstr.length);
+	memcpy( &(flashConfig[configstr.length]), keys.msg, keys.length);
 	
 	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
 		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect Failed.");
