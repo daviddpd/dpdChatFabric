@@ -125,14 +125,15 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 
 
 enum chatFabricErrors CP_ICACHE_FLASH_ATTR
-chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabricConfig *config, chatFabricAction *a , msgbuffer *b) 
+chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, 
+						chatFabricConfig *config, chatFabricAction *a , msgbuffer *b) 
 {
 	int n;
 	socklen_t len;
 	chatPacket *cp;
 	msgbuffer mb;
 	unsigned char * nullmsg = 0;
-	b->length = 0;		
+//	b->length = 0;		
 	enum chatFabricErrors e;
 #ifndef ESP8266
 	chatFabric_consetup(c, config->ip, config->port);
@@ -150,6 +151,18 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair, chatFabr
 			cp = chatPacket_init (config, pair, CMD_APP_LIST,  NULL, 0,  CMD_SEND_REPLY_TRUE);
 		} else if ( a->action == ACTION_GET_CONFIG ) {
 			cp = chatPacket_init (config, pair, CMD_CONFIG_GET,  NULL, 0,  CMD_SEND_REPLY_TRUE);
+		} else if ( a->action == ACTION_SET_CONFIG ) {
+
+		    CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "cf Controller msg buffer",
+        	                 (unsigned char*)b->msg, b->length  );
+		
+			cp = chatPacket_init (config, pair, CMD_CONFIG_SET,  b->msg, b->length,  CMD_SEND_REPLY_TRUE);
+
+		    CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "cf Controller cp payload",
+        	                 (unsigned char*)cp->payload, cp->payloadLength  );
+
+			free(b->msg);
+			b->length = 0;
 		} else if ( config->msg == 0 || config->msg == NULL ) {
 			cp = chatPacket_init (config, pair, CMD_APP_MESSAGE,  NULL, 0,  CMD_SEND_REPLY_TRUE);
 		} else { 
@@ -711,6 +724,14 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 			RETVAL = CMD_SEND_REPLY_TRUE;	
 		break;
 		case CMD_CONFIG_SET:
+
+	        cfConfigSetFromStr(config, cp->payload, cp->payloadLength);
+	        
+			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "WiFI AP SSID %s", config->wifi_ap_ssid);
+			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "WiFI AP Switch %d", config->wifi_ap_switch);
+	        cfConfigWrite(config);
+	        
+			reply->cmd = CMD_APP_MESSAGE_ACK;			
 			RETVAL = CMD_SEND_REPLY_TRUE;			
 		break;
 		

@@ -15,6 +15,8 @@ espCfConfigInit()
 
 
 	cfConfigInit(&config);
+	config.wifi_ap_switch = 1;
+	config.wifi_sta_switch = 0;
 	cfConfigRead(&config);
 
 	config.pairfile = "1";		
@@ -76,8 +78,6 @@ espCfConfigInit()
 	
 	config.mode = SOFTAP_MODE;
 	config.mode = STATION_MODE;
-	config.wifi_ap_switch = 0;
-	config.wifi_sta_switch = 1;
 	
 /*
 	i =	1;

@@ -408,7 +408,9 @@ cfConfigWrite(chatFabricConfig *config) {
 	
 	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
 		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect Failed.");
-	}	
+	} else {
+		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect - SUCCESS.");	
+	}
 #else
 	FILE *fp=0;
 	fp = fopen(config->newconfigfile,"w");
@@ -444,7 +446,7 @@ _createKeyString (chatFabricConfig *config, msgbuffer *str)
     CHATFABRIC_DEBUG_B2H(config->debug, "Keys Public", 
     	(unsigned char*)&(config->publickey), crypto_box_PUBLICKEYBYTES  );
     CHATFABRIC_DEBUG_B2H(config->debug, "Keys Private", 
-    	&(config->privatekey), crypto_box_SECRETKEYBYTES  );
+    	(unsigned char*)&(config->privatekey), crypto_box_SECRETKEYBYTES  );
 
 
 	cfTagEncoder ( CP_DATA8, str->msg, (uint32_t *)&i, cftag_publickey, 0,(unsigned char *)&(config->publickey), crypto_box_PUBLICKEYBYTES, NULL);

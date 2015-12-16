@@ -793,9 +793,10 @@ user_init()
 	changeMode(MODE_BOOTING);
 	uart0enabled = 1;
 	userGPIOInit();
+	user_init_stage2();
 
-	os_timer_disarm(&statusReg);
-	os_timer_setfn(&statusReg, (os_timer_func_t *)bootwait, NULL);
-	os_timer_arm(&statusReg, 250, 1);
+//	os_timer_disarm(&statusReg);
+//	os_timer_setfn(&statusReg, (os_timer_func_t *)bootwait, NULL);
+//	os_timer_arm(&statusReg, 250, 1);
 
 }

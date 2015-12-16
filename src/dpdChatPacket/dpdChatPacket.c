@@ -666,7 +666,8 @@ chatPacket_init0 (void) {
 
 chatPacket*
 CP_ICACHE_FLASH_ATTR
-chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, enum chatPacketCommands cmd, unsigned char *payload, uint32_t len, uint32_t flags) {
+chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair, 
+				enum chatPacketCommands cmd, unsigned char *payload, uint32_t len, uint32_t flags) {
 
 	chatPacket * cp;
 	uuid_tuple *to = &(pair->uuid);

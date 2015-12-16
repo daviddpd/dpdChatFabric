@@ -64,6 +64,14 @@ espCfWiFi_callBack(System_Event_t *evt)
 			IP2STR(&evt->event_info.got_ip.ip),
 			IP2STR(&evt->event_info.got_ip.mask),
 			IP2STR(&evt->event_info.got_ip.gw));
+			
+			config.sta_ipv4 = (uint32_t)evt->event_info.got_ip.ip.addr;
+			config.sta_ipv4netmask = (uint32_t)evt->event_info.got_ip.mask.addr;
+			config.sta_ipv4gw = (uint32_t)evt->event_info.got_ip.gw.addr;
+			config.sta_ipv4ns1 = (uint32_t)evt->event_info.got_ip.gw.addr;
+			config.sta_ipv4ns2 = (uint32_t)evt->event_info.got_ip.gw.addr;
+			config.ntpv4 = (uint32_t)evt->event_info.got_ip.gw.addr;
+			
 			ntp_get_time();
 			espCfMdns();
 			espCfWiFi_listen();
