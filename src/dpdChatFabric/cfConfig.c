@@ -221,6 +221,11 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 				i+=4;
 				config->hasPairs = ntohl(ni);
 			break;
+			case cftag_debug:
+				memcpy(&ni, str+i, 4);
+				i+=4;
+				config->debug = ntohl(ni);
+			break;
 			case cftag_uuid0:			// 1+16
 				uuidFromBytes(str+i, &config->uuid.u0);
 				i+=16;
@@ -464,6 +469,7 @@ _createConfigString (chatFabricConfig *config, msgbuffer *str)
 	len+=1+4; // header
 	len+=1+4; // length
 	len+=1+4; // haspairs
+	len+=1+4; // debug
 
 	len+=1+16; // uuid
 	len+=1+16;
@@ -518,6 +524,7 @@ _createConfigString (chatFabricConfig *config, msgbuffer *str)
 	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_header, 0, NULL, 0, NULL);
 //	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_configLength, len, NULL, 0, NULL);
 	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_hasPairs, config->hasPairs, NULL, 0, NULL);
+	cfTagEncoder ( CP_INT32, str->msg, (uint32_t *)&i, cftag_debug, config->debug, NULL, 0, NULL);
 	cfTagEncoder ( CP_UUID, str->msg, (uint32_t *)&i, cftag_uuid0, 0, NULL, 0,  &config->uuid.u0);
 	cfTagEncoder ( CP_UUID, str->msg, (uint32_t *)&i, cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
 

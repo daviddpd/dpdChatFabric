@@ -235,9 +235,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 
 	}
 */	
-#ifndef ESP8266	
-	//close (c->socket);
-#endif
+
 	return e;
 	
 }
@@ -503,6 +501,10 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 				reply->flags = pair->state;
 				reply->cmd = CMD_PAIR_REQUEST;
 				RETVAL = CMD_SEND_REPLY_TRUE;
+			} else {			
+				reply->flags = pair->state;
+				reply->cmd = CMD_FAIL;
+				RETVAL = CMD_SEND_REPLY_TRUE;
 			}
 		break;
 		case CMD_HELLO:
@@ -724,13 +726,9 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 			RETVAL = CMD_SEND_REPLY_TRUE;	
 		break;
 		case CMD_CONFIG_SET:
-
-	        cfConfigSetFromStr(config, cp->payload, cp->payloadLength);
-	        
-			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "WiFI AP SSID %s", config->wifi_ap_ssid);
-			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "WiFI AP Switch %d", config->wifi_ap_switch);
+	        cfConfigSetFromStr(config, cp->payload, cp->payloadLength);	        
 	        cfConfigWrite(config);
-	        
+			_GLOBAL_DEBUG = config->debug;	             
 			reply->cmd = CMD_APP_MESSAGE_ACK;			
 			RETVAL = CMD_SEND_REPLY_TRUE;			
 		break;

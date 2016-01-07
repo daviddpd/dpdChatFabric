@@ -23,18 +23,50 @@ espCfConfigInit()
 	config.callback = (void*)&deviceCallBack;
 	config.debug = 1;
 
-	config.numOfControllers = 4;
-	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
 	
 	memcpy( &config.wifi_ap_passwd, "esp8266!demo", 12 );
-	memcpy( &config.wifi_sta_passwd, SSID_PASSWORD, strlen(SSID_PASSWORD) );
-	memcpy( &config.wifi_sta_ssid, SSID, strlen(SSID) );
+//	memcpy( &config.wifi_sta_passwd, SSID_PASSWORD, strlen(SSID_PASSWORD) );
+//	memcpy( &config.wifi_sta_ssid, SSID, strlen(SSID) );
 
 	// 13 == red
 	// 12 == green
 	// 4 == yellow
 
+#ifdef ESP_DEVICE_OUTLET
+
 	int i =	0;		
+	config.numOfControllers = 2;
+	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+	config.controlers[i].value = 1;
+	config.controlers[i].label = "Top Outlet";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 1;
+	config.controlers[i].gpio = 13;
+
+	i++;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+	config.controlers[i].value = 1;
+	config.controlers[i].label = "Bottom Outlet";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 1;
+	config.controlers[i].gpio = 12;
+//	config.debug = 1;
+
+#else
+
+	// ESP_DEVICE_GENERIC
+
+	int i =	0;		
+	config.numOfControllers = 4;
+	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
+	
 	config.controlers[i].control = i;
 	config.controlers[i].type = ACTION_TYPE_GAUGE;
 	config.controlers[i].value = 0;
@@ -75,31 +107,12 @@ espCfConfigInit()
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
 	config.controlers[i].gpio = 12;
-	
+
+
+#endif
+		
 	config.mode = SOFTAP_MODE;
 	config.mode = STATION_MODE;
-	
-/*
-	i =	1;
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-	config.controlers[i].value = 0;
-	config.controlers[i].label = "switch2";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
-
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 1;
-
-	i++;
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_DIMMER;
-	config.controlers[i].value = 0;
-	config.controlers[i].label = "Dimmer0";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 8;
-
-*/
 
 
 }

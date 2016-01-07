@@ -2,7 +2,7 @@
 #include "cfstructs.h"
 #include "assert.h"
 
-int _GLOBAL_DEBUG = 1;
+int _GLOBAL_DEBUG = 0;
 hostmeta_t hostMeta;
 
 #ifdef ESP8266

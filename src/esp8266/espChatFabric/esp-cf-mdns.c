@@ -10,7 +10,7 @@ espCfMdns()
 	char buffer2[HOSTNAME_MAX_LENGTH] = {0};
 
 	if (mdns_status) {
-		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "Closing mDNS (%d) \n", mdns_status);
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "Closing mDNS (%d)", mdns_status);
 		espconn_mdns_close();
 		mdns_status = 0;
 	}
@@ -19,20 +19,18 @@ espCfMdns()
 	
 	bzero(&ipconfig, sizeof(ipconfig) );	
 
-	if ( config.mode == SOFTAP_MODE || 	config.mode == STATIONAP_MODE ) {
+	if ( config.mode == SOFTAP_MODE ) { 		
 		// wifi_get_ip_info(SOFTAP_IF, &ipconfig);	
 		ipconfig.ip.addr = config.ap_ipv4;
-		wifi_set_broadcast_if(SOFTAP_MODE);
-		CHATFABRIC_DEBUG (_GLOBAL_DEBUG, "softap_if ip \n");
+		CHATFABRIC_DEBUG (_GLOBAL_DEBUG, "softap_if ip");
 	} else {
 		wifi_get_ip_info(STATION_IF, &ipconfig);
-		wifi_set_broadcast_if(STATION_MODE);
-		CHATFABRIC_DEBUG (_GLOBAL_DEBUG, "station_if ip \n");	
+		CHATFABRIC_DEBUG (_GLOBAL_DEBUG, "station_if ip");
 	}
 	
+	wifi_set_broadcast_if(config.mode);
 	
-	CHATFABRIC_DEBUG (_GLOBAL_DEBUG, "Setting Up mDNS \n");
-	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "ip:" IPSTR "\n",  IP2STR(&ipconfig.ip) );
+	CHATFABRIC_DEBUG_FMT (_GLOBAL_DEBUG, "Setting Up mDNS; ip:" IPSTR " ",  IP2STR(&ipconfig.ip) );
 	struct mdns_info *info = (struct mdns_info *)os_zalloc(sizeof(struct mdns_info));
 	
 	info->ipAddr = ipconfig.ip.addr; //ESP8266 station IP

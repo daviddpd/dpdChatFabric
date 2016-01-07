@@ -289,6 +289,22 @@ shiftReg0() {
 
 }
 
+void CP_ICACHE_FLASH_ATTR 
+gpioInitFromConfig(chatFabricConfig *config) 
+{
+
+	int i;
+	for (i=0; i<config->numOfControllers; i++) 
+	{
+		if (config->controlers[i].gpio == 16) {
+			gpio16_output_set(config->controlers[i].value);
+		} else {
+			GPIO_OUTPUT_SET(config->controlers[i].gpio, config->controlers[i].value);
+			printf ( "=== %10s: %4d %24s %4d %4d \n", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
+		}		
+	}			
+
+}
 
 void CP_ICACHE_FLASH_ATTR 
 deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd) 
@@ -769,6 +785,8 @@ user_init_stage2()
 	shiftReg1();
 
 	cfConfigWrite(&config);
+	_GLOBAL_DEBUG = config.debug;
+	gpioInitFromConfig(&config);
 
 	os_timer_disarm(&statusReg);
 	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
