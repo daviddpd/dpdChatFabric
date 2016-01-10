@@ -20,9 +20,16 @@
 #define ESP_WORD_ALIGN __attribute__ (())
 #endif
 
-time_t ntp_unix_timestamp;
-int ntp_status;
 
+
+static os_timer_t ntp_timeout;
+static struct espconn *pCon = 0;
+
+enum NTP_STATE {	
+	NTP_STATE_SET,
+	NTP_STATE_SETTING,
+	NTP_STATE_TIMEOUT,
+};
 typedef struct {
 	uint8 options;
 	uint8 stratum;

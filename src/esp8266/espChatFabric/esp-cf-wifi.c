@@ -6,7 +6,7 @@ extern int _GLOBAL_DEBUG;
 void udp_callback(void *arg, char *data, unsigned short length);
 void tcp_listen(void *arg);
 
-void CP_ICACHE_FLASH_ATTR changeMode(enum deviceModes m);
+//void CP_ICACHE_FLASH_ATTR changeMode(enum deviceModes m);
 
 void CP_ICACHE_FLASH_ATTR
 espCfWiFi_listen() {
@@ -43,7 +43,7 @@ espCfWiFi_callBack(System_Event_t *evt)
 			evt->event_info.connected.channel);
 
 			currentMode = MODE_STA_UNPAIRED;
-			changeMode(currentMode);
+//			changeMode(currentMode);
 			
 		break;
 		case EVENT_STAMODE_DISCONNECTED:
@@ -51,7 +51,7 @@ espCfWiFi_callBack(System_Event_t *evt)
 			evt->event_info.disconnected.ssid,
 			evt->event_info.disconnected.reason);
 			currentMode = MODE_STA_NOWIFI;
-			changeMode(currentMode);
+//			changeMode(currentMode);
 		break;
 		case EVENT_STAMODE_AUTHMODE_CHANGE:
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "mode: %d -> %d",
@@ -76,7 +76,7 @@ espCfWiFi_callBack(System_Event_t *evt)
 			espCfMdns();
 			espCfWiFi_listen();
 			currentMode = MODE_STA_UNPAIRED;
-			changeMode(currentMode);
+//			changeMode(currentMode);
 		break;
 		case EVENT_SOFTAPMODE_STACONNECTED:
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "station: " MACSTR "join, AID = %d",
@@ -128,7 +128,7 @@ espWiFiInit()
 
 	if ( config.mode == SOFTAP_MODE || config.mode == STATIONAP_MODE ) {
 		currentMode = MODE_STA_NOWIFI;
-		changeMode(currentMode);
+//		changeMode(currentMode);
 		struct ip_info info;
 		bzero(&info, sizeof(info) );
 		info.ip.addr = config.ap_ipv4;
@@ -193,7 +193,7 @@ espWiFiInit()
     
     if ( config.mode == STATIONAP_MODE || config.mode == STATION_MODE ) {
 		currentMode = MODE_AP_UNPAIRED;
-		changeMode(currentMode);
+//		changeMode(currentMode);
 	    //Set ap settings
     	bzero ( &stationConf.ssid, 32);
 	    bzero ( &stationConf.password, 64);

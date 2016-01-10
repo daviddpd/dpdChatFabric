@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void CP_ICACHE_FLASH_ATTR
 chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 {
+ 	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "Connect IP: %s", ip );
 
 	int lowwater = 32;
 	
@@ -72,10 +73,7 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 	c->socket = -1;		
 	c->socket=socket(AF_INET,c->type,0);
 
-// 	CHATFABRIC_DEBUG_FMT(1,  
-// 		"[DEBUG][%s:%s:%d] ERRNO: %d  Socket FD %d \n", 
-// 		__FILE__, __FUNCTION__, __LINE__,  errno, c->socket );
-
+ 	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "ERRNO: %d %s  Socket FD %d ", errno, strerror(errno), c->socket );
 	
 	if (c->socket == -1 ) {
 		return;
@@ -110,11 +108,10 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 	} else {
 		if ( c->type == SOCK_STREAM ) {
 			if ( connect(c->socket, (struct sockaddr *)&c->sockaddr, sizeof(c->sockaddr) ) < 0 ) {
-// 			CHATFABRIC_DEBUG_FMT(1,  
-// 				"[DEBUG][%s:%s:%d] ERRNO: %d  Socket Connect FD %d , %s \n", 
-// 				__FILE__, __FUNCTION__, __LINE__,  errno, c->socket, strerror(errno) );			
+	 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,
+                            "ERRNO: %d %s Socket Connect FD %d",
+                                     errno, strerror(errno) , c->socket );
 			}
-
 		}
 	}
 	
@@ -135,6 +132,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 	unsigned char * nullmsg = 0;
 //	b->length = 0;		
 	enum chatFabricErrors e;
+
 #ifndef ESP8266
 	chatFabric_consetup(c, config->ip, config->port);
 	if ( c->socket == -1 ) {
@@ -153,13 +151,13 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 			cp = chatPacket_init (config, pair, CMD_CONFIG_GET,  NULL, 0,  CMD_SEND_REPLY_TRUE);
 		} else if ( a->action == ACTION_SET_CONFIG ) {
 
-		    CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "cf Controller msg buffer",
-        	                 (unsigned char*)b->msg, b->length  );
+//		    CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "cf Controller msg buffer",
+//        	                 (unsigned char*)b->msg, b->length  );
 		
 			cp = chatPacket_init (config, pair, CMD_CONFIG_SET,  b->msg, b->length,  CMD_SEND_REPLY_TRUE);
 
-		    CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "cf Controller cp payload",
-        	                 (unsigned char*)cp->payload, cp->payloadLength  );
+//		    CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "cf Controller cp payload",
+//        	                 (unsigned char*)cp->payload, cp->payloadLength  );
 
 			free(b->msg);
 			b->length = 0;
@@ -178,7 +176,6 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 #ifdef ESP8266
 		espconn_sent(c->conn, (uint8 *)mb.msg, mb.length);
 #else
-	len = sizeof(c->sockaddr);
 	
 	int retry = 3;
 	do {
@@ -189,9 +186,11 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 				n = write(c->socket, mb.msg, mb.length);		
 			}
 		} else {	
+			len = sizeof(c->sockaddr);
 			n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);
 		}
 		if ( n == -1 ) {
+		    CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "TCP Socket Error %d, %s Retry %d", errno, strerror(errno), retry);
 			retry--;
 			if ( c->type == SOCK_STREAM ) {
 				close(c->socket);
@@ -200,9 +199,13 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 			c->socket = -1;
 			chatFabric_consetup(c, config->ip, config->port);
 			if ( c->socket == -1 ) {
+			    CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "chatFabric_consetup call returned -1 socket " );
 				return ERROR_SOCKET;
+			} else {
+			    CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "chatFabric_consetup opened new socket" );
 			}
 		} else {
+		    CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "TCP Socket Wrote %d bytes ", n );
 			retry = 0;
 		}
 	} while ( retry );
@@ -412,12 +415,15 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		if ( c->bind == 1 ) 
 		{
 		    n = write(c->acceptedSocket, mb.msg, mb.length);
+			CHATFABRIC_DEBUG_FMT(config->debug,  
+				"chatPacket TCP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s", 
+				n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
 		} else {
-		    n = write(c->socket, mb.msg, mb.length);		
+		    n = write(c->socket, mb.msg, mb.length);
+			CHATFABRIC_DEBUG_FMT(config->debug,  
+				"chatPacket TCP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s", 
+				n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
 		}
-		CHATFABRIC_DEBUG_FMT(config->debug,  
-			"chatPacket TCP data sent. Bytes: %d  errno %d, socket %d %d  SOCK_TYPE : %d  %s", 
-			n, errno,c->acceptedSocket, c->socket, c->type, strerror(errno)  );
 	} else {	
 		n = sendto(c->socket, mb.msg, mb.length, 0, (struct sockaddr *)&(c->sockaddr), len);	
 		CHATFABRIC_DEBUG_FMT(config->debug,  
@@ -442,13 +448,15 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 			close(c->acceptedSocket);
 			c->acceptedSocket = -1;
 		} else if ( c->socket != -1 ) {
+			close(c->socket);
+			c->acceptedSocket = -1;
+			c->socket = -1;		    
 		
 //			close(c->socket);
 //			c->socket = -1;
 	
 		}
-		
-		
+				
 //		CHATFABRIC_DEBUG_FMT(config->debug,  
 //			"[DEBUG][%s:%s:%d] chatPacket TCP CLOSING Accepted Socket.  socket %d %d  SOCK_TYPE : %d  %s \n", 
 //			__FILE__, __FUNCTION__, __LINE__,  c->acceptedSocket, c->socket, c->type, strerror(errno)  );

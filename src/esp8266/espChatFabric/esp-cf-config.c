@@ -74,6 +74,7 @@ espCfConfigInit()
 	config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 0xffffffff;			
+	config.controlers[i].gpio = -1;
 	
 	i++;
 	config.controlers[i].control = i;

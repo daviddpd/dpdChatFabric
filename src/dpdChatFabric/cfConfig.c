@@ -50,9 +50,13 @@ cfConfigInit(chatFabricConfig *config) {
     config->mode = 0;
 #endif
     
-	
-
-	config->port = 1288;
+/*	
+exp1            1021/tcp    # RFC3692-style Experiment 1 (*)    [RFC4727]
+exp1            1021/udp    # RFC3692-style Experiment 1 (*)    [RFC4727]
+exp2            1022/tcp    # RFC3692-style Experiment 2 (*)    [RFC4727]
+exp2            1022/udp    # RFC3692-style Experiment 2 (*)    [RFC4727]
+*/
+	config->port = 2030;
 	config->type = -1; // SOCK_STREAM SOCK_DGRAM SOCK_RAW SOCK_RDM SOCK_SEQPACKET
 	config->hasPairs = 0;
 

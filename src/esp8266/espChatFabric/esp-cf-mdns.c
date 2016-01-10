@@ -1,5 +1,6 @@
 #include "esp-cf-mdns.h"
 
+struct mdns_info *mdnsinfo;
 int mdns_status = 0;
 extern int _GLOBAL_DEBUG;
 
@@ -31,11 +32,12 @@ espCfMdns()
 	wifi_set_broadcast_if(config.mode);
 	
 	CHATFABRIC_DEBUG_FMT (_GLOBAL_DEBUG, "Setting Up mDNS; ip:" IPSTR " ",  IP2STR(&ipconfig.ip) );
-	struct mdns_info *info = (struct mdns_info *)os_zalloc(sizeof(struct mdns_info));
+	mdnsinfo = (struct mdns_info *)os_zalloc(sizeof(struct mdns_info));
 	
-	info->ipAddr = ipconfig.ip.addr; //ESP8266 station IP
-	info->server_name = "chatFabric";
-	info->server_port = config.port;
+	mdnsinfo->ipAddr = ipconfig.ip.addr; //ESP8266 station IP
+//	mdnsinfo->server_name = "chatFabric";
+	mdnsinfo->server_name = "exp1";
+	mdnsinfo->server_port = config.port;
 
 	if ( config.hostname[0] == 0 ) {
 		os_sprintf(buffer2, "%s-%02x:%02x:%02x:%02x:%02x:%02x", "cf",  MAC2STR(hostMeta.hwaddr) );
@@ -45,27 +47,27 @@ espCfMdns()
 
 	int len = strlen (buffer2) + 1;
 
-	info->host_name = (char*)malloc(len*sizeof(char));
-	bzero(info->host_name, len*sizeof(char));
-	os_memcpy(info->host_name, &buffer2, len);
+	mdnsinfo->host_name = (char*)malloc(len*sizeof(char));
+	bzero(mdnsinfo->host_name, len*sizeof(char));
+	os_memcpy(mdnsinfo->host_name, &buffer2, len);
 
 	bzero(buffer2, HOSTNAME_MAX_LENGTH);
-	info->txt_data[0] = (char*)malloc(HOSTNAME_MAX_LENGTH*sizeof(char));
-	bzero(info->txt_data[0], HOSTNAME_MAX_LENGTH*sizeof(char));	
-	os_sprintf(info->txt_data[0], "MAC=%02x:%02x:%02x:%02x:%02x:%02x", MAC2STR(hostMeta.hwaddr) );
+	mdnsinfo->txt_data[0] = (char*)malloc(HOSTNAME_MAX_LENGTH*sizeof(char));
+	bzero(mdnsinfo->txt_data[0], HOSTNAME_MAX_LENGTH*sizeof(char));	
+	os_sprintf(mdnsinfo->txt_data[0], "MAC=%02x:%02x:%02x:%02x:%02x:%02x", MAC2STR(hostMeta.hwaddr) );
 
-	info->txt_data[1] = (char*)malloc(44*sizeof(char));
-	bzero(info->txt_data[1], 44*sizeof(char));
+	mdnsinfo->txt_data[1] = (char*)malloc(44*sizeof(char));
+	bzero(mdnsinfo->txt_data[1], 44*sizeof(char));
 	char uuid_str[38] = {0};
 	
 	snprintf_uuid(&uuid_str[0], 38, &(config.uuid.u0));
-	os_sprintf(info->txt_data[1], "uuid0=%s", uuid_str );
+	os_sprintf(mdnsinfo->txt_data[1], "uuid0=%s", uuid_str );
 
-	info->txt_data[2] = (char*)malloc(44*sizeof(char));
-	bzero(info->txt_data[2], 44*sizeof(char));
+	mdnsinfo->txt_data[2] = (char*)malloc(44*sizeof(char));
+	bzero(mdnsinfo->txt_data[2], 44*sizeof(char));
 	snprintf_uuid(&uuid_str[0], 38, &(config.uuid.u1));
-	os_sprintf(info->txt_data[2], "uuid1=%s", uuid_str );
-	espconn_mdns_init(info);
+	os_sprintf(mdnsinfo->txt_data[2], "uuid1=%s", uuid_str );
+	espconn_mdns_init(mdnsinfo);
 	mdns_status=1;
 	
 

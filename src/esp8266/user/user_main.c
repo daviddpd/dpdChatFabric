@@ -22,14 +22,18 @@
 //extern enum deviceModes currentMode;
 
 extern time_t ntp_unix_timestamp;
-extern int ntp_status;
+time_t seconds_since_boot;
+extern enum NTP_STATE ntp_status;
 //extern char macAddr[];
 extern hostmeta_t hostMeta;
 
+extern char ntp_status_str[];
+extern struct mdns_info *mdnsinfo;
 
 int bootstatus = 0;  // 1 - network up, 2-ready
 // os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 static void loop();
+static void clock_loop();
 void CP_ICACHE_FLASH_ATTR user_init_stage2();
 //uint32_t ninc = 0;
 
@@ -47,6 +51,9 @@ int SR_SRCLK;
 int SR_RCLK = 4;
 
 uint32_t controls[16];
+uint32_t ntpcounter = 0;
+uint32_t ntpstatus_printed = 0;
+
 
 LOCAL os_timer_t boottimer;
 LOCAL os_timer_t poketimer;
@@ -54,6 +61,8 @@ LOCAL os_timer_t poketimer;
 LOCAL os_timer_t buttonDebounce;
 LOCAL os_timer_t shiftReg;
 LOCAL os_timer_t statusReg;
+LOCAL os_timer_t ntpTimer;
+LOCAL os_timer_t clockTimer;
 
 
 
@@ -70,9 +79,9 @@ void chatFabricInit();
 void userGPIOInit();
 void statusLoop();
 void udp_callback(void *arg, char *data, unsigned short length);
-void shiftReg0();
-void shiftReg1();
-void changeMode(enum deviceModes m);
+//void shiftReg0();
+//void shiftReg1();
+//void changeMode(enum deviceModes m);
 enum deviceModes menuItem = MODE_MENU_NONE;
 
 void CP_ICACHE_FLASH_ATTR
@@ -86,7 +95,7 @@ doButtonFunction(enum button b)
 			menuItem = MODE_MENU_IN;
 		}
 		os_printf ( " ==> Menu : %d \n", menuItem );
-		changeMode(menuItem);
+//		changeMode(menuItem);
 	}
 	
 	if ( b == BUTTON_SELECT && menuItem != MODE_MENU_NONE )  
@@ -99,11 +108,11 @@ doButtonFunction(enum button b)
 			case MODE_MENU_STAMODE:			
 			break;
 			case MODE_MENU_FACTORYRESET:
-				shiftReg0();
-				shiftReg1();
+//				shiftReg0();
+//				shiftReg1();
 
 				currentMode = MODE_BOOTING;
-				changeMode(MODE_BOOTING);
+//				changeMode(MODE_BOOTING);
 	
 				os_timer_disarm(&statusReg);
 				os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
@@ -118,176 +127,24 @@ doButtonFunction(enum button b)
 			case MODE_MENU_UNPAIRALL:
 				cfPairInit(&pair[0]);
 				currentMode = MODE_STA_UNPAIRED;
-				changeMode(MODE_STA_UNPAIRED);				
+//				changeMode(MODE_STA_UNPAIRED);				
 				os_printf ( " ==> Unpaired : %d \n", menuItem );
 			break;
 		}
 		
 
 		menuItem = MODE_MENU_NONE;
-		changeMode(currentMode);
+//		changeMode(currentMode);
 
 	}
 	
 }
 
 
-void CP_ICACHE_FLASH_ATTR
-changeMode(enum deviceModes m) {
-//	os_printf ( " ==> changeMode %d\n", m );
-
-	int i = 0;
-	for ( i=7; i>=0; i-- ) {
-		shiftBits1[i] = 0;
-	}
-	
-	switch (m) {
-		case MODE_UNCONFIGURED:
-			shiftBits1[0] = 0x01;
-		break;
-		case MODE_BOOTING:
-			shiftBits1[0] = 0x03;
-			shiftBits1[1] = 0x02;		
-		break;
-		
-		case MODE_AP_UNPAIRED:
-			shiftBits1[5] = 1;
-			shiftBits1[4] = 0x03;			
-		break;
-		
-		case MODE_AP_PAIRED:
-			shiftBits1[5] = 1;
-			shiftBits1[4] = 1;
-		break;
-
-		case MODE_STA_NOWIFI:
-			shiftBits1[3] = 1;
-			shiftBits1[2] = 0;
-			shiftBits1[0] = 0x03;
-			shiftBits1[1] = 0x03;
-		break;			
-		case MODE_STA_UNPAIRED:
-			shiftBits1[3] = 1;
-			shiftBits1[2] = 0x03;			
-		break;
-		case MODE_STA_PAIRED:
-			shiftBits1[3] = 1;
-			shiftBits1[2] = 1;
-		break;
-		
-		case MODE_MENU_IN:
-		case MODE_MENU_APMODE:
-		case MODE_MENU_STAMODE:
-		case MODE_MENU_FACTORYRESET:
-		case MODE_MENU_UNPAIRALL:
-			shiftBits1[7] = 0x03;
-			shiftBits1[6] = 0x02;		
-			if ( m == MODE_MENU_APMODE ) 		{ shiftBits1[5] = 1; }
-			if ( m == MODE_MENU_STAMODE ) 		{ shiftBits1[3] = 1; }
-			if ( m == MODE_MENU_FACTORYRESET )	{ shiftBits1[1] = 1; shiftBits1[0] = 1; }
-			if ( m == MODE_MENU_UNPAIRALL ) 	{ shiftBits1[5] = 1; shiftBits1[3] = 1; }
-		break;
-		default:
-			os_printf ( " ==> changeMode %d - mode not found, case default.\n", m );
-		break;
-	}
-/*
-	os_printf ( " ==> shiftBits: " );
-	for ( i=7; i>=0; i-- ) {
-		os_printf ( "%02x ", shiftBits1[i] );
-	}
-	os_printf ( "\n");	
-*/
-
-}
 
 
 
-void CP_ICACHE_FLASH_ATTR
-shiftReg1() {
-	SR_SRCLK = SR_SRCLK2; 
-	GPIO_OUTPUT_SET(SR_SRCLK, 0);
-	int i;
-	for ( i=7; i>=0; i-- ) {
-		
-		uint8 value = shiftBits1[i] & 0x01;
-		uint8 isBlink = shiftBits1[i] & 0x02;
-		
-		uint8 new_shiftBits = 0;
-		if ( isBlink ) {
-			new_shiftBits = shiftBits1[i] ^ 0x01;
-			shiftBits1[i] = new_shiftBits;
-		} 
-		
-		if ( value ) {
-			GPIO_OUTPUT_SET(SR_DATA, 1);
-		} else {
-			GPIO_OUTPUT_SET(SR_DATA, 0);
-		}		
 
-		os_delay_us(5);
-		GPIO_OUTPUT_SET(SR_SRCLK, 0);
-		os_delay_us(5);
-		GPIO_OUTPUT_SET(SR_SRCLK, 1);
-		os_delay_us(5);
-		GPIO_OUTPUT_SET(SR_SRCLK, 0);
-		
-	}
-
-	os_delay_us(10);
-	GPIO_OUTPUT_SET(SR_RCLK, 0);		
-	os_delay_us(10);
-	GPIO_OUTPUT_SET(SR_RCLK, 1);
-	os_delay_us(10);
-	GPIO_OUTPUT_SET(SR_RCLK, 0);		
-
-//	os_printf("\n");
-
-}
-
-
-//LOCAL os_timer_t buttonDebounce;
-void CP_ICACHE_FLASH_ATTR
-shiftReg0() {
-
-	int i;
-
-	if (shiftCounter == -1 ) {
-		for ( i=7; i>=0; i-- ) {
-			shiftBits0[i] = 0;
-			shiftBits1[i] = 0;
-		}
-		shiftCounter =0;
-	} 
-
-
-
-	SR_SRCLK = SR_SRCLK1; 
-	GPIO_OUTPUT_SET(SR_SRCLK, 0);
-	for ( i=7; i>=0; i-- ) {
-		
-		if ( shiftBits0[i] ) {
-			GPIO_OUTPUT_SET(SR_DATA, 1);
-		} else {
-			GPIO_OUTPUT_SET(SR_DATA, 0);
-		}		
-		os_delay_us(5);
-		GPIO_OUTPUT_SET(SR_SRCLK, 0);
-		os_delay_us(5);
-		GPIO_OUTPUT_SET(SR_SRCLK, 1);
-		os_delay_us(5);
-		GPIO_OUTPUT_SET(SR_SRCLK, 0);
-		
-	}
-
-	os_delay_us(5);
-	GPIO_OUTPUT_SET(SR_RCLK, 0);		
-	os_delay_us(5);
-	GPIO_OUTPUT_SET(SR_RCLK, 1);
-	os_delay_us(5);
-	GPIO_OUTPUT_SET(SR_RCLK, 0);		
-
-}
 
 void CP_ICACHE_FLASH_ATTR 
 gpioInitFromConfig(chatFabricConfig *config) 
@@ -296,12 +153,14 @@ gpioInitFromConfig(chatFabricConfig *config)
 	int i;
 	for (i=0; i<config->numOfControllers; i++) 
 	{
-		if (config->controlers[i].gpio == 16) {
-			gpio16_output_set(config->controlers[i].value);
-		} else {
-			GPIO_OUTPUT_SET(config->controlers[i].gpio, config->controlers[i].value);
-			printf ( "=== %10s: %4d %24s %4d %4d \n", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
-		}		
+		if ( config->controlers[i].gpio >= 0 ) {
+			if (config->controlers[i].gpio == 16) {
+				gpio16_output_set(config->controlers[i].value);
+			} else {
+				GPIO_OUTPUT_SET(config->controlers[i].gpio, config->controlers[i].value);
+			}		
+		}
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %24s %4d %4d \n", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
 	}			
 
 }
@@ -319,9 +178,6 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 	{
 		if ( config->controlers[i].control == cp->action_control ) 
 		{
-			if ( i == 0 ){
-			    config->controlers[0].value = ntp_unix_timestamp;
-			}
 	
 			if (cp->action == ACTION_GET ) 
 			{
@@ -372,18 +228,12 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 						
 						}
 					}
-					shiftReg0();
+//					shiftReg0();
 				}				
-				
-				
-			}			
+			}
 		}
-
 		printf ( "=== %10s: %4d %24s %4d %4d \n", "Control", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
-
 	}
-
-
 }
 
 void CP_ICACHE_FLASH_ATTR
@@ -460,23 +310,53 @@ tcp_listen(void *arg)
 
 
 static void CP_ICACHE_FLASH_ATTR
-loop()
+ntpTimer_loop()
 {
-	uint32 t,e,z;
-	uint8 status;
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d;  ntp_status: %d;  ntpcounter : %d", ntp_unix_timestamp, ntp_status, ntpcounter );
+
+	if ( ntp_status != NTP_STATE_SETTING ) {
+		ntpcounter+=10;
+	}
+
+	if (ntp_status == NTP_STATE_TIMEOUT) {
+		if ( ntpstatus_printed == 0 ) {
+			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "%s", ntp_status_str );
+			ntpstatus_printed = 1;
+		}
+	}
+
+	if ( 
+			( (ntpcounter >= 1*60) && (ntp_status == NTP_STATE_TIMEOUT) ) ||
+			( (ntpcounter >= 30*60) && (ntp_status == NTP_STATE_SET) ) 
+	)		
+	 {
+		ntpcounter = 0;
+		ntp_status = NTP_STATE_SETTING;
+		ntp_get_time();
+	}	
+	
+}
+
+static void CP_ICACHE_FLASH_ATTR
+clock_loop()
+{
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp );
+
 	if (ntp_unix_timestamp > 0) {
 	    ntp_unix_timestamp++;
 	}
-	t = system_get_time();
-	heapLast = heap;
-	heap = system_get_free_heap_size();
-	
-	wifiStatus = wifi_station_get_connect_status();
-		
-//	os_printf(".");
-//	os_printf(" Time: %8d \n", ntp_unix_timestamp );
-//	bootstatus++;
 
+	seconds_since_boot++;
+	
+	if ( (seconds_since_boot % 300) == 0 ) {
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, " SECONDS SINCE BOOT %d - REINIT MDNS", seconds_since_boot );
+	}
+	
+//	t = system_get_time();
+//	heapLast = heap;
+//	heap = system_get_free_heap_size();
+	
+//	wifiStatus = wifi_station_get_connect_status();
 }
 
 void CP_ICACHE_FLASH_ATTR
@@ -485,142 +365,13 @@ statusLoop() {
 	
 	if ( pair[0].hasPublicKey && ( menuItem == MODE_MENU_NONE ) ) {
 		currentMode = MODE_STA_PAIRED;
-		changeMode(MODE_STA_PAIRED);
+//		changeMode(MODE_STA_PAIRED);
 	} 
 
-	shiftReg1();
-/*
-	uuidCreate( &(u1));	
-	os_printf("uuid 1: ");
-	printf_uuid(&(u1));
-	os_printf("\n");
-*/
+//	shiftReg1();
 }
 
-/*
-static void CP_ICACHE_FLASH_ATTR
-startup_station()
-{
-	uint32 t;
-	uint32_t status;
-	char buffer[128] = {0};
-	char buffer2[16] = {0};
-    struct ip_info ipconfig;
-    char hwaddr[6];
-	t = system_get_time();
-	wifiStatus = wifi_station_get_connect_status();
-	heapLast = heap;
-	heap = system_get_free_heap_size();	
-    os_printf("[%6d] %12u %12u wifi connect status -  %d/%d\n\r", heapLast - heap, t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
 
-	if ( ( wifiStatus == STATION_GOT_IP ) &&  ( bootstatus == 0 ) ) {
-		os_timer_disarm(&boottimer);
-        wifi_get_ip_info(STATION_IF, &ipconfig);
-        wifi_get_macaddr(STATION_IF, hwaddr);
-        os_sprintf(buffer, MACSTR " " IPSTR, 
-                   MAC2STR(hwaddr), IP2STR(&ipconfig.ip));
-		os_printf(" ==> GOT IP: %s\n\r", buffer);
-
-		bootstatus = 1; // network up
-		
-		currentMode = MODE_STA_UNPAIRED;
-		changeMode(MODE_STA_UNPAIRED);
-
-
-		os_printf(" ==> Call NTP Time \n\r", buffer);
-		ntp_get_time();
-		// ntp_unix_timestamp = 1437438241;
-		os_timer_disarm(&boottimer);
-	    os_timer_setfn(&boottimer, (os_timer_func_t *)startup_station, NULL);
-    	os_timer_arm(&boottimer, 250, 1);
-		
-	} 
-
-	if ( (ntp_status == 2) && ( bootstatus == 1 ) ) {
-		os_printf ("ntp timed out ... retry.\n");
-		ntp_get_time();	
-	}
-	
-	if ( (ntp_unix_timestamp > 0) && ( bootstatus == 1 ) ) {
-		os_timer_disarm(&boottimer);
-
-	    os_timer_disarm(&poketimer);
-    	os_timer_setfn(&poketimer, (os_timer_func_t *)loop, NULL);
-    	os_timer_arm(&poketimer, 1000, 1);
-
-
-	    os_printf("%12u %12u Initializing Chat Fabric -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
-		
-		b.length = -1;
-
-		cfPairInit(&pair[0]);
-
-		
-	
-	    os_printf("%12u %12u IDS -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
-
-		if ( flashConfig[2048] == cftag_header ) {
-			os_printf("reading pair config\n");
-			cfPairRead(&config, (chatFabricPairing *)&(pair[0]) );
-		}
-		if ( config.hasPairs ) {
-			currentMode = MODE_STA_PAIRED;
-			changeMode(MODE_STA_PAIRED);
-		} else {
-			currentMode = MODE_STA_UNPAIRED;
-			changeMode(MODE_STA_UNPAIRED);
-		}
-
-
-	    os_printf("%12u %12u FlashConfig  %02x %02x %02x %02x %02x \n\r", t/100000, ntp_unix_timestamp, flashConfig[2048], flashConfig[2049], flashConfig[2050], flashConfig[2051], flashConfig[2052] );
-	    
-		os_printf("state : %s\n", stateLookup(pair[0].state) );
-	    
-		os_printf("uuid 0: ");
-		printf_uuid(&(config.uuid.u0));
-		os_printf ("\n\n");	    
-
-		os_printf("uuid 1: ");
-		printf_uuid(&(config.uuid.u1));
-		os_printf ("\n\n");	    
-
-	    os_printf("%12u %12u BootStatus print keys -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
-
-//		CHATFABRIC_DEBUG_B2H(1, "publicKey", (unsigned char *)&config.publickey, crypto_box_PUBLICKEYBYTES );
-//		CHATFABRIC_DEBUG_B2H(1, "privateKey", (unsigned char *)&config.privatekey, crypto_box_SECRETKEYBYTES );
-
-		bootstatus = 2; // timeset 
-	    os_printf("%12u %12u BootStatus -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
-
-		c.tcpconn.type = ESPCONN_TCP;
-		c.tcpconn.state = ESPCONN_NONE;
-		c.tcpconn.proto.tcp = &c.esptcp;
-		c.tcpconn.proto.tcp->local_port = config.port;
-	    os_printf("%12u %12u tcp_listen -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
-		espconn_regist_connectcb(&c.tcpconn, tcp_listen);
-	    os_printf("%12u %12u tcp_accpet -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
-		espconn_accept(&c.tcpconn);
-
-    	c.udpconn.type = ESPCONN_UDP;
-	    os_printf("%12u %12u zalloc -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
-    	c.udpconn.proto.udp = (esp_udp *)os_zalloc(sizeof(esp_udp));
-    	c.udpconn.proto.udp->local_port = config.port;
-	    os_printf("%12u %12u udp callback -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
-    	espconn_regist_recvcb(&c.udpconn, udp_callback);
-	    os_printf("%12u %12u udp conn -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
-    	espconn_create(&c.udpconn);
-
-	    os_printf("%12u %12u mdns -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
-		espCfMdns();
-	    os_printf("%12u %12u configwrite -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
-		cfConfigWrite(&config);
-
-	    os_printf("%12u %12u UDP setup complete -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
-	} 
-	
-}
-
-*/
 
 void CP_ICACHE_FLASH_ATTR
 doButton(uint8 gpio_pin)
@@ -705,6 +456,8 @@ userGPIOInit()
     
 	ETS_GPIO_INTR_DISABLE();
 	ETS_GPIO_INTR_ATTACH(buttonPress, NULL);
+	PIN_PULLUP_DIS(PERIPHS_IO_MUX_GPIO0_U);
+
 	GPIO_DIS_OUTPUT(0); // set for input
 	GPIO_DIS_OUTPUT(2); // set for input
 //	GPIO_DIS_OUTPUT(2); // set for input
@@ -713,8 +466,8 @@ userGPIOInit()
 //	GPIO_DIS_OUTPUT(3); // set for input
 
 //    gpio_pin_intr_state_set(GPIO_ID_PIN(13), GPIO_PIN_INTR_NEGEDGE);    
-    gpio_pin_intr_state_set(GPIO_ID_PIN(2), GPIO_PIN_INTR_NEGEDGE);    
-    gpio_pin_intr_state_set(GPIO_ID_PIN(0), GPIO_PIN_INTR_NEGEDGE);    
+    gpio_pin_intr_state_set(GPIO_ID_PIN(2), GPIO_PIN_INTR_POSEDGE);    
+    gpio_pin_intr_state_set(GPIO_ID_PIN(0), GPIO_PIN_INTR_POSEDGE);    
 //    gpio_pin_intr_state_set(GPIO_ID_PIN(0), GPIO_PIN_INTR_NEGEDGE);    
 //    gpio_pin_intr_state_set(GPIO_ID_PIN(3), GPIO_PIN_INTR_NEGEDGE);    
 
@@ -766,10 +519,10 @@ user_init_stage2()
 	}
 	if ( config.hasPairs ) {
 		currentMode = MODE_STA_PAIRED;
-		changeMode(MODE_STA_PAIRED);
+//		changeMode(MODE_STA_PAIRED);
 	} else {
 		currentMode = MODE_STA_UNPAIRED;
-		changeMode(MODE_STA_UNPAIRED);
+//		changeMode(MODE_STA_UNPAIRED);
 	}
 
 	char buf[38];
@@ -781,8 +534,8 @@ user_init_stage2()
 	
 	espWiFiInit();
 
-	shiftReg0();
-	shiftReg1();
+//	shiftReg0();
+//	shiftReg1();
 
 	cfConfigWrite(&config);
 	_GLOBAL_DEBUG = config.debug;
@@ -805,10 +558,11 @@ void CP_ICACHE_FLASH_ATTR
 user_init()
 {
 	int i;
+	seconds_since_boot=0;
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
 
 	currentMode = MODE_BOOTING;
-	changeMode(MODE_BOOTING);
+//	changeMode(MODE_BOOTING);
 	uart0enabled = 1;
 	userGPIOInit();
 	user_init_stage2();
@@ -816,5 +570,13 @@ user_init()
 //	os_timer_disarm(&statusReg);
 //	os_timer_setfn(&statusReg, (os_timer_func_t *)bootwait, NULL);
 //	os_timer_arm(&statusReg, 250, 1);
+
+	os_timer_disarm(&clockTimer);
+	os_timer_setfn(&clockTimer, (os_timer_func_t *)clock_loop, NULL);
+	os_timer_arm(&clockTimer, 1000, 1);
+
+	os_timer_disarm(&ntpTimer);
+	os_timer_setfn(&ntpTimer, (os_timer_func_t *)ntpTimer_loop, NULL);
+	os_timer_arm(&ntpTimer, 10000, 1);
 
 }
