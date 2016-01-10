@@ -15,8 +15,8 @@ espCfConfigInit()
 
 
 	cfConfigInit(&config);
-	config.wifi_ap_switch = 1;
-	config.wifi_sta_switch = 0;
+	config.wifi_ap_switch = CONFIG_AP_SWITCH;
+	config.wifi_sta_switch = CONFIG_STA_SWITCH;
 	cfConfigRead(&config);
 
 	config.pairfile = "1";		
@@ -25,8 +25,11 @@ espCfConfigInit()
 
 	
 	memcpy( &config.wifi_ap_passwd, "esp8266!demo", 12 );
-//	memcpy( &config.wifi_sta_passwd, SSID_PASSWORD, strlen(SSID_PASSWORD) );
-//	memcpy( &config.wifi_sta_ssid, SSID, strlen(SSID) );
+
+#ifdef STA_DEFAULT_NETWORK
+	memcpy( &config.wifi_sta_passwd, SSID_PASSWORD, strlen(SSID_PASSWORD) );
+	memcpy( &config.wifi_sta_ssid, SSID, strlen(SSID) );
+#endif
 
 	// 13 == red
 	// 12 == green

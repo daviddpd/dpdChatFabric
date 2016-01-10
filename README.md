@@ -36,9 +36,9 @@ or
 
 bsd-make won't work.  I must be using some gmake only conventions.		
 
-### ESP8266 w/ using esp_iot_sdk_v1.2.0
+### ESP8266 w/ using esp_iot_sdk_v1.5.0
 
-I have not included the SDK files in this repo. So from `esp_iot_sdk_v1.2.0/examples/driver_lib`, the following files should be copied into the following locations.
+I have now included the SDK files in this repo. These are  from `esp_iot_sdk_v1.2.0/examples/driver_lib`, the following files should be copied into the following locations.
 
 ```
 	src/esp8266/driver/gpio16.c
@@ -50,12 +50,21 @@ I have not included the SDK files in this repo. So from `esp_iot_sdk_v1.2.0/exam
 
 The current code size has extended beyond the two ROM 512k setup.  So, the include eagle.app.v6.full512.ld will map the irom0 segment starting at 0x10000, and stretches beyond the 0x40000 halfway point.   The configuration storaged is using the SDK's save with protect at offset 0x7a000.
 
-The ESP8266 boots into Station mode, not AP (access point).  So, you need to also compile in the wifi configuration.  I didn't commit my networks SSID and password to git, so you need to create a `src/esp8266/include/driver/uart_register.h` with the contents:
+The product, un-configured, boots into softAP (access point) mode.  
+
+If you want to instead join your wifi network by default, you need to create a `src/esp8266/include/user_config.h` with the contents:
 
 ```C
+
+#define STA_DEFAULT_NETWORK 1
 #define SSID "networkName"
 #define SSID_PASSWORD "networkPassword"
+
+#define CONFIG_AP_SWITCH 0
+#define CONFIG_STA_SWITCH 1 
+
 ```
+
 
 If you are using the vagrant VirtualBox setup ... the makefile should just work. Jump into src/esp8266 and just `make`.
 
@@ -65,9 +74,9 @@ So somthing like this:
 
 ```shell
  dd if=/dev/zero of=16kblank.bin bs=16k count=1
- esptool.py --port /dev/cu.usbserial-AI025GVS write_flash 0x7a000 16kblank.bin 0x00000 firmware/0x00000.bin 0x10000 firmware/0x10000.bin
+ make ESPPORT=/dev/cu.usbserial-xxxxxx flashdata
+ 
 ```
-
 
 ##  SPEC, PROTOCOL AND SOFTWARE IN HIGH DEGREE OF FLUX 
 
@@ -80,21 +89,53 @@ Generally, to keep things small footprint so they fit into small CPUs and contro
 ## Terminology 
 
 Moving away from server and client terms.  Now, these are a "device" and a "controller".  A device is 
-something that listens for commands and performs some action.  A controller is an end point that issues
-commands or actions to devices.   
+something that listens for commands and performs some action.  A controller is an end point that issues commands or actions to devices.   
 
-Currently, a device only listens and reacts. It's currently designed to be polled.  Current implementation 
-only allows a device to be connected to a single controller. The controller can use multiple pair configuration
+Currently, a device only listens and reacts. It's currently designed to be polled.  Current implementation  only allows a device to be connected to a single controller. The controller can use multiple pair configuration
 files to talk to multiple devices.
 
 There will be a third actor, a gateway or relay, which will have the features of both devices and controllers.
 
-## Usage
+## Usage 
 
-	device --config device.conf --ip 127.0.0.1 --port 1080 --debug
+### FreeBSD Controller to ESP8266 Device 
+
+```shell
+	cd dpdChatFabric/src
+	# make all the code
+	gmake FREEBSD=1 HAVE_LOCAL_CRYPTO=1
+	# Create controller config, uuids and encryption keys
+	bin/createConfig -c controller.conf -w controller.conf --genkeys  --genuuid1
+	# pair with device 
+	bin/controller -c controller.conf --pairfile device.pair --ip 192.168.1.229 --port 2030 --debug --tcp
+	# get list of controls on device, not needed/fully implemented in CLI
+	bin/controller -c controller.conf --pairfile e05b.pair --ip 192.168.1.229 --port 2030 --debug --tcp --get
+	# Toggle boolean control 0
+	bin/controller -c controller.conf --pairfile e05b.pair --ip 192.168.1.229 --port 2030 --debug --tcp --set --control 0 --value 1
+	bin/controller -c controller.conf --pairfile e05b.pair --ip 192.168.1.229 --port 2030 --debug --tcp --set --control 0 --value 0
 	
-	controller --pairfile pair.conf --config client.conf --ip 127.0.0.1 --port 1080 --debug -m "Testing 1234"
+
+```
 	
+### FreeBSD Controller to FreeBSD Device
+```shell
+	cd dpdChatFabric/src
+	# make all the code
+	gmake FREEBSD=1 HAVE_LOCAL_CRYPTO=1
+	# Create controller config, uuids and encryption keys, only do once, can resuse previous files
+	bin/createConfig -c controller.conf -w controller.conf --genkeys  --genuuid1
+	#create the device config
+	bin/createConfig -c device.conf -w device.conf --genkeys --uuid0=00000000-0000-0000-0000-000000000000 --uuid1=d3bd5042-a073-11e5-b5a8-00a0988afcc9 --debug
+
+	#Run Device 
+	bin/device -w vx1-a-device.conf -c vx1-a-device.conf --udp --port 2030 --debug &	
+	
+	# pair with device 
+ bin/controller -c controller.conf --pairfile local.pair --ip 127.0.0.1 --port 2030 --debug --udp
+ 
+	# etc ...	
+
+```
 	
 
 # TODO

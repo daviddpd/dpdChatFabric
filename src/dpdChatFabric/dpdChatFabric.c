@@ -73,9 +73,8 @@ chatFabric_consetup( chatFabricConnection *c,  char *ip, int port )
 	c->socket = -1;		
 	c->socket=socket(AF_INET,c->type,0);
 
- 	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "ERRNO: %d %s  Socket FD %d ", errno, strerror(errno), c->socket );
-	
 	if (c->socket == -1 ) {
+	 	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "ERRNO: %d %s  Socket FD %d ", errno, strerror(errno), c->socket );
 		return;
 	}
 	
