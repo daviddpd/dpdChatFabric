@@ -1,0 +1,124 @@
+/*
+static void CP_ICACHE_FLASH_ATTR
+startup_station()
+{
+	uint32 t;
+	uint32_t status;
+	char buffer[128] = {0};
+	char buffer2[16] = {0};
+    struct ip_info ipconfig;
+    char hwaddr[6];
+	t = system_get_time();
+	wifiStatus = wifi_station_get_connect_status();
+	heapLast = heap;
+	heap = system_get_free_heap_size();	
+    os_printf("[%6d] %12u %12u wifi connect status -  %d/%d\n\r", heapLast - heap, t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+
+	if ( ( wifiStatus == STATION_GOT_IP ) &&  ( bootstatus == 0 ) ) {
+		os_timer_disarm(&boottimer);
+        wifi_get_ip_info(STATION_IF, &ipconfig);
+        wifi_get_macaddr(STATION_IF, hwaddr);
+        os_sprintf(buffer, MACSTR " " IPSTR, 
+                   MAC2STR(hwaddr), IP2STR(&ipconfig.ip));
+		os_printf(" ==> GOT IP: %s\n\r", buffer);
+
+		bootstatus = 1; // network up
+		
+		currentMode = MODE_STA_UNPAIRED;
+		changeMode(MODE_STA_UNPAIRED);
+
+
+		os_printf(" ==> Call NTP Time \n\r", buffer);
+		ntp_get_time();
+		// ntp_unix_timestamp = 1437438241;
+		os_timer_disarm(&boottimer);
+	    os_timer_setfn(&boottimer, (os_timer_func_t *)startup_station, NULL);
+    	os_timer_arm(&boottimer, 250, 1);
+		
+	} 
+
+	if ( (ntp_status == 2) && ( bootstatus == 1 ) ) {
+		os_printf ("ntp timed out ... retry.\n");
+		ntp_get_time();	
+	}
+	
+	if ( (ntp_unix_timestamp > 0) && ( bootstatus == 1 ) ) {
+		os_timer_disarm(&boottimer);
+
+	    os_timer_disarm(&poketimer);
+    	os_timer_setfn(&poketimer, (os_timer_func_t *)loop, NULL);
+    	os_timer_arm(&poketimer, 1000, 1);
+
+
+	    os_printf("%12u %12u Initializing Chat Fabric -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+		
+		b.length = -1;
+
+		cfPairInit(&pair[0]);
+
+		
+	
+	    os_printf("%12u %12u IDS -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+
+		if ( flashConfig[2048] == cftag_header ) {
+			os_printf("reading pair config\n");
+			cfPairRead(&config, (chatFabricPairing *)&(pair[0]) );
+		}
+		if ( config.hasPairs ) {
+			currentMode = MODE_STA_PAIRED;
+			changeMode(MODE_STA_PAIRED);
+		} else {
+			currentMode = MODE_STA_UNPAIRED;
+			changeMode(MODE_STA_UNPAIRED);
+		}
+
+
+	    os_printf("%12u %12u FlashConfig  %02x %02x %02x %02x %02x \n\r", t/100000, ntp_unix_timestamp, flashConfig[2048], flashConfig[2049], flashConfig[2050], flashConfig[2051], flashConfig[2052] );
+	    
+		os_printf("state : %s\n", stateLookup(pair[0].state) );
+	    
+		os_printf("uuid 0: ");
+		printf_uuid(&(config.uuid.u0));
+		os_printf ("\n\n");	    
+
+		os_printf("uuid 1: ");
+		printf_uuid(&(config.uuid.u1));
+		os_printf ("\n\n");	    
+
+	    os_printf("%12u %12u BootStatus print keys -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+
+//		CHATFABRIC_DEBUG_B2H(1, "publicKey", (unsigned char *)&config.publickey, crypto_box_PUBLICKEYBYTES );
+//		CHATFABRIC_DEBUG_B2H(1, "privateKey", (unsigned char *)&config.privatekey, crypto_box_SECRETKEYBYTES );
+
+		bootstatus = 2; // timeset 
+	    os_printf("%12u %12u BootStatus -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+
+		c.tcpconn.type = ESPCONN_TCP;
+		c.tcpconn.state = ESPCONN_NONE;
+		c.tcpconn.proto.tcp = &c.esptcp;
+		c.tcpconn.proto.tcp->local_port = config.port;
+	    os_printf("%12u %12u tcp_listen -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+		espconn_regist_connectcb(&c.tcpconn, tcp_listen);
+	    os_printf("%12u %12u tcp_accpet -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+		espconn_accept(&c.tcpconn);
+
+    	c.udpconn.type = ESPCONN_UDP;
+	    os_printf("%12u %12u zalloc -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+    	c.udpconn.proto.udp = (esp_udp *)os_zalloc(sizeof(esp_udp));
+    	c.udpconn.proto.udp->local_port = config.port;
+	    os_printf("%12u %12u udp callback -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+    	espconn_regist_recvcb(&c.udpconn, udp_callback);
+	    os_printf("%12u %12u udp conn -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+    	espconn_create(&c.udpconn);
+
+	    os_printf("%12u %12u mdns -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+		espCfMdns();
+	    os_printf("%12u %12u configwrite -  %d/%d Line:%d \n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus, __LINE__);
+		cfConfigWrite(&config);
+
+	    os_printf("%12u %12u UDP setup complete -  %d/%d\n\r", t/100000, ntp_unix_timestamp, wifiStatus, bootstatus);
+	} 
+	
+}
+
+*/
