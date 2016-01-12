@@ -729,7 +729,7 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 			reply->payloadLength = configstr.length;
 			free(configstr.msg);
 			
-			CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Replay ConfigPayLoad", reply->payload, reply->payloadLength );
+			CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG, "Reply ConfigPayLoad", reply->payload, reply->payloadLength );
 			RETVAL = CMD_SEND_REPLY_TRUE;	
 		break;
 		case CMD_CONFIG_SET:

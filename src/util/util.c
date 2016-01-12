@@ -2,7 +2,7 @@
 #include "cfstructs.h"
 #include "assert.h"
 
-int _GLOBAL_DEBUG = 0;
+int _GLOBAL_DEBUG;
 hostmeta_t hostMeta;
 
 #ifdef ESP8266
@@ -55,7 +55,7 @@ void CP_ICACHE_FLASH_ATTR util_debug_bin2hex(char* label, unsigned char * x, int
 
 	}
 
-	CHATFABRIC_DEBUG_FMT2(_GLOBAL_DEBUG, func, line, "%20s: %s",  label, _utilbuffer );
+	CHATFABRIC_DEBUG_FMT2(1, func, line, "%20s: %s",  label, _utilbuffer );
     free(_utilbuffer);
 }
 

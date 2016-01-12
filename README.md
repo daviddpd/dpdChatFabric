@@ -36,9 +36,11 @@ or
 
 bsd-make won't work.  I must be using some gmake only conventions.		
 
-### ESP8266 w/ using esp_iot_sdk_v1.5.0
+### ESP8266 w/ using esp_iot_sdk_v1.3.0
 
-I have now included the SDK files in this repo. These are  from `esp_iot_sdk_v1.2.0/examples/driver_lib`, the following files should be copied into the following locations.
+**NOTE PLEASE USE SDK 1.3.0 ... some strange things that I can't put my finger on are happening with 1.4 and 1.5**
+
+I have now included the SDK files in this repo. These are  from `esp_iot_sdk_v1.3.0/examples/driver_lib`, the following files should be copied into the following locations.
 
 ```
 	src/esp8266/driver/gpio16.c

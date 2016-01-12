@@ -1344,7 +1344,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 			case cptag_payload:			
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s Payload Length %d", tagLookup(c), cp->payloadLength );
                 CHATFABRIC_DEBUG_B2H(config->debug, "Payload (plaintext)", (unsigned char*)b,  cp->payloadLength );
-                CHATFABRIC_DEBUG_B2H(config->debug, "Payload (plaintext)", (unsigned char*)cp->payload,  cp->payloadLength );
+                // CHATFABRIC_DEBUG_B2H(config->debug, "Payload (plaintext)", (unsigned char*)cp->payload,  cp->payloadLength );
 				memcpy(cp->payload, b+i, cp->payloadLength);
 				i+=cp->payloadLength;		
 			break;

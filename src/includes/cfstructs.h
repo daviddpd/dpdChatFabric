@@ -61,6 +61,7 @@ typedef struct {
 	uint32_t control; // index of the control to act on.
 	uint32_t type; // boolean(rw), dimmer(rw), gauge(ro), data(rw)
 	int32_t value; // 1/0 ; 0~2^32; 0~2^32; length of data
+	uint32_t value_mask;
 	int32_t rangeLow;
 	int32_t rangeHigh;
 	int32_t gpio;

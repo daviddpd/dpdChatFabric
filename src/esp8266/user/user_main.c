@@ -155,12 +155,12 @@ gpioInitFromConfig(chatFabricConfig *config)
 	{
 		if ( config->controlers[i].gpio >= 0 ) {
 			if (config->controlers[i].gpio == 16) {
-				gpio16_output_set(config->controlers[i].value);
+				gpio16_output_set(config->controlers[i].value ^ config->controlers[i].value_mask);
 			} else {
-				GPIO_OUTPUT_SET(config->controlers[i].gpio, config->controlers[i].value);
+				GPIO_OUTPUT_SET(config->controlers[i].gpio, config->controlers[i].value ^ config->controlers[i].value_mask );
 			}		
 		}
-		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %24s %4d %4d \n", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %24s %4d %4d", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
 	}			
 
 }
@@ -173,7 +173,8 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 
 	unsigned char *tmp;
 
-
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
+	
 	for (i=0; i<config->numOfControllers; i++) 
 	{
 		if ( config->controlers[i].control == cp->action_control ) 
@@ -200,20 +201,11 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 				reply->action_length = 0;	
 
 				if  ( 	config->controlers[i].type == ACTION_TYPE_BOOLEAN ) {
-					if ( cp->action_value ) {
-						if (config->controlers[i].gpio == 16) {
-							gpio16_output_set(1);
-						} else {
-							GPIO_OUTPUT_SET(config->controlers[i].gpio, 1);
-							printf ( "=== %10s: %4d %24s %4d %4d \n", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
-						}
+					if (config->controlers[i].gpio == 16) {
+						gpio16_output_set(config->controlers[i].value ^ config->controlers[i].value_mask );
 					} else {
-						if (config->controlers[i].gpio == 16) {
-							gpio16_output_set(0);
-						} else {
-							GPIO_OUTPUT_SET(config->controlers[i].gpio, 0);
-							printf ( "=== %10s: %4d %24s %4d %4d \n", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
-						}
+						GPIO_OUTPUT_SET(config->controlers[i].gpio, config->controlers[i].value ^ config->controlers[i].value_mask);
+						CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %24s %4d %4d %4d", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].value ^ config->controlers[i].value_mask, config->controlers[i].gpio );
 					}
 				}
 				if  ( 	config->controlers[i].type == ACTION_TYPE_DIMMER ) {
@@ -232,7 +224,7 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 				}				
 			}
 		}
-		printf ( "=== %10s: %4d %24s %4d %4d \n", "Control", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
+		// CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %24s %4d %4d", "Control", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].gpio );
 	}
 }
 
@@ -245,7 +237,7 @@ udp_callback(void *arg, char *data, unsigned short length)
 	uint32 t;
 	enum chatFabricErrors e;
 //	t = system_get_time();
-	printf ( "Got network Packet.\n" );
+//	printf ( "Got network Packet.\n" );
 //    os_printf("%12u %12u  GOT A UDP PACKET\n\r", t/100000, ntp_unix_timestamp);
 
     if (data == NULL) {
@@ -258,9 +250,9 @@ udp_callback(void *arg, char *data, unsigned short length)
     mbuff.length = (int)length;
     mbuff.msg = data;
 
-	printf ( "chatFabric_device call.\n" );
+//	printf ( "chatFabric_device call.\n" );
     e = chatFabric_device(&c, &pair[0], &config,  &payloadMsg);
-	printf( "chatFabric_device return.\n" );
+//	printf( "chatFabric_device return.\n" );
 
     if  ( ( ERROR_OK == e ) && ( payloadMsg.length > 0) ) {
 /*
@@ -292,7 +284,7 @@ udp_callback(void *arg, char *data, unsigned short length)
 */		
 		free(payloadMsg.msg);
 	}
-	printf( "udp_callback return.\n" );
+//	printf( "udp_callback return.\n" );
 	return;
 }
 
@@ -312,7 +304,7 @@ tcp_listen(void *arg)
 static void CP_ICACHE_FLASH_ATTR
 ntpTimer_loop()
 {
-	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d;  ntp_status: %d;  ntpcounter : %d", ntp_unix_timestamp, ntp_status, ntpcounter );
+//	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d;  ntp_status: %d;  ntpcounter : %d", ntp_unix_timestamp, ntp_status, ntpcounter );
 
 	if ( ntp_status != NTP_STATE_SETTING ) {
 		ntpcounter+=10;
@@ -340,23 +332,16 @@ ntpTimer_loop()
 static void CP_ICACHE_FLASH_ATTR
 clock_loop()
 {
-	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp );
 
 	if (ntp_unix_timestamp > 0) {
 	    ntp_unix_timestamp++;
+		if ( ( ntp_unix_timestamp % 60) == 0 ) { 
+			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp ); 
+		}
 	}
 
 	seconds_since_boot++;
 	
-	if ( (seconds_since_boot % 300) == 0 ) {
-		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, " SECONDS SINCE BOOT %d - REINIT MDNS", seconds_since_boot );
-	}
-	
-//	t = system_get_time();
-//	heapLast = heap;
-//	heap = system_get_free_heap_size();
-	
-//	wifiStatus = wifi_station_get_connect_status();
 }
 
 void CP_ICACHE_FLASH_ATTR
@@ -511,10 +496,11 @@ user_init_stage2()
 
 	createHostMeta();
 	espCfConfigInit();
-
+	cfConfigWrite(&config);
+	
 	cfPairInit(&pair[0]);
 	if ( flashConfig[2048] == cftag_header ) {
-		os_printf("reading pair config\n");
+		CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "reading pair config\n");
 		cfPairRead(&config, (chatFabricPairing *)&(pair[0]) );
 	}
 	if ( config.hasPairs ) {
@@ -537,13 +523,13 @@ user_init_stage2()
 //	shiftReg0();
 //	shiftReg1();
 
-	cfConfigWrite(&config);
+//	cfConfigWrite(&config);
 	_GLOBAL_DEBUG = config.debug;
 	gpioInitFromConfig(&config);
 
-	os_timer_disarm(&statusReg);
-	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
-	os_timer_arm(&statusReg, 300, 1);
+//	os_timer_disarm(&statusReg);
+//	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
+//	os_timer_arm(&statusReg, 300, 1);
 
 	
 }
@@ -569,7 +555,7 @@ user_init()
 
 //	os_timer_disarm(&statusReg);
 //	os_timer_setfn(&statusReg, (os_timer_func_t *)bootwait, NULL);
-//	os_timer_arm(&statusReg, 250, 1);
+//	os_timer_arm(&statusReg, 1000, 1);
 
 	os_timer_disarm(&clockTimer);
 	os_timer_setfn(&clockTimer, (os_timer_func_t *)clock_loop, NULL);

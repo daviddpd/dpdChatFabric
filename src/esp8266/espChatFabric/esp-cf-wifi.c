@@ -90,7 +90,7 @@ espCfWiFi_callBack(System_Event_t *evt)
 			MAC2STR(evt->event_info.sta_disconnected.mac),
 			evt->event_info.sta_disconnected.aid);
 		break;
-		case EVENT_SOFTAPMODE_PROBEREQRECVED:
+/*		case EVENT_SOFTAPMODE_PROBEREQRECVED:
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  
 				"SOFTAPMODE_PROBEREQRECVED:  %02x ; RSSI %d ; " MACSTR " ", 
 				evt->event, 
@@ -98,6 +98,7 @@ espCfWiFi_callBack(System_Event_t *evt)
 				MAC2STR(evt->event_info.ap_probereqrecved.mac) 
 			);
 		break;
+*/
 		default:
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "UNKNOWN EVENT:  %02x", evt->event );
 		break;
@@ -124,6 +125,15 @@ espWiFiInit()
 	}
     
     wifi_set_event_handler_cb(&espCfWiFi_callBack);
+/*
+
+	enum phy_mode { 
+		PHY_MODE_11B = 1, 
+		PHY_MODE_11G = 2, 
+		PHY_MODE_11N = 3 
+	};
+*/
+    wifi_set_phy_mode(PHY_MODE_11B);
     wifi_set_opmode( config.mode);
 
 	if ( config.mode == SOFTAP_MODE || config.mode == STATIONAP_MODE ) {

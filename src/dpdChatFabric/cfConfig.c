@@ -63,7 +63,7 @@ exp2            1022/udp    # RFC3692-style Experiment 2 (*)    [RFC4727]
 	uuidCreateNil( &(config->uuid.u0));
 	uuidCreate( &(config->uuid.u1));
 
-	config->debug = 0;
+	config->debug = 1;
 	config->writeconfig = 1;
 
 //	config->defaulthostname = NULL:
@@ -158,9 +158,20 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 
 #ifdef ESP8266
 	int fp=0;
-	if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig), 4096) == FALSE ) {
-		CHATFABRIC_DEBUG(config->debug, "Read from flash failed." ); 
-		return;
+	CHATFABRIC_DEBUG_FMT(1, "Starting Config Read, fromStr = %d", fromStr ); 
+
+	if ( !fromStr ) {
+
+		CHATFABRIC_DEBUG_B2H(1, "Config String, RAM, preload   :",
+			(unsigned char*)&(flashConfig[0]), 32  );
+
+		if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig[0]), 4096) == FALSE ) {
+			CHATFABRIC_DEBUG(1, "Read from flash failed." ); 
+			return;
+		}
+
+		CHATFABRIC_DEBUG_B2H(1, "Config String, RAM, post-load :", 
+			(unsigned char*)&(flashConfig[0]), 32  );
 	}
 
 	if ( fromStr ) {
@@ -171,9 +182,8 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 		config->configfile = "1";
 		str = &(flashConfig[0]);
 	} else {
-
+		CHATFABRIC_DEBUG_FMT(config->debug, "========== NO CONFIGUTATION DATA FOUND : %02x %02x ==========",flashConfig[0], cftag_header  ); 
 		return;
-
 	}
 #else
 
@@ -408,18 +418,25 @@ cfConfigWrite(chatFabricConfig *config) {
     CHATFABRIC_DEBUG_B2H(config->debug, "Keys String", 
     	(unsigned char*)keys.msg, keys.length  );
 
+	_GLOBAL_DEBUG = config->debug;
 
 #ifdef ESP8266
 	memcpy( &(flashConfig[0]), configstr.msg, configstr.length);
 	memcpy( &(flashConfig[configstr.length]), keys.msg, keys.length);
 	memcpy( &(flashConfig[configstr.length+keys.length]), &ch, 1);
 	
+    CHATFABRIC_DEBUG_B2H(1, "Config String, RAM, presave   :",
+    	(unsigned char*)&(flashConfig[0]), 32  );
 	
 	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
-		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect Failed.");
+		CHATFABRIC_DEBUG(1, "ESP Save With Protect Failed.");
 	} else {
-		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect - SUCCESS.");	
+		CHATFABRIC_DEBUG(1, "ESP Save With Protect - SUCCESS.");	
 	}
+
+    CHATFABRIC_DEBUG_B2H(1, "Config String, RAM, postsave  :",
+    	(unsigned char*)&(flashConfig[0]), 32  );
+
 #else
 	FILE *fp=0;
 	fp = fopen(config->newconfigfile,"w");
