@@ -36,7 +36,41 @@ espCfConfigInit()
 	// 12 == green
 	// 4 == yellow
 
+
 if ( 
+	hostMeta.hwaddr[0] == 0x18 
+	&& hostMeta.hwaddr[1] == 0xfe 
+	&& hostMeta.hwaddr[2] == 0x34 
+	&& hostMeta.hwaddr[3] == 0xd4 
+	&& hostMeta.hwaddr[4] == 0xd3
+	&& hostMeta.hwaddr[5] == 0x1d
+	
+) {
+
+
+	int i =	0;		
+	config.numOfControllers = 1;
+	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
+
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+	config.controlers[i].value = 0;
+	config.controlers[i].value_mask = 0x00;
+	config.controlers[i].label = "yellow";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 1;
+	config.controlers[i].gpio = 16;
+
+
+	i++;
+
+
+		
+	
+	
+
+} else if ( 
 	hostMeta.hwaddr[0] == 0x18 
 	&& hostMeta.hwaddr[1] == 0xfe 
 	&& hostMeta.hwaddr[2] == 0x34 
@@ -58,7 +92,7 @@ if (
 	config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
-	config.controlers[i].gpio = 13;
+	config.controlers[i].gpio = 12;
 
 	i++;
 	config.controlers[i].control = i;
@@ -69,7 +103,7 @@ if (
 	config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
-	config.controlers[i].gpio = 12;
+	config.controlers[i].gpio = 13;
 //	config.debug = 1;
 
 } else {
