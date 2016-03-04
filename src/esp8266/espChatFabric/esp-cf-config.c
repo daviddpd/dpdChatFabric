@@ -36,7 +36,7 @@ espCfConfigInit()
 	// 12 == green
 	// 4 == yellow
 
-
+/*
 if ( 
 	hostMeta.hwaddr[0] == 0x18 
 	&& hostMeta.hwaddr[1] == 0xfe 
@@ -70,7 +70,10 @@ if (
 	
 	
 
-} else if ( 
+} else 
+
+*/
+if ( 
 	hostMeta.hwaddr[0] == 0x18 
 	&& hostMeta.hwaddr[1] == 0xfe 
 	&& hostMeta.hwaddr[2] == 0x34 

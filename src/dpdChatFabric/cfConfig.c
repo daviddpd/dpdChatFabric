@@ -63,7 +63,7 @@ exp2            1022/udp    # RFC3692-style Experiment 2 (*)    [RFC4727]
 	uuidCreateNil( &(config->uuid.u0));
 	uuidCreate( &(config->uuid.u1));
 
-	config->debug = 0;
+	config->debug = 1;
 	config->writeconfig = 1;
 
 //	config->defaulthostname = NULL:

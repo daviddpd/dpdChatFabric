@@ -427,8 +427,8 @@ userGPIOInit()
 
 //	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
 //	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
 //	PIN_FUNC_SELECT(PERIPHS_IO_MUX_SD_DATA3_U, FUNC_GPIO10);
 
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
@@ -615,6 +615,8 @@ user_init_stage2()
 //	os_timer_disarm(&statusReg);
 //	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
 //	os_timer_arm(&statusReg, 300, 1);
+
+/*
 	if ( 
 		hostMeta.hwaddr[0] == 0x18 
 		&& hostMeta.hwaddr[1] == 0xfe 
@@ -631,7 +633,7 @@ user_init_stage2()
 		os_timer_arm(&poketimer, 500, 1);
 	}
 
-
+*/
 	
 }
 void CP_ICACHE_FLASH_ATTR
