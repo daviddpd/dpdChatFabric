@@ -22,7 +22,7 @@ espCfConfigInit()
 
 	config.pairfile = "1";		
 	config.callback = (void*)&deviceCallBack;
-//	config.debug = 1;
+	config.debug = 1;
 
 	
 	memcpy( &config.wifi_ap_passwd, "esp8266!demo", 12 );
