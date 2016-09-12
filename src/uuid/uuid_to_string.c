@@ -40,7 +40,7 @@
  *	 the string could not be allocated. The status code has been
  *	 taken from the Hewlett-Packard implementation.
  */
-void
+void CP_ICACHE_FLASH_ATTR
 uuid_to_string(const uuid_cp *u, char **s, uint32_t *status)
 {
 	uuid_cp nil;

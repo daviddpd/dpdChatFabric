@@ -24,6 +24,14 @@
 
 
 #include "driver/spi.h"
+#ifdef ESP8266
+//#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#ifndef CP_ICACHE_FLASH_ATTR
+#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#endif
+#else
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +70,7 @@ void spi_init(uint8 spi_no){
 //				 
 ////////////////////////////////////////////////////////////////////////////////
 
-void spi_init_gpio(uint8 spi_no, uint8 sysclk_as_spiclk){
+void  spi_init_gpio(uint8 spi_no, uint8 sysclk_as_spiclk){
 
 //	if(spi_no > 1) return; //Not required. Valid spi_no is checked with if/elif below.
 

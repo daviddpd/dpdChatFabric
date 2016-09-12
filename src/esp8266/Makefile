@@ -25,7 +25,7 @@ XTENSA_TOOLS_ROOT ?= /Volumes/esp8266/esp-open-sdk/xtensa-lx106-elf/bin
 SDK_BASE	?= /Volumes/esp8266/esp-open-sdk/sdk
 
 # esptool.py path and port
-ESPTOOL		?= esptool.py
+ESPTOOL		?= /usr/local/bin/esptool.py
 ESPPORT		?= /dev/ttyUSB0
 
 # name for the target project
@@ -37,7 +37,7 @@ EXTRA_INCDIR    = include ../crypto ../includes
 
 # libraries used in this project, mainly provided by the SDK
 #LIBS		= c gcc hal pp phy net80211 lwip wpa main
-LIBS		= cirom gcc hal pp phy net80211 lwip wpa main crypto
+LIBS		= cirom gcc hal pp phy net80211 lwip wpa main crypto pwm
 
 # compiler flags using during compilation of source files -fno-inline-functions
 CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN
@@ -65,8 +65,9 @@ SDK_INCDIR	= include include/json
 # we create two different files for uploading into the flash
 # these are the names and options to generate them
 FW_FILE_1_ADDR	= 0x00000
-FW_FILE_2_ADDR	= 0x10000
-FW_DATA_1_ADDR	= 0x7A000
+FW_FILE_2_ADDR	= 0x40000
+FW_DATA_1_ADDR	= 0x3FE000
+FW_DATA_DEFAULT_ADDR = 0x3FC000 
 
 # select which tools to use as compiler, librarian and linker
 CC		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
@@ -99,12 +100,16 @@ MODULE_INCDIR	:= $(addsuffix /include,$(INCDIR))
 
 FW_FILE_1	:= $(addprefix $(FW_BASE)/,$(FW_FILE_1_ADDR).bin)
 FW_FILE_2	:= $(addprefix $(FW_BASE)/,$(FW_FILE_2_ADDR).bin)
+
+FW_DATA_DEFAULT := $(SDK_BASE)/bin/esp_init_data_default.bin
 FW_DATA_1	:= 16kblank.bin
+
+FLASH_SIZE := 32m  #    [--flash_size {4m,2m,8m,16m,32m,16m-c1,32m-c1,32m-c2}]
 
 V ?= $(VERBOSE)
 ifeq ("$(V)","1")
 Q :=
-vecho := @true
+vecho := @echo
 else
 Q := @
 vecho := @echo
@@ -123,8 +128,8 @@ endef
 all: checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
 
 $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
-	$(vecho) "FW $(FW_BASE)/"
-	$(Q) $(ESPTOOL) elf2image -o $(FW_BASE)/ $(TARGET_OUT)
+	$(vecho) "FW $(FW_BASE)/%.bin"
+	$(Q) $(ESPTOOL) elf2image --flash_size $(FLASH_SIZE) -o $(FW_BASE)/ $(TARGET_OUT)
 
 $(TARGET_OUT): $(APP_AR)
 	$(vecho) "LD $@"
@@ -146,7 +151,7 @@ flash: $(FW_FILE_1) $(FW_FILE_2)
 	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 flashdata: $(FW_FILE_1) $(FW_FILE_2)
-	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_DATA_1_ADDR) $(FW_DATA_1) $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+	$(ESPTOOL) --port $(ESPPORT) write_flash  $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2) $(FW_DATA_DEFAULT_ADDR) $(FW_DATA_DEFAULT)
 	
 
 clean:

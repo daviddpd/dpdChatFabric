@@ -52,7 +52,7 @@ __FBSDID("$FreeBSD: stable/10/lib/libc/uuid/uuid_stream.c 181743 2008-08-14 22:2
  * provided for convenience.
  */
 
-void
+void CP_ICACHE_FLASH_ATTR
 uuid_enc_le(void *buf, const uuid_cp *uuid)
 {
 	uint8_t *p = buf;
@@ -67,7 +67,7 @@ uuid_enc_le(void *buf, const uuid_cp *uuid)
 		p[10 + i] = uuid->node[i];
 }
 
-void
+void CP_ICACHE_FLASH_ATTR
 uuid_dec_le(const void *buf, uuid_cp *uuid)
 {
 	const uint8_t *p = buf;
@@ -82,7 +82,7 @@ uuid_dec_le(const void *buf, uuid_cp *uuid)
 		uuid->node[i] = p[10 + i];
 }
 
-void
+void CP_ICACHE_FLASH_ATTR
 uuid_enc_be(void *buf, const uuid_cp *uuid)
 {
 	uint8_t *p = buf;
@@ -97,7 +97,7 @@ uuid_enc_be(void *buf, const uuid_cp *uuid)
 		p[10 + i] = uuid->node[i];
 }
 
-void
+void CP_ICACHE_FLASH_ATTR
 uuid_dec_be(const void *buf, uuid_cp *uuid)
 {
 	const uint8_t *p = buf;

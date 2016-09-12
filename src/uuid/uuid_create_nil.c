@@ -35,7 +35,7 @@
  * See also:
  *	http://www.opengroup.org/onlinepubs/009629399/uuid_create_nil.htm
  */
-void
+void CP_ICACHE_FLASH_ATTR
 uuid_create_nil(uuid_cp *u, uint32_t *status)
 {
 

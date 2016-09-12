@@ -19,6 +19,15 @@
 #include "uuid_wrapper.h"
 #include "ntp.h"
 #include "driver/spi.h"
+#include "pwm.h"
+
+#define PWM_12_OUT_IO_MUX PERIPHS_IO_MUX_MTDI_U
+#define PWM_12_OUT_IO_NUM 12
+#define PWM_12_OUT_IO_FUNC  FUNC_GPIO12
+
+#define PWM_14_OUT_IO_MUX PERIPHS_IO_MUX_MTMS_U
+#define PWM_14_OUT_IO_NUM 14
+#define PWM_14_OUT_IO_FUNC  FUNC_GPIO14
 
 //extern enum deviceModes currentMode;
 
@@ -41,8 +50,8 @@ unsigned char ch = 0x00;
 
 int uart0enabled = -1;
 int shiftCounter = -1;
-uint8 shiftBits0[8];
-uint8 shiftBits1[8];
+//uint8 shiftBits0[8];
+//uint8 shiftBits1[8];
 //char ssid[32] = SSID;
 //char password[64] = SSID_PASSWORD;
 
@@ -86,6 +95,7 @@ void udp_callback(void *arg, char *data, unsigned short length);
 //void shiftReg1();
 //void changeMode(enum deviceModes m);
 enum deviceModes menuItem = MODE_MENU_NONE;
+void adcBultin();
 
 void CP_ICACHE_FLASH_ATTR
 doButtonFunction(enum button b) 
@@ -143,10 +153,36 @@ doButtonFunction(enum button b)
 	
 }
 
+void CP_ICACHE_FLASH_ATTR 
+pwm_setup() 
+{
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
 
 
+// PWM	
+uint32 io_info[][3] = { 
+		{PWM_12_OUT_IO_MUX,PWM_12_OUT_IO_FUNC,PWM_12_OUT_IO_NUM},
+		{PWM_14_OUT_IO_MUX,PWM_14_OUT_IO_FUNC,PWM_14_OUT_IO_NUM}		
+	};
+	
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "io_info" );
+    set_pwm_debug_en(1);//disable debug print in pwm driver
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm debug" );
+	
+    /*PIN FUNCTION INIT FOR PWM OUTPUT*/
+//    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
+
+    pwm_init(1000,  0 ,0,io_info);
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init" );
+//    pwm_init(1000,  0 ,1,io_info);
+//	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init2" );
+    
+    
+	pwm_start();
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm start" );
 
 
+}
 
 
 void CP_ICACHE_FLASH_ATTR 
@@ -173,7 +209,8 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 {
 
 	int i=0, x=0;
-
+	uint32 channel = 0;
+	uint32 period = 0;
 	unsigned char *tmp;
 
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
@@ -211,19 +248,20 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 						CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %24s %4d %4d %4d", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].value ^ config->controlers[i].value_mask, config->controlers[i].gpio );
 					}
 				}
-				if  ( 	config->controlers[i].type == ACTION_TYPE_DIMMER ) {
-					
-					for (x=1; x<=8; x++) {					
-						if ( cp->action_value == 0  ) {
-							shiftBits0[x-1] = 0;
-						} else if ( x <= cp->action_value ) {
-							shiftBits0[x-1] = 1;
-						} else {
-							shiftBits0[x-1] = 0;
-						
-						}
+				if  ( 	config->controlers[i].type == ACTION_TYPE_DIMMER ) 
+				{		
+				
+					if (config->controlers[i].gpio == 12) {
+						channel = 0;
+					} else if (config->controlers[i].gpio == 14) {
+						channel = 1;
 					}
-//					shiftReg0();
+			
+					period = pwm_get_period();
+					pwm_set_duty( 
+						(uint32)(( config->controlers[i].value / config->controlers[i].rangeHigh ) * ( period *1000 / 45 ) ),
+						channel );
+					pwm_start();
 				}				
 			}
 		}
@@ -340,6 +378,7 @@ clock_loop()
 	    ntp_unix_timestamp++;
 		if ( ( ntp_unix_timestamp % 60) == 0 ) { 
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp ); 
+			adcBultin();
 		}
 	}
 
@@ -426,7 +465,7 @@ userGPIOInit()
     gpio_init();
 
 //	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
 //	PIN_FUNC_SELECT(PERIPHS_IO_MUX_SD_DATA3_U, FUNC_GPIO10);
@@ -490,88 +529,113 @@ chatFabricInit()
 		
 
 }
+
 void CP_ICACHE_FLASH_ATTR
-adc() {
-	if ( 
-		hostMeta.hwaddr[0] == 0x18 
-		&& hostMeta.hwaddr[1] == 0xfe 
-		&& hostMeta.hwaddr[2] == 0x34 
-		&& hostMeta.hwaddr[3] == 0xd4 
-		&& hostMeta.hwaddr[4] == 0xd3
-		&& hostMeta.hwaddr[5] == 0x1d
-	
-	) {
+adcBultin() {
 
-	int i=0;
-	uint16 data0;
-	uint16 data1;
-	uint32 data0sum = 0;
-	uint32 data1sum = 0;
+	uint16 v = 0;
 	
-	for (i=0; i<20; i++) {
+	v = system_adc_read();
 	
-		os_timer_disarm(&poketimer);
-		data0 = (uint16) spi_transaction(
-			HSPI, 
-			0, 
-			0,
-			0, 
-			0, 
-			4,
-			0b1101, 
-			12, 
-			0);
+//		10mV /C  = 0.010 V/C = 1/100
+		double voltsPerUnit = 1 /100;
 		
-		data0sum+=data0;
 		
-		data1 = (uint16) spi_transaction(
-			HSPI, 
-			0, 
-			0,
-			0, 
-			0, 
-			4,
-			0b1111, 
-			12, 
-			0);
-		data1sum+=data1;
-
-		}
-		
-//		double voltsPerUnit = 5.22 / 2047;
-		double voltsPerUnit = 25.61 /10000;
 		uint16 voltsPerUnit_i = (uint16)voltsPerUnit;
-		uint16 voltsPerUnit_f = (uint16)((voltsPerUnit - voltsPerUnit_i) *1000);
+		uint16 voltsPerUnit_f = (uint16)((voltsPerUnit - voltsPerUnit_i) *100);
 
-		double data0volt  = (data0sum/20)*voltsPerUnit;
+		double data0volt  = (v)*voltsPerUnit;
 		uint16 data0volt_i  = (uint16)data0volt;
-		uint16 data0volt_f  = (uint16)((data0*voltsPerUnit - data0volt_i ) *1000);
+		uint16 data0volt_f  = (uint16)((v*voltsPerUnit - data0volt_i ) *100);
 
 
-		double data1volt  = (data1sum/20)*voltsPerUnit;
-		uint16 data1volt_i  = (uint16)data1volt;
-		uint16 data1volt_f  = (uint16)((data1*voltsPerUnit - data1volt_i ) *1000);
+		CHATFABRIC_DEBUG_FMT(1, "[perUnit: %02u.%03u]  ADC0: %04x : volts  %02u.%03u   ", voltsPerUnit_i, voltsPerUnit_f,  v,  data0volt_i, data0volt_f);
 
 
-		CHATFABRIC_DEBUG_FMT(1, "[perUnit: %02u.%03u]  ADC0: %04x : volts  %02u.%03u : ADC1: %04x : volts  %02u.%03u ",voltsPerUnit_i, voltsPerUnit_f,  data0,  data0volt_i, data0volt_f, data1, data1volt_i, data1volt_f);
-		
-		os_timer_setfn(&poketimer, (os_timer_func_t *)adc, NULL);
-		os_timer_arm(&poketimer, 500, 1);
-			
-/*
-
-		uint16 cmd = ;
-		spi_tx16(HSPI, cmd);
-		uint16 data = (uint16) spi_rx16(HSPI);
-		CHATFABRIC_DEBUG_FMT(1, "ADC0: %04x", data ); 											
-
-		cmd = 0b0111100000000000;
-		spi_tx16(HSPI, cmd);
-		data = (uint16) spi_rx16(HSPI);
-		CHATFABRIC_DEBUG_FMT(1, "ADC1: %04x", data );
-*/
-	}
 }
+
+// void CP_ICACHE_FLASH_ATTR
+// adc() {
+// 	if ( 
+// 		hostMeta.hwaddr[0] == 0x18 
+// 		&& hostMeta.hwaddr[1] == 0xfe 
+// 		&& hostMeta.hwaddr[2] == 0x34 
+// 		&& hostMeta.hwaddr[3] == 0xd4 
+// 		&& hostMeta.hwaddr[4] == 0xd3
+// 		&& hostMeta.hwaddr[5] == 0x1d
+// 	
+// 	) {
+// 
+// 	int i=0;
+// 	uint16 data0;
+// 	uint16 data1;
+// 	uint32 data0sum = 0;
+// 	uint32 data1sum = 0;
+// 	
+// 	for (i=0; i<20; i++) {
+// 	
+// 		os_timer_disarm(&poketimer);
+// 		data0 = (uint16) spi_transaction(
+// 			HSPI, 
+// 			0, 
+// 			0,
+// 			0, 
+// 			0, 
+// 			4,
+// 			0b1101, 
+// 			12, 
+// 			0);
+// 		
+// 		data0sum+=data0;
+// 		
+// 		data1 = (uint16) spi_transaction(
+// 			HSPI, 
+// 			0, 
+// 			0,
+// 			0, 
+// 			0, 
+// 			4,
+// 			0b1111, 
+// 			12, 
+// 			0);
+// 		data1sum+=data1;
+// 
+// 		}
+// 		
+// //		double voltsPerUnit = 5.22 / 2047;
+// 		double voltsPerUnit = 25.61 /10000;
+// 		uint16 voltsPerUnit_i = (uint16)voltsPerUnit;
+// 		uint16 voltsPerUnit_f = (uint16)((voltsPerUnit - voltsPerUnit_i) *1000);
+// 
+// 		double data0volt  = (data0sum/20)*voltsPerUnit;
+// 		uint16 data0volt_i  = (uint16)data0volt;
+// 		uint16 data0volt_f  = (uint16)((data0*voltsPerUnit - data0volt_i ) *1000);
+// 
+// 
+// 		double data1volt  = (data1sum/20)*voltsPerUnit;
+// 		uint16 data1volt_i  = (uint16)data1volt;
+// 		uint16 data1volt_f  = (uint16)((data1*voltsPerUnit - data1volt_i ) *1000);
+// 
+// 
+// 		CHATFABRIC_DEBUG_FMT(1, "[perUnit: %02u.%03u]  ADC0: %04x : volts  %02u.%03u : ADC1: %04x : volts  %02u.%03u ",voltsPerUnit_i, voltsPerUnit_f,  data0,  data0volt_i, data0volt_f, data1, data1volt_i, data1volt_f);
+// 		
+// 		os_timer_setfn(&poketimer, (os_timer_func_t *)adc, NULL);
+// 		os_timer_arm(&poketimer, 500, 1);
+// 			
+// /*
+// 
+// 		uint16 cmd = ;
+// 		spi_tx16(HSPI, cmd);
+// 		uint16 data = (uint16) spi_rx16(HSPI);
+// 		CHATFABRIC_DEBUG_FMT(1, "ADC0: %04x", data ); 											
+// 
+// 		cmd = 0b0111100000000000;
+// 		spi_tx16(HSPI, cmd);
+// 		data = (uint16) spi_rx16(HSPI);
+// 		CHATFABRIC_DEBUG_FMT(1, "ADC1: %04x", data );
+// */
+// 	}
+// }
 
 
 
@@ -611,6 +675,9 @@ user_init_stage2()
 //	cfConfigWrite(&config);
 	_GLOBAL_DEBUG = config.debug;
 	gpioInitFromConfig(&config);
+	pwm_setup();
+
+
 
 //	os_timer_disarm(&statusReg);
 //	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);

@@ -25,6 +25,14 @@
  *
  * $FreeBSD: stable/10/sys/sys/uuid.h 253590 2013-07-24 04:24:21Z marcel $
  */
+#ifdef ESP8266
+//#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#ifndef CP_ICACHE_FLASH_ATTR
+#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
+#endif
+#else
+#define CP_ICACHE_FLASH_ATTR __attribute__(())
+#endif
 
 #ifndef _SYS_UUID_H_
 #define	_SYS_UUID_H_

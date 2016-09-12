@@ -109,7 +109,60 @@ if (
 	config.controlers[i].gpio = 13;
 //	config.debug = 1;
 
+} else if (1) {
+
+	int i =	0;		
+	config.numOfControllers = 4;
+	
+	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_DIMMER;
+	config.controlers[i].value = 0;
+	config.controlers[i].value_mask = 0x00;
+	config.controlers[i].label = "Top Outlet";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 100;
+	config.controlers[i].gpio = 12;
+
+	i++;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+	config.controlers[i].value = 0;
+	config.controlers[i].value_mask = 0x00;	
+	config.controlers[i].label = "Bottom Outlet";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 1;
+	config.controlers[i].gpio = 13;
+//	config.debug = 1;
+
+	i++;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_DIMMER;
+	config.controlers[i].value = 0;
+	config.controlers[i].value_mask = 0x00;	
+	config.controlers[i].label = "yellow14";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 100;
+	config.controlers[i].gpio = 14;
+
+
+	i++;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+	config.controlers[i].value = 0;
+	config.controlers[i].value_mask = 0x00;
+	config.controlers[i].label = "yellow16";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 1;
+	config.controlers[i].gpio = 16;
+
+
 } else {
+
 
 	// ESP_DEVICE_GENERIC
 
