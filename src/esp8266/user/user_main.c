@@ -17,7 +17,6 @@
 #include "esp-cf-config.h"
 #include "esp-cf-wifi.h"
 #include "uuid_wrapper.h"
-#include "ntp.h"
 #include "driver/spi.h"
 #include "pwm.h"
 
@@ -65,6 +64,7 @@ uint32_t controls[16];
 uint32_t ntpcounter = 0;
 uint32_t ntpstatus_printed = 0;
 
+uint32 duty = 0;
 int stepper = 0;
 
 
@@ -156,37 +156,35 @@ doButtonFunction(enum button b)
 	
 }
 
-// void CP_ICACHE_FLASH_ATTR 
-// pwm_setup() 
-// {
-// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
-// 
-// 
-// // PWM	
-// uint32 io_info[][3] = { 
-// 		{PWM_12_OUT_IO_MUX,PWM_12_OUT_IO_FUNC,PWM_12_OUT_IO_NUM},
-// 		{PWM_14_OUT_IO_MUX,PWM_14_OUT_IO_FUNC,PWM_14_OUT_IO_NUM}		
-// 	};
-// 	
-// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "io_info" );
-//     set_pwm_debug_en(1);//disable debug print in pwm driver
-// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm debug" );
-// 	
-//     /*PIN FUNCTION INIT FOR PWM OUTPUT*/
-// //    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
-// 
-//     pwm_init(1000,  0 ,0,io_info);
-// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init" );
-// //    pwm_init(1000,  0 ,1,io_info);
-// //	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init2" );
-//     
-//     
-// 	pwm_start();
-// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm start" );
-// 
-// 
-// }
-// 
+void CP_ICACHE_FLASH_ATTR 
+pwm_setup() 
+{
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
+
+
+// PWM	
+uint32 io_info[][3] = { 
+		{PWM_14_OUT_IO_MUX,PWM_14_OUT_IO_FUNC,PWM_14_OUT_IO_NUM}		
+	};
+	
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "io_info" );
+    set_pwm_debug_en(1);//disable debug print in pwm driver
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm debug" );
+	
+    /*PIN FUNCTION INIT FOR PWM OUTPUT*/
+//    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
+
+    pwm_init(20000,  0 ,0,io_info);
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG,	 "pwm init" );
+//    pwm_init(1000,  0 ,1,io_info);
+//	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init2" );
+    
+	pwm_start();
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm start" );
+
+
+}
+
 
 void CP_ICACHE_FLASH_ATTR 
 gpioInitFromConfig(chatFabricConfig *config) 
@@ -214,6 +212,9 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 	int i=0, x=0;
 	uint32 channel = 0;
 	uint32 period = 0;
+	float period_max;
+	float duty_percent;
+	uint32 duty = 0;
 	unsigned char *tmp;
 
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
@@ -248,23 +249,38 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 						gpio16_output_set(config->controlers[i].value ^ config->controlers[i].value_mask );
 					} else {
 						GPIO_OUTPUT_SET(config->controlers[i].gpio, config->controlers[i].value ^ config->controlers[i].value_mask);
-						CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %24s %4d %4d %4d", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].value ^ config->controlers[i].value_mask, config->controlers[i].gpio );
+						CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %-24s %4d %4d %4d", "Setting", config->controlers[i].control, config->controlers[i].label, config->controlers[i].value, config->controlers[i].value ^ config->controlers[i].value_mask, config->controlers[i].gpio );
 					}
 				}
 				if  ( 	config->controlers[i].type == ACTION_TYPE_DIMMER ) 
 				{		
 				
-					if (config->controlers[i].gpio == 12) {
+					if (config->controlers[i].gpio == 14) {
 						channel = 0;
-					} else if (config->controlers[i].gpio == 14) {
-						channel = 1;
+					} else {
+						channel = 0;
 					}
 			
-// 					period = pwm_get_period();
-// 					pwm_set_duty( 
-// 						(uint32)(( config->controlers[i].value / config->controlers[i].rangeHigh ) * ( period *1000 / 45 ) ),
-// 						channel );
-// 					pwm_start();
+			
+					period = pwm_get_period();
+					period_max = period *1000 / 45;
+					duty_percent = config->controlers[i].value / config->controlers[i].rangeHigh;
+					duty = ( config->controlers[i].value / config->controlers[i].rangeHigh ) * (period *1000 / 45);
+					
+					CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %-24s %4d %4d Duty: %d %d %d %d", "Control (Dimmer)", 
+						config->controlers[i].control, 
+						config->controlers[i].label, 
+						config->controlers[i].value, 
+						config->controlers[i].gpio,
+						duty,
+						period,
+						period_max,
+						duty_percent
+						);
+					
+					pwm_set_duty( duty, channel );
+
+					pwm_start();
 				}				
 			}
 		}
@@ -345,44 +361,35 @@ tcp_listen(void *arg)
 }
 
 
-static void CP_ICACHE_FLASH_ATTR
-ntpTimer_loop()
-{
-//	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d;  ntp_status: %d;  ntpcounter : %d", ntp_unix_timestamp, ntp_status, ntpcounter );
-
-	if ( ntp_status != NTP_STATE_SETTING ) {
-		ntpcounter+=10;
-	}
-
-	if (ntp_status == NTP_STATE_TIMEOUT) {
-		if ( ntpstatus_printed == 0 ) {
-			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG,  "%s", ntp_status_str );
-			ntpstatus_printed = 1;
-		}
-	}
-
-	if ( 
-			( (ntpcounter >= 1*60) && (ntp_status == NTP_STATE_TIMEOUT) ) ||
-			( (ntpcounter >= 30*60) && (ntp_status == NTP_STATE_SET) ) 
-	)		
-	 {
-		ntpcounter = 0;
-		ntp_status = NTP_STATE_SETTING;
-		ntp_get_time();
-	}	
-	
-}
 
 static void CP_ICACHE_FLASH_ATTR
 clock_loop()
 {
-
+	uint32	period;
+	uint32 period_max;
+	
 	if (ntp_unix_timestamp > 0) {
 	    ntp_unix_timestamp++;
-		if ( ( ntp_unix_timestamp % 60) == 0 ) { 
+		if ( ( ntp_unix_timestamp % 10) == 0 ) { 
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp ); 
 			adcBultin();
+
+			period = pwm_get_period();
+			period_max = period *1000 / 45;
+			duty=duty+222222;
+
+
+			if  ( duty > period_max ) {
+				duty = 0;
+			}
+			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "PWM: duty:%d %d %d", duty, period, period_max  ); 
+			pwm_set_duty( duty, 0 );
+			pwm_start();
+
 		}
+
+
+
 	}
 
 	seconds_since_boot++;
@@ -676,6 +683,7 @@ user_init_stage2()
 
 	_GLOBAL_DEBUG = config.debug;
 	gpioInitFromConfig(&config);
+	pwm_setup();
 
 	os_timer_disarm(&statusReg);
 	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
@@ -718,10 +726,6 @@ user_init()
 	os_timer_disarm(&clockTimer);
 	os_timer_setfn(&clockTimer, (os_timer_func_t *)clock_loop, NULL);
 	os_timer_arm(&clockTimer, 1000, 1);
-
-	os_timer_disarm(&ntpTimer);
-	os_timer_setfn(&ntpTimer, (os_timer_func_t *)ntpTimer_loop, NULL);
-	os_timer_arm(&ntpTimer, 10000, 1);
 
 
 }

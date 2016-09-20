@@ -139,7 +139,7 @@ if (
 
 	i++;
 	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+	config.controlers[i].type = ACTION_TYPE_DIMMER;
 	config.controlers[i].value = 0;
 	config.controlers[i].value_mask = 0x00;	
 	config.controlers[i].label = "gpio14";

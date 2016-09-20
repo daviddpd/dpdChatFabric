@@ -8,6 +8,47 @@ void tcp_listen(void *arg);
 
 //void CP_ICACHE_FLASH_ATTR changeMode(enum deviceModes m);
 
+time_t ntp_unix_timestamp;
+LOCAL os_timer_t sntp_timer;
+
+
+void CP_ICACHE_FLASH_ATTR espCfWiFi_ntp20Check(void *arg)
+{ 
+	uint32 current_stamp;
+	current_stamp = sntp_get_current_timestamp(); 
+	if(current_stamp == 0){
+		os_timer_arm(&sntp_timer, 100, 0); 
+	} else {
+		os_timer_disarm(&sntp_timer);
+		ntp_unix_timestamp = current_stamp;
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "NTP: (%d) (%s)", current_stamp, sntp_get_real_time(current_stamp));
+		sntp_stop();
+	} 
+} 
+
+void CP_ICACHE_FLASH_ATTR
+espCfWiFi_ntp20Init() {
+
+	sntp_stop();
+	sntp_set_timezone(0);
+
+	ip_addr_t *addr = (ip_addr_t *)os_zalloc(sizeof(ip_addr_t));	
+	addr->addr = config.ntpv4;
+	
+	sntp_setserver(0, addr); 	
+	sntp_setservername(1, "0.pool.ntp.org"); 
+	sntp_setservername(2, "1.pool.ntp.org");	
+	sntp_init();
+	os_free(addr);
+	
+
+	os_timer_disarm(&sntp_timer);
+	os_timer_setfn(&sntp_timer, (os_timer_func_t *)espCfWiFi_ntp20Check, NULL); 
+	os_timer_arm(&sntp_timer, 100, 0);
+
+}
+
+
 void CP_ICACHE_FLASH_ATTR
 espCfWiFi_listen() {
 
@@ -72,7 +113,9 @@ espCfWiFi_callBack(System_Event_t *evt)
 			config.sta_ipv4ns2 = (uint32_t)evt->event_info.got_ip.gw.addr;
 			config.ntpv4 = (uint32_t)evt->event_info.got_ip.gw.addr;
 			
-			ntp_get_time();
+			
+			espCfWiFi_ntp20Init();
+			
 			espCfMdns();
 			espCfWiFi_listen();
 			currentMode = MODE_STA_UNPAIRED;

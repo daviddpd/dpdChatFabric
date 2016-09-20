@@ -40,7 +40,7 @@ EXTRA_INCDIR    = include ../crypto ../includes
 
 # libraries used in this project, mainly provided by the SDK
 #LIBS		= c gcc hal pp phy net80211 lwip wpa main
-LIBS		= cirom gcc hal pp phy net80211 lwip wpa main crypto pwm
+LIBS		= cirom gcc hal pp phy net80211 lwip wpa main pwm
 
 # compiler flags using during compilation of source files -fno-inline-functions
 CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN
@@ -161,6 +161,8 @@ endef
 
 all:  checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
 
+16kblank.bin:
+	dd if=/dev/zero of=16kblank.bin bs=4k count=4
 
 $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
 	$(vecho) "FW $(FW_BASE)"
@@ -183,14 +185,16 @@ $(FW_BASE):
 	$(Q) mkdir -p $@
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
-	$(ESPTOOL) --port $(ESPPORT) write_flash \
-		$(FW_FILE_1_ADDR) $(FW_FILE_1) \
-		$(FW_FILE_2_ADDR) $(FW_FILE_2)
-
-flashdata: $(FW_FILE_1) $(FW_FILE_2)
 	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
 		$(FW_FILE_1_ADDR) $(FW_FILE_1)  \
 		$(FW_FILE_2_ADDR) $(FW_FILE_2)  \
+		$(FW_SYSPARM_SEC0) $(FW_DATA_DEFAULT)
+
+flashdata: $(FW_FILE_1) $(FW_FILE_2) 16kblank.bin
+	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
+		$(FW_FILE_1_ADDR) $(FW_FILE_1)  \
+		$(FW_FILE_2_ADDR) $(FW_FILE_2)  \
+		$(FW_SYSPARM_SEC0) $(FW_BLANK_DATA) \
 		$(FW_SYSPARM_SEC0) $(FW_DATA_DEFAULT)
 
 

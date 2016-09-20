@@ -11,7 +11,6 @@
 #include "espconn.h"
 #include "mem.h"
 #include "uuid_wrapper.h"
-#include "ntp.h"
 #include <salsa20.h>
 #include <poly1305-donna.h>
 #include "dpdChatFabric.h"
