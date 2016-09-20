@@ -12,6 +12,9 @@
 # - 2014-11-23: Updated for SDK 0.9.3
 # - 2014-12-25: Replaced esptool by esptool.py
 
+# - 2016 - using for my own projects -dpd
+
+
 # Output directors to store intermediate compiled files
 # relative to the project directory
 BUILD_BASE	= build
@@ -46,6 +49,14 @@ ifdef ESP_DEVICE_OUTLET
 CFLAGS	+= -DESP_DEVICE_OUTLET
 endif
 
+VERSION_DATE='"$(shell date -u "+%Y%m%d_%H%M%S%Z")"'
+VERSION_GIT='"$(shell git rev-parse HEAD)"'
+CFLAGS	+= -DVERSION_DATE=$(VERSION_DATE)
+CFLAGS	+= -DVERSION_GIT=$(VERSION_GIT)
+
+
+
+
 # linker flags used to generate the main object file
 LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static 
 
@@ -66,8 +77,31 @@ SDK_INCDIR	= include include/json
 # these are the names and options to generate them
 FW_FILE_1_ADDR	= 0x00000
 FW_FILE_2_ADDR	= 0x40000
-FW_DATA_1_ADDR	= 0x3FE000
-FW_DATA_DEFAULT_ADDR = 0x3FC000 
+
+# System parameter area #
+#   3fc000   4177920
+#   3fd000   4182016
+#   3fe000   4186112
+#   3ff000   4190208
+
+# 0fc000   1032192
+# 0fd000   1036288
+# 0fe000   1040384
+# 0ff000   1044480
+FW_SYSPARM_SEC0 = 0x0fc000
+FW_SYSPARM_SEC1 = 0x0fd000
+FW_SYSPARM_SEC2 = 0x0fe000
+FW_SYSPARM_SEC3 = 0x0ff000
+
+ 
+FW_SYSPARM_SEC0 = 0x3fc000
+FW_SYSPARM_SEC1 = 0x3fd000
+FW_SYSPARM_SEC2 = 0x3fe000
+FW_SYSPARM_SEC3 = 0x3ff000
+
+
+
+
 
 # select which tools to use as compiler, librarian and linker
 CC		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
@@ -102,7 +136,7 @@ FW_FILE_1	:= $(addprefix $(FW_BASE)/,$(FW_FILE_1_ADDR).bin)
 FW_FILE_2	:= $(addprefix $(FW_BASE)/,$(FW_FILE_2_ADDR).bin)
 
 FW_DATA_DEFAULT := $(SDK_BASE)/bin/esp_init_data_default.bin
-FW_DATA_1	:= 16kblank.bin
+FW_BLANK_DATA	:= 16kblank.bin
 
 FLASH_SIZE := 32m  #    [--flash_size {4m,2m,8m,16m,32m,16m-c1,32m-c1,32m-c2}]
 
@@ -125,10 +159,11 @@ endef
 
 .PHONY: all checkdirs flash clean
 
-all: checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
+all:  checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
+
 
 $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
-	$(vecho) "FW $(FW_BASE)/%.bin"
+	$(vecho) "FW $(FW_BASE)"
 	$(Q) $(ESPTOOL) elf2image --flash_size $(FLASH_SIZE) -o $(FW_BASE)/ $(TARGET_OUT)
 
 $(TARGET_OUT): $(APP_AR)
@@ -148,10 +183,20 @@ $(FW_BASE):
 	$(Q) mkdir -p $@
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
-	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
+	$(ESPTOOL) --port $(ESPPORT) write_flash \
+		$(FW_FILE_1_ADDR) $(FW_FILE_1) \
+		$(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 flashdata: $(FW_FILE_1) $(FW_FILE_2)
-	$(ESPTOOL) --port $(ESPPORT) write_flash  $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2) $(FW_DATA_DEFAULT_ADDR) $(FW_DATA_DEFAULT)
+	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
+		$(FW_FILE_1_ADDR) $(FW_FILE_1)  \
+		$(FW_FILE_2_ADDR) $(FW_FILE_2)  \
+		$(FW_SYSPARM_SEC0) $(FW_DATA_DEFAULT)
+
+
+#		0x0fc000 $(FW_BLANK_DATA) \
+#		$(FW_SYSPARM_SEC0) $(FW_BLANK_DATA) \
+		
 	
 
 clean:

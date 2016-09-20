@@ -65,6 +65,8 @@ uint32_t controls[16];
 uint32_t ntpcounter = 0;
 uint32_t ntpstatus_printed = 0;
 
+int stepper = 0;
+
 
 LOCAL os_timer_t boottimer;
 LOCAL os_timer_t poketimer;
@@ -96,6 +98,7 @@ void udp_callback(void *arg, char *data, unsigned short length);
 //void changeMode(enum deviceModes m);
 enum deviceModes menuItem = MODE_MENU_NONE;
 void adcBultin();
+
 
 void CP_ICACHE_FLASH_ATTR
 doButtonFunction(enum button b) 
@@ -129,7 +132,7 @@ doButtonFunction(enum button b)
 	
 				os_timer_disarm(&statusReg);
 				os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
-				os_timer_arm(&statusReg, 300, 1);
+				os_timer_arm(&statusReg, 500, 1);
 	
 				// uart_init(BIT_RATE_115200,BIT_RATE_115200);
 				// Initialize the GPIO subsystem.
@@ -153,37 +156,37 @@ doButtonFunction(enum button b)
 	
 }
 
-void CP_ICACHE_FLASH_ATTR 
-pwm_setup() 
-{
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
-
-
-// PWM	
-uint32 io_info[][3] = { 
-		{PWM_12_OUT_IO_MUX,PWM_12_OUT_IO_FUNC,PWM_12_OUT_IO_NUM},
-		{PWM_14_OUT_IO_MUX,PWM_14_OUT_IO_FUNC,PWM_14_OUT_IO_NUM}		
-	};
-	
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "io_info" );
-    set_pwm_debug_en(1);//disable debug print in pwm driver
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm debug" );
-	
-    /*PIN FUNCTION INIT FOR PWM OUTPUT*/
-//    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
-
-    pwm_init(1000,  0 ,0,io_info);
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init" );
-//    pwm_init(1000,  0 ,1,io_info);
-//	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init2" );
-    
-    
-	pwm_start();
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm start" );
-
-
-}
-
+// void CP_ICACHE_FLASH_ATTR 
+// pwm_setup() 
+// {
+// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
+// 
+// 
+// // PWM	
+// uint32 io_info[][3] = { 
+// 		{PWM_12_OUT_IO_MUX,PWM_12_OUT_IO_FUNC,PWM_12_OUT_IO_NUM},
+// 		{PWM_14_OUT_IO_MUX,PWM_14_OUT_IO_FUNC,PWM_14_OUT_IO_NUM}		
+// 	};
+// 	
+// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "io_info" );
+//     set_pwm_debug_en(1);//disable debug print in pwm driver
+// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm debug" );
+// 	
+//     /*PIN FUNCTION INIT FOR PWM OUTPUT*/
+// //    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
+// 
+//     pwm_init(1000,  0 ,0,io_info);
+// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init" );
+// //    pwm_init(1000,  0 ,1,io_info);
+// //	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init2" );
+//     
+//     
+// 	pwm_start();
+// 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm start" );
+// 
+// 
+// }
+// 
 
 void CP_ICACHE_FLASH_ATTR 
 gpioInitFromConfig(chatFabricConfig *config) 
@@ -257,11 +260,11 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 						channel = 1;
 					}
 			
-					period = pwm_get_period();
-					pwm_set_duty( 
-						(uint32)(( config->controlers[i].value / config->controlers[i].rangeHigh ) * ( period *1000 / 45 ) ),
-						channel );
-					pwm_start();
+// 					period = pwm_get_period();
+// 					pwm_set_duty( 
+// 						(uint32)(( config->controlers[i].value / config->controlers[i].rangeHigh ) * ( period *1000 / 45 ) ),
+// 						channel );
+// 					pwm_start();
 				}				
 			}
 		}
@@ -389,14 +392,15 @@ clock_loop()
 
 void CP_ICACHE_FLASH_ATTR
 statusLoop() {
+	os_timer_disarm(&statusReg);
+
 	uuid_cp u1;
-	
+
 	if ( pair[0].hasPublicKey && ( menuItem == MODE_MENU_NONE ) ) {
 		currentMode = MODE_STA_PAIRED;
-//		changeMode(MODE_STA_PAIRED);
 	} 
 
-//	shiftReg1();
+
 }
 
 
@@ -487,16 +491,16 @@ userGPIOInit()
 
 	GPIO_DIS_OUTPUT(0); // set for input
 	GPIO_DIS_OUTPUT(2); // set for input
-//	GPIO_DIS_OUTPUT(2); // set for input
-//	GPIO_DIS_OUTPUT(0); // set for input
+	GPIO_DIS_OUTPUT(4); // set for input
+	GPIO_DIS_OUTPUT(5); // set for input
 //	GPIO_DIS_OUTPUT(2); // set for input
 //	GPIO_DIS_OUTPUT(3); // set for input
 
 //    gpio_pin_intr_state_set(GPIO_ID_PIN(13), GPIO_PIN_INTR_NEGEDGE);    
     gpio_pin_intr_state_set(GPIO_ID_PIN(2), GPIO_PIN_INTR_POSEDGE);    
     gpio_pin_intr_state_set(GPIO_ID_PIN(0), GPIO_PIN_INTR_POSEDGE);    
-//    gpio_pin_intr_state_set(GPIO_ID_PIN(0), GPIO_PIN_INTR_NEGEDGE);    
-//    gpio_pin_intr_state_set(GPIO_ID_PIN(3), GPIO_PIN_INTR_NEGEDGE);    
+    gpio_pin_intr_state_set(GPIO_ID_PIN(5), GPIO_PIN_INTR_POSEDGE); 
+    gpio_pin_intr_state_set(GPIO_ID_PIN(4), GPIO_PIN_INTR_POSEDGE);    
 
 //  gpio_pin_intr_state_set(GPIO_ID_PIN(13), GPIO_PIN_INTR_NEGEDGE);
     ETS_GPIO_INTR_ENABLE();
@@ -669,38 +673,14 @@ user_init_stage2()
 	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s", buf );
 	
 	espWiFiInit();
-//	shiftReg0();
-//	shiftReg1();
 
-//	cfConfigWrite(&config);
 	_GLOBAL_DEBUG = config.debug;
 	gpioInitFromConfig(&config);
-	pwm_setup();
 
+	os_timer_disarm(&statusReg);
+	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
+	os_timer_arm(&statusReg, 2000, 1);
 
-
-//	os_timer_disarm(&statusReg);
-//	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
-//	os_timer_arm(&statusReg, 300, 1);
-
-/*
-	if ( 
-		hostMeta.hwaddr[0] == 0x18 
-		&& hostMeta.hwaddr[1] == 0xfe 
-		&& hostMeta.hwaddr[2] == 0x34 
-		&& hostMeta.hwaddr[3] == 0xd4 
-		&& hostMeta.hwaddr[4] == 0xd3
-		&& hostMeta.hwaddr[5] == 0x1d
-	
-	) {
-	
-		spi_init(HSPI);
-		os_timer_disarm(&poketimer);
-		os_timer_setfn(&poketimer, (os_timer_func_t *)adc, NULL);
-		os_timer_arm(&poketimer, 500, 1);
-	}
-
-*/
 	
 }
 void CP_ICACHE_FLASH_ATTR
@@ -715,8 +695,19 @@ void CP_ICACHE_FLASH_ATTR
 user_init()
 {
 	int i;
+
 	seconds_since_boot=0;
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
+	#ifdef VERSION_DATE
+	#ifdef VERSION_GIT
+	os_printf("%040x\n", 0);
+	os_printf("%040x\n", 0);	
+	os_printf("chatFabric comnplie date: %s git:%s SDK Version: %s\n" , VERSION_DATE, VERSION_GIT, system_get_sdk_version() );
+	CHATFABRIC_PRINT("\n");
+	#endif
+	#endif
+	
+	
 
 	currentMode = MODE_BOOTING;
 	uart0enabled = 1;

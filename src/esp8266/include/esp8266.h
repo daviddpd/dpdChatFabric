@@ -22,8 +22,22 @@ chatFabricPairing ESP_WORD_ALIGN pair[16];
 
 int32_t heap, heapLast;
 
-#define ESP_PARAM_START_SEC		0x3D
-#define CP_ESP_PARAM_START_SEC 0x7a
+
+// 0x3fc000
+
+/*
+ 0fc000   1032192
+ 0fd000   1036288
+ 0fe000   1040384
+ 0ff000   1044480
+*/
+
+#define PRIV_PARAM_SAVE			0
+
+#define PRIV_PARAM_START_SEC	0xFC
+
+#define ESP_PARAM_START_SEC		0xFD
+#define CP_ESP_PARAM_START_SEC 	0xFD
 
 
 #endif
