@@ -34,7 +34,7 @@
  * See also:
  *	http://www.opengroup.org/onlinepubs/009629399/uuid_is_nil.htm
  */
-int32_t CP_ICACHE_FLASH_ATTR
+uint32_t CP_ICACHE_FLASH_ATTR
 uuid_is_nil(const uuid_cp *u, uint32_t *status)
 {
 	const uint32_t *p;

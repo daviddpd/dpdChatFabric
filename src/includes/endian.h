@@ -38,6 +38,30 @@
 #define _BYTE_ORDER  1
 #endif
 
+#ifdef MACOS
+#include <_types.h>
+#ifndef _UINT8_T_DECLARED
+typedef	unsigned char	uint8_t;
+#define	_UINT8_T_DECLARED
+#endif
+ 
+#ifndef _UINT16_T_DECLARED
+typedef	__uint16_t	uint16_t;
+#define	_UINT16_T_DECLARED
+#endif
+ 
+#ifndef _UINT32_T_DECLARED
+typedef	__uint32_t	uint32_t;
+#define	_UINT32_T_DECLARED
+#endif
+ 
+#ifndef _UINT64_T_DECLARED
+typedef	__uint64_t	uint64_t;
+#define	_UINT64_T_DECLARED
+#endif
+#endif
+
+
 #ifndef ESP8266
 #ifndef _UINT8_T_DECLARED
 typedef	__uint8_t	uint8_t;
@@ -59,6 +83,8 @@ typedef	__uint64_t	uint64_t;
 #define	_UINT64_T_DECLARED
 #endif
 #endif 
+
+
 /*
  * General byte order swapping functions.
  */

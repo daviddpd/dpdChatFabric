@@ -7,7 +7,7 @@
 #define HOSTNAME_MAX_LENGTH 32
 
 #include "__attribute__.h"
-#include "uuid_wrapper.h"
+#include "uuuid2.h"
 #include "util.h"
 
 extern int _GLOBAL_DEBUG;
@@ -53,8 +53,8 @@ typedef struct  {
 } hostmeta_t;
 
 typedef struct  {
-	uuid_cp u0;
-	uuid_cp u1;
+	uuuid2_t u0;
+	uuuid2_t u1;
 } uuid_tuple;
 
 typedef struct {

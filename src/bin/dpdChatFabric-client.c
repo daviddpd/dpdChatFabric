@@ -76,9 +76,9 @@ int main(int argc, char**argv)
 	chatFabric_args(argc, argv, &config);
 	
 	chatFabric_configParse(&config);
-	uuid_to_string(&(config.uuid.u0), &str, &status);
+	uuuid2_to_str(&str, 16, &(config.uuid.u0));	
 	printf (" uuid0       : %s\n", str);
-	uuid_to_string(&(config.uuid.u1), &str, &status);
+	uuuid2_to_str(&str, 16, &(config.uuid.u1));
 	printf (" uuid1       : %s\n", str);
 	
 	printf ( " %-16s ==> ", "PUBLICKEY" );	
@@ -96,8 +96,8 @@ int main(int argc, char**argv)
 	
 	pid = getpid();
 	
-	uuid_create_nil(&to.u0, &status);
-	uuid_from_string("ca32aa22-0e7c-11e5-8e8b-00a0988afcc9", &to.u1, &status);
+	uuuid2_gen_nill(&to.u0);
+	uuuid2_from_str("ca32aa22-0e7c-11e5-8e8b-00a0988afcc9", &to.u1);
 
 	memcpy(&(pair.uuid.u0), &(to.u0), 16);
 	memcpy(&(pair.uuid.u1), &(to.u1), 16);

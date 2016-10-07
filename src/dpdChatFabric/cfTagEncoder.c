@@ -28,7 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cfTagEncoder.h"
 
 void CP_ICACHE_FLASH_ATTR
-cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuid_cp *uuid)
+cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuuid2_t *uuid)
 {
 
 	uint32_t x = *i;
@@ -47,7 +47,7 @@ cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsign
 		memcpy(b+x, s, len);
 		x += len;
 	} else if (  type == CP_UUID ) {
-		uuidToBytes(b+x, uuid);
+		memcpy(b+x, &uuid->bytes, 16);
 		x += 16;
 	}
 

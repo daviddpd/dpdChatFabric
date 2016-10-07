@@ -112,6 +112,9 @@ if (
 } else if (1) {
 
 	int i =	0;		
+
+	config.debug = 1;
+
 	config.numOfControllers = 4;
 	
 	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
@@ -135,7 +138,6 @@ if (
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
 	config.controlers[i].gpio = 13;
-//	config.debug = 1;
 
 	i++;
 	config.controlers[i].control = i;

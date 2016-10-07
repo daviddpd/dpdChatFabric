@@ -44,7 +44,7 @@
  * NOTE: Either UUID can be NULL, meaning a nil UUID. nil UUIDs are smaller
  *	 than any non-nil UUID.
  */
-int32_t  CP_ICACHE_FLASH_ATTR uuid_compare(const uuid_cp *a, const uuid_cp *b, uint32_t *status)
+uint32_t  CP_ICACHE_FLASH_ATTR uuid_compare(const uuid_cp *a, const uuid_cp *b, uint32_t *status)
 {
 	int	res;
 

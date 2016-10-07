@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpdChatFabric.h"
 #include "dpdChatPacket.h"
 #include "args.h"
-#include "uuid_wrapper.h"
+#include "uuuid2.h"
 #include "cfConfig.h"
 #include "cfPairConfig.h"
 
@@ -89,8 +89,8 @@ int main(int argc, char**argv)
 	pair.state = STATE_UNCONFIGURED;
 	pair.hasPublicKey = 0;
 	
-	uuidCreateNil ( &(pair.uuid.u0));
-	uuidCreateNil ( &(pair.uuid.u1));
+	uuuid2_gen_nil ( &(pair.uuid.u0));
+	uuuid2_gen_nil ( &(pair.uuid.u1));
 
 	
 	pair.hasPublicKey = 0;

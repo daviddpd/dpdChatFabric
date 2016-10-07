@@ -625,10 +625,10 @@ chatPacket_init0 (void) {
 		cp->payloadRandomPadding[i]=0;
 	}
 
-	uuidCreateNil(&(cp->to.u0));
-	uuidCreateNil(&(cp->to.u1));
-	uuidCreateNil(&(cp->from.u0));
-	uuidCreateNil(&(cp->from.u1));
+	uuuid2_gen_nil(&(cp->to.u0));
+	uuuid2_gen_nil(&(cp->to.u1));
+	uuuid2_gen_nil(&(cp->from.u0));
+	uuuid2_gen_nil(&(cp->from.u1));
 
 	cp->payloadLength =0;
 
@@ -717,11 +717,23 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair,
 	cp->payloadRandomPaddingLength = (hp << 4) | lp;
 	arc4random_buf((unsigned char *)&(cp->payloadRandomPadding), 16);
 
-	uuidCopy( &to->u0, &cp->to.u0);
-	uuidCopy( &to->u1, &cp->to.u1);
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (To)", &to->u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (To)", &to->u1, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CP)", &cp->to.u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CP)", &cp->to.u1, 16  );
 
-	uuidCopy(&(config->uuid.u0), &(cp->from.u0));
-	uuidCopy(&(config->uuid.u1), &(cp->from.u1));
+
+	uuuid2_copy( &to->u0, &cp->to.u0);
+	uuuid2_copy( &to->u1, &cp->to.u1);
+
+	uuuid2_copy(&(config->uuid.u0), &(cp->from.u0));
+	uuuid2_copy(&(config->uuid.u1), &(cp->from.u1));
+
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (To)", &to->u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (To)", &to->u1, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CP)", &cp->to.u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CP)", &cp->to.u1, 16  );
+
 
 	cp->cmd = cmd;
 	cp->flags = flags;
@@ -1059,6 +1071,10 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 	}
 	
 	CHATFABRIC_DEBUG(config->debug, "return" );
+
+	CHATFABRIC_DEBUG_FMT(config->debug, "RAW CP Length %d", ob_length );
+	CHATFABRIC_DEBUG_B2H(config->debug, "RAW CP", (unsigned char *)ob->msg, ob_length);
+
 		
 }
 
@@ -1076,9 +1092,8 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 	
 	int config_debug = config->debug;
 
-//	CHATFABRIC_DEBUG_FMT(config_debug, "RAW CP Length %d", len );
-
-//	CHATFABRIC_DEBUG_B2H(config_debug, "RAW CP", (unsigned char *)b, len);
+	CHATFABRIC_DEBUG_FMT(config_debug, "RAW CP Length %d", len );
+	CHATFABRIC_DEBUG_B2H(config_debug, "RAW CP", (unsigned char *)b, len);
 
 
 	while (i<len) {
@@ -1214,22 +1229,22 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_to0:
-				uuidFromBytes(b+i, &cp->to.u0);
+				memcpy( &cp->to.u0.bytes, b+i, 16 );
 				i+=16;
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_to1:
-				uuidFromBytes(b+i, &cp->to.u1);
+				memcpy( &cp->to.u1.bytes, b+i, 16 );
 				i+=16;
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_from0:
-				uuidFromBytes(b+i, &cp->from.u0);
+				memcpy( &cp->from.u0.bytes, b+i, 16 );
 				i+=16;
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
 			case cptag_from1:
-				uuidFromBytes(b+i, &cp->from.u1);
+				memcpy( &cp->from.u1.bytes, b+i, 16 );
 				i+=16;
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
@@ -1549,27 +1564,19 @@ chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 	printf ( "%2s %24s: %42u\n", cd, "serial", cp->serial);
 
 
+	char str2[37];
 
-	uuidToStr(&str, &cp->to.u0);
-	printf ( "%2s %24s: %42s\n", cd, "to0", str);
-#ifndef IOS_APP
-	free(str);
-#endif
-	uuidToStr(&str, &cp->to.u1 );
-	printf ( "%2s %24s: %42s\n", cd, "to1", str);
-#ifndef IOS_APP
-	free(str);
-#endif
-	uuidToStr(&str, &cp->from.u0);
-	printf ( "%2s %24s: %42s\n", cd, "from0", str);
-#ifndef IOS_APP
-	free(str);
-#endif
-	uuidToStr(&str, &cp->from.u1);
-	printf ( "%2s %24s: %42s\n", cd, "from0", str);
-#ifndef IOS_APP
-	free(str);
-#endif
+	uuuid2_to_str(&str2, 37, &cp->to.u0);
+	printf ( "%2s %24s: %42s\n", cd, "to0", str2);
+
+	uuuid2_to_str(&str2, 37, &cp->to.u1);
+	printf ( "%2s %24s: %42s\n", cd, "to1", str2);
+
+	uuuid2_to_str(&str2, 37, &cp->from.u0);
+	printf ( "%2s %24s: %42s\n", cd, "from0", str2);
+
+	uuuid2_to_str(&str2, 37, &cp->from.u1);
+	printf ( "%2s %24s: %42s\n", cd, "from0", str2);
 
 	
 

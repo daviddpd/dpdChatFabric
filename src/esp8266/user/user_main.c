@@ -16,7 +16,7 @@
 #include "util.h"
 #include "esp-cf-config.h"
 #include "esp-cf-wifi.h"
-#include "uuid_wrapper.h"
+#include "uuuid2.h"
 #include "driver/spi.h"
 #include "pwm.h"
 
@@ -159,11 +159,9 @@ doButtonFunction(enum button b)
 void CP_ICACHE_FLASH_ATTR 
 pwm_setup() 
 {
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
+    uint32 pwm_duty_init[1] = {0};
 
-
-// PWM	
-uint32 io_info[][3] = { 
+	uint32 io_info[][3] = { 
 		{PWM_14_OUT_IO_MUX,PWM_14_OUT_IO_FUNC,PWM_14_OUT_IO_NUM}		
 	};
 	
@@ -174,10 +172,8 @@ uint32 io_info[][3] = {
     /*PIN FUNCTION INIT FOR PWM OUTPUT*/
 //    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
 
-    pwm_init(20000,  0 ,0,io_info);
+    pwm_init(1000,  pwm_duty_init ,1,io_info);
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG,	 "pwm init" );
-//    pwm_init(1000,  0 ,1,io_info);
-//	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm init2" );
     
 	pwm_start();
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm start" );
@@ -210,11 +206,11 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 {
 
 	int i=0, x=0;
-	uint32 channel = 0;
-	uint32 period = 0;
-	float period_max;
-	float duty_percent;
 	uint32 duty = 0;
+	uint32 period = 0;
+	uint32 period_max =0;;
+	uint32 perunit =0;
+	
 	unsigned char *tmp;
 
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Start" );
@@ -253,33 +249,28 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 					}
 				}
 				if  ( 	config->controlers[i].type == ACTION_TYPE_DIMMER ) 
-				{		
-				
-					if (config->controlers[i].gpio == 14) {
-						channel = 0;
-					} else {
-						channel = 0;
-					}
-			
+				{					
 			
 					period = pwm_get_period();
-					period_max = period *1000 / 45;
-					duty_percent = config->controlers[i].value / config->controlers[i].rangeHigh;
-					duty = ( config->controlers[i].value / config->controlers[i].rangeHigh ) * (period *1000 / 45);
+					period_max = ((period * 1000) / 45);
+	
+					perunit = period_max/100; // 100%
+
+					duty =  config->controlers[i].value * perunit;
+
 					
 					CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %-24s %4d %4d Duty: %d %d %d %d", "Control (Dimmer)", 
 						config->controlers[i].control, 
 						config->controlers[i].label, 
-						config->controlers[i].value, 
 						config->controlers[i].gpio,
-						duty,
-						period,
-						period_max,
-						duty_percent
+						config->controlers[i].value, 
+						(uint32)duty,
+						(uint32)period,
+						(uint32)period_max,
+						(uint32)perunit
 						);
 					
-					pwm_set_duty( duty, channel );
-
+					pwm_set_duty( duty, 0 );
 					pwm_start();
 				}				
 			}
@@ -373,19 +364,6 @@ clock_loop()
 		if ( ( ntp_unix_timestamp % 10) == 0 ) { 
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp ); 
 			adcBultin();
-
-			period = pwm_get_period();
-			period_max = period *1000 / 45;
-			duty=duty+222222;
-
-
-			if  ( duty > period_max ) {
-				duty = 0;
-			}
-			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "PWM: duty:%d %d %d", duty, period, period_max  ); 
-			pwm_set_duty( duty, 0 );
-			pwm_start();
-
 		}
 
 

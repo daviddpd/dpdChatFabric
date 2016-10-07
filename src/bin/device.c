@@ -29,6 +29,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "args.h"
 #include "cfConfig.h"
 #include "cfPairConfig.h"
+#ifdef MACOS
+#include "uuuid2.h"
+#endif
+
 
 uint32_t controls[16];
 
@@ -186,18 +190,18 @@ int main(int argc, char**argv)
 	config.debug = 1;
 	_GLOBAL_DEBUG = config.debug;
 
-	char *str;
-	uint32_t status2;
-
-	uuid_to_string(&(config.uuid.u0), &str, &status2);
-	printf (" uuid0       : %s\n", str);
-	uuid_to_string(&(config.uuid.u1), &str, &status2);
-	printf (" uuid1       : %s\n", str);
-
     CHATFABRIC_DEBUG_B2H(config.debug, "Keys Public", 
     	(unsigned char*)&(config.publickey), crypto_box_PUBLICKEYBYTES  );
     CHATFABRIC_DEBUG_B2H(config.debug, "Keys Private", 
     	&(config.privatekey), crypto_box_SECRETKEYBYTES  );
+
+    CHATFABRIC_DEBUG_B2H(config.debug, "UUID 0", 
+    	&(config.uuid.u0.bytes), 16  );
+
+    CHATFABRIC_DEBUG_B2H(config.debug, "UUID 1", 
+    	&(config.uuid.u1.bytes), 16  );
+
+
 
 	do {		
 		

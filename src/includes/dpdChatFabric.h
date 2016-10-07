@@ -45,7 +45,7 @@
 #include <getopt.h>
 #endif 
 
-#include "uuid_wrapper.h"
+#include "uuuid2.h"
 
 #ifdef HAVE_SODIUM
 #include <sodium.h>

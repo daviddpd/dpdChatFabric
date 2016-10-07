@@ -141,16 +141,16 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 				config->pairfile =	optarg;
 			break;
 			case 'u':
-				uuid_from_string(
-					optarg, 
+				uuuid2_from_str(					 
 					&(config->uuid.u0), 
-					&status);
+					optarg
+				);
 			break;
 			case 'v':
-				uuid_from_string(
-					optarg, 
+				uuuid2_from_str(					 
 					&(config->uuid.u1), 
-					&status);			
+					optarg
+				);
 			break;
 			case 'k':
 				#ifdef HAVE_SODIUM			
@@ -163,8 +163,8 @@ chatFabric_args(int argc, char**argv, chatFabricConfig *config, chatFabricAction
 
 			break;
 			case 'z':
-				uuid_create_nil(&(config->uuid.u0),  &status);
-				uuid_create(&(config->uuid.u1),  &status);
+				uuuid2_gen_nil(&(config->uuid.u0));
+				uuuid2_gen(&(config->uuid.u1));
 			break;
 			case 'w':
 				//printf ( "Arg --config : Value : %s \n", optarg );

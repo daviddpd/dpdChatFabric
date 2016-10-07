@@ -10,7 +10,7 @@
 #include "driver/uart.h"
 #include "espconn.h"
 #include "mem.h"
-#include "uuid_wrapper.h"
+#include "uuuid2.h"
 #include <salsa20.h>
 #include <poly1305-donna.h>
 #include "dpdChatFabric.h"

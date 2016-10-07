@@ -24,6 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifdef ESP8266
+#include <c_types.h>
+#include "user_interface.h"
 //#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
 #ifndef CP_ICACHE_FLASH_ATTR
 #define CP_ICACHE_FLASH_ATTR __attribute__(())
@@ -34,11 +36,13 @@
 #define ESP_WORD_ALIGN __attribute__ (())
 #endif
 
-#include <c_types.h>
 #include "uuid_local.h"
-#include "user_interface.h"
 extern time_t ntp_unix_timestamp;
 time_t uuid_frac_time = 0;
+
+#ifdef MACOS
+typedef unsigned char u_char;
+#endif
 
 /*
  * See also:

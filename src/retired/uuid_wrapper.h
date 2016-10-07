@@ -31,6 +31,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef FREEBSD
 #include <uuid.h>
 //typedef struct uuid_t uuid_cp;
+#elif defined(MACOS)
+#include <uuid/uuid.h>
+#define uuid_cp uuid_t
+#define  uuid_to_string(u, c, i) uuid_unparse_lower(u, c);
+#define  uuid_from_string( c, u, i)  uuid_parse( c, u)
+#define  uuid_create_nil(u, i) uuid_clear(u)
+#define  uuid_create(u, i) uuid_generate_time(u)
 #elif defined(ESP8266)
 #include "uuid_local.h"
 #elif defined(IOS_APP)

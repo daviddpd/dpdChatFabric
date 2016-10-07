@@ -37,12 +37,21 @@
 #ifndef _SYS_UUID_H_
 #define	_SYS_UUID_H_
 
+#ifdef ESP8266
 #include <c_types.h>
 #include <sys/cdefs.h>
 #include <sys/time.h>
 #include <driver/errno.h>
 #include <osapi.h>
 #include <endian.h>
+#endif
+
+
+#ifdef MACOS
+#include <sys/time.h>
+#include <sys/cdefs.h>
+#include <endian.h>
+#endif
 
 /* Length of a node address (an IEEE 802 address). */
 #define	_UUID_NODE_LEN		6
@@ -74,6 +83,7 @@ struct uuid {
 extern int os_printf_plus(const char * format, ...);
 
 #define	UUID_NODE_LEN	_UUID_NODE_LEN
+#ifdef ESP8266
 
 #define bcopy(src,dst,len) os_memcpy(dst,src,len)
 #define bzero(src,len) os_bzero(src,len)
@@ -82,9 +92,11 @@ extern int os_printf_plus(const char * format, ...);
 #define sscanf nsscanf
 #define arc4random os_random 
 
+
 #define printf(...) os_printf( __VA_ARGS__ )
 #define sprintf(...) os_sprintf( __VA_ARGS__ )
 #define sbuf_printf(...) os_sprintf( __VA_ARGS__ )
+#endif
 
 #define bswap16 __builtin_bswap16
 
@@ -164,13 +176,13 @@ __END_DECLS
 #define	uuid_s_no_memory		3
 
 __BEGIN_DECLS
-int32_t	uuid_compare(const uuid_cp *, const uuid_cp *, uint32_t *);
+uint32_t	uuid_compare(const uuid_cp *, const uuid_cp *, uint32_t *);
 void	uuid_create(uuid_cp *, uint32_t *);
 void	uuid_create_nil(uuid_cp *, uint32_t *);
-int32_t	uuid_equal(const uuid_cp *, const uuid_cp *, uint32_t *);
+uint32_t	uuid_equal(const uuid_cp *, const uuid_cp *, uint32_t *);
 void	uuid_from_string(const char *, uuid_cp *, uint32_t *);
 uint16_t uuid_hash(const uuid_cp *, uint32_t *);
-int32_t	uuid_is_nil(const uuid_cp *, uint32_t *);
+uint32_t	uuid_is_nil(const uuid_cp *, uint32_t *);
 void	uuid_to_string(const uuid_cp *, char **, uint32_t *);
 void	uuid_enc_le(void *, const uuid_cp *);
 void	uuid_dec_le(const void *, uuid_cp *);

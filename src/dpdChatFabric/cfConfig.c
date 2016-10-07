@@ -60,8 +60,8 @@ exp2            1022/udp    # RFC3692-style Experiment 2 (*)    [RFC4727]
 	config->type = -1; // SOCK_STREAM SOCK_DGRAM SOCK_RAW SOCK_RDM SOCK_SEQPACKET
 	config->hasPairs = 0;
 
-	uuidCreateNil( &(config->uuid.u0));
-	uuidCreate( &(config->uuid.u1));
+	uuuid2_gen_nil( &(config->uuid.u0));
+	uuuid2_gen( &(config->uuid.u1));
 
 	config->debug = 1;
 	config->writeconfig = 1;
@@ -241,11 +241,11 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 				config->debug = ntohl(ni);
 			break;
 			case cftag_uuid0:			// 1+16
-				uuidFromBytes(str+i, &config->uuid.u0);
+				memcpy(&config->uuid.u0, str+i, 16);
 				i+=16;
 			break;		
 			case cftag_uuid1:			// 1+16
-				uuidFromBytes(str+i, &config->uuid.u1);
+				memcpy(&config->uuid.u1, str+i, 16);
 				i+=16;
 			break;		
 			case cftag_mode:

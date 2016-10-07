@@ -36,7 +36,7 @@
 
 #endif 
 
-#include "uuid_wrapper.h"
+#include "uuuid2.h"
 
 #if defined(HAVE_SODIUM)
 #include <sodium.h>
@@ -65,7 +65,7 @@ const char *  CP_ICACHE_FLASH_ATTR cfTagLookup (enum chatFabricConfigTags tag);
 void CP_ICACHE_FLASH_ATTR chatPacket_calcNonce(uint32_t serial, unsigned char * nonce, unsigned char * sessionNonce );
 
 void 
-chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuid_cp *uuid);
+chatPacket_tagDataEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuuid2_t *uuid);
 
 chatPacket*
 chatPacket_init0 (void);

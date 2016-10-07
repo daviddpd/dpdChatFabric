@@ -25,7 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "uuid_wrapper.h"
+#include "uuuid2.h"
 #include "__attribute__.h"
 
 #ifdef ESP8266

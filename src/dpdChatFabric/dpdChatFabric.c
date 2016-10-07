@@ -474,8 +474,8 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 	chatFabricPairing  previous_state;
 	
 	enum chatPacketCommands RETVAL;
-	int u0 = uuidCompare(&(cp->to.u0), &(config->uuid.u0));
-	int u1 = uuidCompare(&(cp->to.u1), &(config->uuid.u1));
+	int u0 = uuuid2_eq(&(cp->to.u0), &(config->uuid.u0));
+	int u1 = uuuid2_eq(&(cp->to.u1), &(config->uuid.u1));
 	
 	if (  
 		( ( u0 !=0 ) || ( u1 != 0 )  ) &&
@@ -493,10 +493,26 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 	previous_state.state =  pair->state;
 	previous_state.hasPublicKey = pair->hasPublicKey;
 
-	uuidCopy( &cp->from.u0, &reply->to.u0);
-	uuidCopy( &cp->from.u1, &reply->to.u1);
-	uuidCopy( &config->uuid.u0, &reply->from.u0);
-	uuidCopy( &config->uuid.u1, &reply->from.u1);
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (C)", &config->uuid.u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (C)", &config->uuid.u1, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CPTO)", &cp->to.u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CPTO)", &cp->to.u1, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CPF)", &cp->from.u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CPF)", &cp->from.u1, 16  );
+
+
+	uuuid2_copy( &cp->from.u0, &reply->to.u0);
+	uuuid2_copy( &cp->from.u1, &reply->to.u1);
+	uuuid2_copy( &config->uuid.u0, &reply->from.u0);
+	uuuid2_copy( &config->uuid.u1, &reply->from.u1);
+
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (C)", &config->uuid.u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (C)", &config->uuid.u1, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CPTO)", &cp->to.u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CPTO)", &cp->to.u1, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CPF)", &cp->from.u0, 16  );
+    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CPF)", &cp->from.u1, 16  );
+
 	
 	RETVAL = CMD_SEND_REPLY_FALSE;
 
@@ -530,8 +546,8 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 				reply->flags = 0;
 				reply->cmd = CMD_PAIR_REQUEST_ACK;
 				pair->state = STATE_PUBLICKEY_SETUP;
-				uuidCopy( &cp->from.u0, &pair->uuid.u0);
-				uuidCopy( &cp->from.u1, &pair->uuid.u1);
+				uuuid2_copy( &cp->from.u0, &pair->uuid.u0);
+				uuuid2_copy( &cp->from.u1, &pair->uuid.u1);
 				RETVAL = CMD_SEND_REPLY_TRUE;	
 			}
 		break;
@@ -540,8 +556,8 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 				reply->flags = 0;
 				reply->cmd = CMD_PUBLICKEY_REQUEST;
 				pair->state = STATE_PUBLICKEY_SETUP;
-				uuidCopy( &cp->from.u0, &pair->uuid.u0);
-				uuidCopy( &cp->from.u1, &pair->uuid.u1);
+				uuuid2_copy( &cp->from.u0, &pair->uuid.u0);
+				uuuid2_copy( &cp->from.u1, &pair->uuid.u1);
 				RETVAL = CMD_SEND_REPLY_TRUE;
 			}
 		break;

@@ -39,8 +39,8 @@ cfPairInit(chatFabricPairing *pair)
 	pair->hasPublicKey = 0;	
 	pair->hasNonce = 0;
 	pair->serial = 0;
-	uuidCreateNil ( &(pair->uuid.u0) );
-	uuidCreateNil ( &(pair->uuid.u1));
+	uuuid2_gen_nil ( &(pair->uuid.u0) );
+	uuuid2_gen_nil ( &(pair->uuid.u1));
 
 	pair->state = STATE_UNCONFIGURED;
 
@@ -262,11 +262,11 @@ cfPairRead(chatFabricConfig *config, chatFabricPairing *pair)
 				pair->serial = ntohl(ni);
 			break;					
 			case cftag_uuid0:			// 1+16
-				uuidFromBytes(str+i, &pair->uuid.u0);
+				memcpy(&pair->uuid.u0.bytes, str+i, 16);
 				i+=16;
 			break;		
 			case cftag_uuid1:			// 1+16
-				uuidFromBytes(str+i, &pair->uuid.u1);
+				memcpy(&pair->uuid.u1.bytes, str+i, 16);
 				i+=16;
 			break;		
 

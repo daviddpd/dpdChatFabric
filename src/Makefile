@@ -11,6 +11,10 @@ LIBS=
 ifdef FREEBSD
 DEFS+=-DFREEBSD
 endif
+ifdef MACOS
+DEFS+=-DMACOS
+
+endif
 
 ifdef HAVE_SODIUM
 DEFS+=-DHAVE_SODIUM
@@ -20,10 +24,10 @@ endif
 ifdef HAVE_LOCAL_CRYPTO
 DEFS+=-DHAVE_LOCAL_CRYPTO
 INCLUDES+= -I./crypto
-LOCAL_LIB_SRC+=crypto/chacha20_simple.c crypto/curve25519-donna.c crypto/poly1305-donna.c crypto/salsa20.c crypto/e_chacha20poly1305.c
+LOCAL_LIB_SRC+=crypto/chacha20_simple.c crypto/curve25519-donna.c crypto/poly1305-donna.c crypto/salsa20.c 
 endif
 
-LOCAL_LIB_SRC+=dpdChatFabric/dpdChatFabric.c dpdChatFabric/cfTagEncoder.c dpdChatFabric/cfConfig.c dpdChatFabric/cfPairConfig.c dpdChatPacket/dpdChatPacket.c util/util.c util/args.c uuid_wrapper/uuid_wrapper.c
+LOCAL_LIB_SRC+=dpdChatFabric/dpdChatFabric.c dpdChatFabric/cfTagEncoder.c dpdChatFabric/cfConfig.c dpdChatFabric/cfPairConfig.c dpdChatPacket/dpdChatPacket.c util/util.c util/args.c uuid/uuuid2.c
 
 LOCAL_LIB_OBJ=$(LOCAL_LIB_SRC:.c=.o)
 
