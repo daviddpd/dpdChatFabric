@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cfTagEncoder.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "uuuid2.h"
 
 
 void CP_ICACHE_FLASH_ATTR cfPairInit(chatFabricPairing *pair);

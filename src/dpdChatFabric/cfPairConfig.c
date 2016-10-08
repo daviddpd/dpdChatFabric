@@ -201,10 +201,8 @@ cfPairRead(chatFabricConfig *config, chatFabricPairing *pair)
 	bzero(&fs, sizeof(fs));		
 	fp = fopen(config->pairfile,"r");	
 	if ( fp == NULL ) {
- 		printf(
- 			"[DEBUG][%s:%s:%d] Cannot open pairfile %s \n", 
- 			__FILE__, __FUNCTION__, __LINE__, config->pairfile );
-			return;
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%s %s" , "Cannot open pairfile ", config->pairfile );			
+		return;
 	} else {
 		stat(config->pairfile, &fs);
 		str=(unsigned char *)calloc(fs.st_size,sizeof(unsigned char));
@@ -232,9 +230,6 @@ cfPairRead(chatFabricConfig *config, chatFabricPairing *pair)
 				filesize = 2048 + ntohl(ni);
 #endif
 				
-			printf(   
- 				"[DEBUG][%s:%s:%d] Got Length as  %02x %08x %4d\n", 
- 				__FILE__, __FUNCTION__, __LINE__, t, ni, filesize);
 			break;
 			case cftag_pairs:
 				memcpy(&ni, str+i, 4);
@@ -293,7 +288,7 @@ cfPairRead(chatFabricConfig *config, chatFabricPairing *pair)
 					
 	curve25519_donna((unsigned char *)&pair->sharedkey, (unsigned char *)&config->privatekey, (unsigned char *)&pair->publickey);
 
-	CHATFABRIC_DEBUG_FMT(config->debug, "%20s: %s ",  "========>" , "cfPairRead" );			
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%20s: %s ",  "========>" , "cfPairRead" );			
 	CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG,"shared key", (unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES );
 	CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG,"nonce", (unsigned char *)&pair->nonce, crypto_secretbox_NONCEBYTES);
 	CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG,"mynonce", (unsigned char *)&pair->mynonce, crypto_secretbox_NONCEBYTES);

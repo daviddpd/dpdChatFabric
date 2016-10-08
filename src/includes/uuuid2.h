@@ -14,6 +14,7 @@
 #include "mem.h"
 #include "user_interface.h"
 #include "__attribute__.h"
+#define printf(...) os_printf( __VA_ARGS__ )
 #define sscanf os_scanf
 #define sprintf(...) os_sprintf( __VA_ARGS__ )
 #endif

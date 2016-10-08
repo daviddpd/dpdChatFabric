@@ -63,6 +63,7 @@ bool uuuid2_gen(uuuid2_t *u)
 #include "user_interface.h"
 #include <osapi.h>
 #include "ets_sys.h"
+#include <sys/types.h>
 
 uint64_t sec = 0;
 uint32_t frac = 0;

@@ -12,6 +12,7 @@
 #include "espconn.h"
 #include "mem.h"
 #include "arc4random_buf.h"
+#include "uuuid2.h"
 
 #else 
 #include <arpa/inet.h>

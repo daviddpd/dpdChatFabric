@@ -1,6 +1,7 @@
 #ifndef CFCONFIG_H
 #define CFCONFIG_H
 
+#include "uuuid2.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "dpdChatFabric.h"

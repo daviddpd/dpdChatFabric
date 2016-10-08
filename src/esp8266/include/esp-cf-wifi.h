@@ -18,6 +18,7 @@
 #include "esp8266.h"
 #include "util.h"
 #include "sntp.h"
+#include <sys/types.h>
 
 void (*callback)(void *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd);	
 

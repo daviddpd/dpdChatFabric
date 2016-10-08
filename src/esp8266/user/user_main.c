@@ -16,9 +16,14 @@
 #include "util.h"
 #include "esp-cf-config.h"
 #include "esp-cf-wifi.h"
-#include "uuuid2.h"
 #include "driver/spi.h"
 #include "pwm.h"
+#include <sys/time.h>
+#include "uuuid2.h"
+#include <c_types.h>
+#include <sys/types.h>
+
+//typedef uint32_t     time_t;
 
 #define PWM_12_OUT_IO_MUX PERIPHS_IO_MUX_MTDI_U
 #define PWM_12_OUT_IO_NUM 12
@@ -284,7 +289,7 @@ udp_callback(void *arg, char *data, unsigned short length)
 {
     msgbuffer payloadMsg;
 	unsigned short l;
-	struct uuid uuid;
+	uuuid2_t uuid;
 	uint32 t;
 	enum chatFabricErrors e;
 //	t = system_get_time();
@@ -378,8 +383,6 @@ clock_loop()
 void CP_ICACHE_FLASH_ATTR
 statusLoop() {
 	os_timer_disarm(&statusReg);
-
-	uuid_cp u1;
 
 	if ( pair[0].hasPublicKey && ( menuItem == MODE_MENU_NONE ) ) {
 		currentMode = MODE_STA_PAIRED;
@@ -651,10 +654,11 @@ user_init_stage2()
 	}
 
 	char buf[38];
-	snprintf_uuid(buf, sizeof(buf), &config.uuid.u0);
+
+	uuuid2_to_str(&buf[0], sizeof(buf), &config.uuid.u0);	
 	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s", buf );
 	
-	snprintf_uuid(buf, sizeof(buf), &config.uuid.u1);
+	uuuid2_to_str(&buf[0], sizeof(buf), &config.uuid.u1);	
 	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "UUID0 : %s", buf );
 	
 	espWiFiInit();

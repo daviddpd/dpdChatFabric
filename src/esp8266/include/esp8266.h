@@ -5,7 +5,7 @@
 #include "esp-cf-config.h"
 #include "esp-cf-wifi.h"
 #include "driver/errno.h"
-
+#include <sys/types.h>
 
 
 
@@ -31,6 +31,8 @@ int32_t heap, heapLast;
  0fe000   1040384
  0ff000   1044480
 */
+
+#define printf(...) os_printf( __VA_ARGS__ )
 
 #define PRIV_PARAM_SAVE			0
 

@@ -17,6 +17,7 @@
 #include "dpdChatPacket.h"
 #include "esp8266.h"
 #include "util.h"
+#include "uuuid2.h"
 
 extern hostmeta_t hostMeta;
 extern int mdns_status;

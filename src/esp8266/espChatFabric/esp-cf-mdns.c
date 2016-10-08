@@ -60,12 +60,12 @@ espCfMdns()
 	bzero(mdnsinfo->txt_data[1], 44*sizeof(char));
 	char uuid_str[38] = {0};
 	
-	snprintf_uuid(&uuid_str[0], 38, &(config.uuid.u0));
+	uuuid2_to_str(&uuid_str[0], 38, &(config.uuid.u0));
 	os_sprintf(mdnsinfo->txt_data[1], "uuid0=%s", uuid_str );
 
 	mdnsinfo->txt_data[2] = (char*)malloc(44*sizeof(char));
 	bzero(mdnsinfo->txt_data[2], 44*sizeof(char));
-	snprintf_uuid(&uuid_str[0], 38, &(config.uuid.u1));
+	uuuid2_to_str(&uuid_str[0], 38, &(config.uuid.u1));
 	os_sprintf(mdnsinfo->txt_data[2], "uuid1=%s", uuid_str );
 	espconn_mdns_init(mdnsinfo);
 	mdns_status=1;

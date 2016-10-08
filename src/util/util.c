@@ -6,6 +6,7 @@ int _GLOBAL_DEBUG;
 hostmeta_t hostMeta;
 
 #ifdef ESP8266
+#include "esp8266.h"
 void* calloc_wrapper(size_t len, size_t size) { void *x = (void*)malloc(len*size); bzero(x, len*size); return x; } 
 #endif
 
