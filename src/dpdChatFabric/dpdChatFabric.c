@@ -368,6 +368,12 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	cp_reply = chatPacket_init0 ();
 	
 	stateMachine ( config, cp, pair, cp_reply, &replyCmd, &e);
+	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
+		CHATFABRIC_DEBUG(1,  " Right after statemachine - Send Reply is TRUE." );
+	} else {
+		CHATFABRIC_DEBUG(1,  " Right after statemachine - Send Reply is FALSE." );
+	}
+
 	if ( config->callback != NULL && pair->state == STATE_PAIRED && 
 		( 
 			cp->cmd == CMD_APP_MESSAGE || cp->cmd == CMD_APP_MESSAGE_ACK || 
@@ -377,6 +383,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		config->callback(config, cp, pair, cp_reply, &replyCmd);	
 	}
 	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
+		CHATFABRIC_DEBUG(1,  " Send Reply is TRUE." );
 
 #ifndef ESP8266
 		if ( config->debug ) {
@@ -438,6 +445,8 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		chatPacket_delete(cp_reply);
 	} else {
 		chatPacket_delete(cp_reply);	
+		CHATFABRIC_DEBUG(1,  " Send Reply is FALSE." );
+		
 	}
 	
 #ifndef ESP8266
@@ -478,12 +487,14 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 	int u1 = uuuid2_eq(&(cp->to.u1), &(config->uuid.u1));
 	
 	if (  
-		( ( u0 !=0 ) || ( u1 != 0 )  ) &&
+		( ( u0 ==0 ) || ( u1 == 0 )  ) &&
 		( cp->cmd != CMD_HELLO) && 
 		( cp->cmd != CMD_HELLO_ACK) && 
 		( cp->cmd != CMD_PAIR_REQUEST) 
 	 ) 
 	{
+	    CHATFABRIC_DEBUG(config->debug, "ERROR_INVAILD_DEST -chatPacket TO UUIDs don't match my own."  );
+
 		*e = ERROR_INVAILD_DEST;
 		RETVAL = CMD_SEND_REPLY_FALSE;
 		return;
@@ -493,25 +504,10 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 	previous_state.state =  pair->state;
 	previous_state.hasPublicKey = pair->hasPublicKey;
 
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (C)", &config->uuid.u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (C)", &config->uuid.u1, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CPTO)", &cp->to.u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CPTO)", &cp->to.u1, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CPF)", &cp->from.u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CPF)", &cp->from.u1, 16  );
-
-
 	uuuid2_copy( &cp->from.u0, &reply->to.u0);
 	uuuid2_copy( &cp->from.u1, &reply->to.u1);
 	uuuid2_copy( &config->uuid.u0, &reply->from.u0);
 	uuuid2_copy( &config->uuid.u1, &reply->from.u1);
-
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (C)", &config->uuid.u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (C)", &config->uuid.u1, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CPTO)", &cp->to.u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CPTO)", &cp->to.u1, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CPF)", &cp->from.u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CPF)", &cp->from.u1, 16  );
 
 	
 	RETVAL = CMD_SEND_REPLY_FALSE;
@@ -632,22 +628,7 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 				memcpy( &(pair->publickey), &(cp->publickey), crypto_box_PUBLICKEYBYTES );
 				pair->hasPublicKey = 1;
 				#ifdef HAVE_LOCAL_CRYPTO
-				curve25519_donna((unsigned char *)&pair->sharedkey, (unsigned char *)&config->privatekey, (unsigned char *)&pair->publickey);
-// 				if (config->debug) {
-// 
-// 					printf ( "   %24s: ", "Shared Key" );
-//			util_debug_bin2hex("shared key", &pair->sharedkey, crypto_box_PUBLICKEYBYTES, 0, __FILE__, __FUNCTION__, __LINE__ );
-
-// 					util_print_bin2hex((unsigned char *)pair->sharedkey, crypto_box_PUBLICKEYBYTES);
-// 
-// 					printf ( "   %24s: ", "private Key");
-// 					util_print_bin2hex((unsigned char *)config->privatekey, crypto_box_PUBLICKEYBYTES);
-// 
-// 					printf ( "   %24s: ", "public key" );
-// 					util_print_bin2hex((unsigned char *)pair->publickey, crypto_box_PUBLICKEYBYTES);
-// 
-// 				}
-				
+				curve25519_donna((unsigned char *)&pair->sharedkey, (unsigned char *)&config->privatekey, (unsigned char *)&pair->publickey);				
 				#endif					
 
 				// flags contains hasPublicKey? of remote 

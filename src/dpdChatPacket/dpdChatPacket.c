@@ -717,22 +717,12 @@ chatPacket_init (chatFabricConfig *config, chatFabricPairing *pair,
 	cp->payloadRandomPaddingLength = (hp << 4) | lp;
 	arc4random_buf((unsigned char *)&(cp->payloadRandomPadding), 16);
 
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (To)", &to->u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (To)", &to->u1, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CP)", &cp->to.u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CP)", &cp->to.u1, 16  );
-
 
 	uuuid2_copy( &to->u0, &cp->to.u0);
 	uuuid2_copy( &to->u1, &cp->to.u1);
 
 	uuuid2_copy(&(config->uuid.u0), &(cp->from.u0));
 	uuuid2_copy(&(config->uuid.u1), &(cp->from.u1));
-
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (To)", &to->u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (To)", &to->u1, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 0 (CP)", &cp->to.u0, 16  );
-    CHATFABRIC_DEBUG_B2H(1, "UUID 1 (CP)", &cp->to.u1, 16  );
 
 
 	cp->cmd = cmd;
@@ -857,7 +847,9 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 
 		chatPacket_tagDataEncoder ( CP_DATA8, payload, &i, cptag_payloadRandomPaddingLength, 0, &cp->payloadRandomPaddingLength, 1, NULL);
 		chatPacket_tagDataEncoder ( CP_DATA8, payload, &i, cptag_payloadRandomPaddingHigh, 0, (unsigned char *)&cp->payloadRandomPadding, h, NULL);
-		
+
+		CHATFABRIC_DEBUG_FMT(config->debug, "%20s: %s %d %s",  "========>" , " CP Action ", cp->action, actionLookup(cp->action) );	
+
 		if ( cp->action != 0 ) {
 			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_action, cp->action, NULL, 0, NULL);
 			chatPacket_tagDataEncoder ( CP_INT32, payload, &i, cptag_action_control, cp->action_control, NULL, 0, NULL);
@@ -909,6 +901,9 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 			unsigned char *sessionNonce = (unsigned char*)calloc(crypto_secretbox_NONCEBYTES,sizeof(unsigned char));
 			chatPacket_calcNonce(cp->serial, (unsigned char *)&(pair->nonce), sessionNonce);
 
+			CHATFABRIC_DEBUG_FMT(config->debug, "%20s: %s ",  "========>" , " Payload" );	
+			CHATFABRIC_DEBUG_B2H(config->debug, "Payload (PlainText)", payload, p_length );
+
 			CHATFABRIC_DEBUG_FMT(config->debug, "%20s: %s ",  "========>" , "Encrypting Payload" );			
 			CHATFABRIC_DEBUG_FMT(config->debug, "%20s: %4d ",  "serial" , cp->serial );
 			CHATFABRIC_DEBUG_B2H(config->debug, "shared key (PL)", (unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES );
@@ -956,7 +951,7 @@ chatPacket_encode (chatPacket *cp, chatFabricConfig *config, chatFabricPairing *
 
 	}
 
-	/* ****** Envelope  *****************************************************  */	
+	/* ******   *****************************************************  */	
 
 	if (packetType == NONCE ) {
 
@@ -1322,7 +1317,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 					decrypted=(unsigned char*)calloc(cp->payloadLength - crypto_secretbox_MACBYTES,sizeof(unsigned char));
 					memcpy ( decrypted, b+i, cp->payloadLength - crypto_secretbox_MACBYTES );
 					s20_crypt((uint8_t*)&pair->sharedkey, S20_KEYLEN_256, sessionNonce, 0, decrypted, cp->payloadLength - crypto_secretbox_MACBYTES);
-//					CHATFABRIC_DEBUG_B2H(config->debug, "payload decrypted", (unsigned char *)&decrypted, cp->payloadLength - crypto_secretbox_MACBYTES );
+					CHATFABRIC_DEBUG_B2H(config->debug, "payload decrypted", (unsigned char *)&decrypted, cp->payloadLength - crypto_secretbox_MACBYTES );
 					ret = 0;
 				} else {
 					ret = -1;

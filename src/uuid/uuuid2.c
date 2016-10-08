@@ -164,7 +164,15 @@ bool uuuid2_gen_nil (uuuid2_t * u)
 }
 
 
-bool CP_ICACHE_FLASH_ATTR  uuuid2_eq(uuuid2_t *a, uuuid2_t *b) {return !memcmp(a->bytes, b->bytes, sizeof(a->bytes));}
+bool CP_ICACHE_FLASH_ATTR  uuuid2_eq(uuuid2_t *a, uuuid2_t *b) {
+	int r;
+	r = memcmp(a->bytes, b->bytes, sizeof(a->bytes));
+	if ( r == 0 ) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
 
 bool CP_ICACHE_FLASH_ATTR  uuuid2_copy(uuuid2_t *from, uuuid2_t *to) {
 	if ( sizeof(from->bytes) != sizeof(to->bytes) ) 
