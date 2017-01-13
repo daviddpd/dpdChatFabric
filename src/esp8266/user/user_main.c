@@ -177,7 +177,7 @@ pwm_setup()
     /*PIN FUNCTION INIT FOR PWM OUTPUT*/
 //    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
 
-    pwm_init(1000,  pwm_duty_init ,1,io_info);
+    pwm_init(50,  pwm_duty_init ,1,io_info);
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG,	 "pwm init" );
     
 	pwm_start();

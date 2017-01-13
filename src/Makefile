@@ -13,12 +13,16 @@ DEFS+=-DFREEBSD
 endif
 ifdef MACOS
 DEFS+=-DMACOS
-
+CFLAGS += -mmacosx-version-min=10.11
+LDFLAGS += -mmacosx-version-min=10.11
 endif
 
 ifdef HAVE_SODIUM
 DEFS+=-DHAVE_SODIUM
 LIBS+=-lsodium
+ifdef MACOS
+INCLUDES+=/usr/local/Cellar/libsodium/1.0.11/include
+endif
 endif
 
 ifdef HAVE_LOCAL_CRYPTO

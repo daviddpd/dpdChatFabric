@@ -4,7 +4,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <stdint.h>
-#include <salsa20.h>
+#include "salsa20.h"
 #include <poly1305-donna.h>
 #include <chacha20_simple.h>
 #include <sodium.h>
@@ -174,7 +174,7 @@ int main(int argc, char**argv)
 	free(data);
 
 
-	printf ( " ===================> AEAD <================================ \n " );
+	printf ( " ===================> AEAD LibSodium <================================ \n " );
 
 	unsigned char *ciphertext = calloc( L + crypto_aead_chacha20poly1305_ABYTES, sizeof(unsigned char) );
 	unsigned long long ciphertext_len = L + crypto_aead_chacha20poly1305_ABYTES;
@@ -226,10 +226,78 @@ int main(int argc, char**argv)
 	
 		}
 
+//	free(data2);
+//	free(data);
+//	free(ciphertext);
+//	free(decrypted);
+//	free(additional_data2);
+
+	printf ( " ===================> AEAD IETF LibSodium <================================ \n " );
+	printf ( " ===================> AEAD IETF LibSodium <================================ \n " );
+	printf ( " ===================> AEAD IETF LibSodium <================================ \n " );
+	printf ( " ===================> AEAD IETF LibSodium <================================ \n " );
+	printf ( " ===================> AEAD IETF LibSodium <================================ \n " );
+	
+	printf ( " ===================> AEAD IETF LibSodium <================================ \n " );
+
+	ciphertext = calloc( L + crypto_aead_chacha20poly1305_ABYTES, sizeof(unsigned char) );
+	ciphertext_len = L + crypto_aead_chacha20poly1305_ABYTES;
+
+	//additional_data[3] = { 'D', 'P', 'D'};
+	//unsigned long long additional_data_length = 3;
+	
+	crypto_aead_chacha20poly1305_ietf_encrypt(ciphertext, &ciphertext_len,
+										 (const unsigned char *)_lyrics, L,
+										 (const unsigned char *)&additional_data, additional_data_length,
+//										NULL, 0,
+										 NULL, nonce, (unsigned char *) &shared);
+									 
+	printf ( " ===================> encrypted message <================================ \n" );
+	hexprint( ciphertext, ciphertext_len);
+	print_bin2hex( ciphertext, ciphertext_len);
+	printf ( " Possible tag 1 :" );                                     
+	print_bin2hex(ciphertext, 16);
+	
+	printf ( " Possible tag 2 :" );                                     
+	print_bin2hex(ciphertext+ (ciphertext_len-16), 16);
+	printf("\n");
+	printf("\n");
 
 
 
-	//  curve25519_donna(shared, mysecret, theirpublic);
+
+
+	decrypted = calloc( L , sizeof(unsigned char) );
+	decrypted_len = L ;
+	additional_data2 = calloc(additional_data_length,sizeof(unsigned char));
+		
+
+
+
+
+	if (crypto_aead_chacha20poly1305_ietf_decrypt(decrypted, &decrypted_len,
+											 NULL,
+											 ciphertext, ciphertext_len,
+											 (unsigned char *)&additional_data, additional_data_length,
+//											 NULL, 0,
+											 nonce, (unsigned char *)&shared) == 0) 
+		{ 
+		
+			printf ( "Message good! \n" );
+			printf("\n");
+			printf ( "Original  Message[%d]:\n", L );
+			hexprint( (unsigned char *)_lyrics, L);
+			
+			printf ( "Decrypted Message[%llu]:\n", decrypted_len );			
+			hexprint( decrypted, decrypted_len);
+	
+		} else {
+			printf ( "Message bad! \n" );
+	
+		}
+
+
+
 
   
 }

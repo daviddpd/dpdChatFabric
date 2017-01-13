@@ -1,24 +1,21 @@
-# Makefile for ESP8266 projects
+# Makefile for ESP8266 projects using rBoot and FOTA updates
+# - 2016 - using for my own projects -dpd
 #
-# Thanks to:
+# Based on a Makefile by 
 # - zarya
 # - Jeroen Domburg (Sprite_tm)
 # - Christian Klippel (mamalala)
 # - Tommie Gannert (tommie)
 #
-# Changelog:
-# - 2014-10-06: Changed the variables to include the header file directory
-# - 2014-10-06: Added global var for the Xtensa tool root
-# - 2014-11-23: Updated for SDK 0.9.3
-# - 2014-12-25: Replaced esptool by esptool.py
-
-# - 2016 - using for my own projects -dpd
+# And merged with Makefile from rBoot sample project 
+# by raburton
 
 
 # Output directors to store intermediate compiled files
 # relative to the project directory
 BUILD_BASE	= build
 FW_BASE		= firmware
+FIRMW_DIR	= firmware
 
 # base directory for the compiler
 #XTENSA_TOOLS_ROOT ?= /home/vagrant/esp-open-sdk/xtensa-lx106-elf/bin
@@ -29,7 +26,14 @@ SDK_BASE	?= /Volumes/esp8266/esp-open-sdk/sdk
 
 # esptool.py path and port
 ESPTOOL		?= /usr/local/bin/esptool.py
+ESPTOOL2_DIR	?= /Users/dpd/Documents/github/esptool2
+ESPTOOL2	?= /Users/dpd/Documents/github/esptool2/esptool2
 ESPPORT		?= /dev/ttyUSB0
+
+# rboot
+
+RBOOT_DIR	?= /Users/dpd/Documents/github/rboot
+RBOOT_BIN	?= /Users/dpd/Documents/github/rboot/firmware/rboot.bin
 
 # name for the target project
 TARGET		= app
@@ -43,8 +47,10 @@ EXTRA_INCDIR    = include ../crypto ../includes
 LIBS		= cirom gcc hal pp phy net80211 lwip wpa main pwm
 
 # compiler flags using during compilation of source files -fno-inline-functions
-CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN
+CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wno-implicit -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN
 
+# ##### chatFabric Specific Options  ##############################
+#
 ifdef ESP_DEVICE_OUTLET
 CFLAGS	+= -DESP_DEVICE_OUTLET
 endif
@@ -54,59 +60,22 @@ VERSION_GIT='"$(shell git rev-parse HEAD)"'
 CFLAGS	+= -DVERSION_DATE=$(VERSION_DATE)
 CFLAGS	+= -DVERSION_GIT=$(VERSION_GIT)
 
-
+#
+# ##################################################################
 
 
 # linker flags used to generate the main object file
 LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static 
-
-# linker script used for the above linkier step
-# LD_SCRIPT	= eagle.app.v6.ld
-# LD_SCRIPT  = eagle.app.v6.full512.ld
- LD_SCRIPT  = eagle.app.v6.full2048.ld
-#LD_SCRIPT	= eagle.app.v6.new.1024.app1.ld
-#LD_SCRIPT	= eagle.app.v6.new.1024.app2.ld
-#LD_SCRIPT	= eagle.app.v6.new.2048.ld
 
 # various paths from the SDK used in this project
 SDK_LIBDIR	= lib
 SDK_LDDIR	= ld
 SDK_INCDIR	= include include/json
 
-# we create two different files for uploading into the flash
-# these are the names and options to generate them
-FW_FILE_1_ADDR	= 0x00000
-FW_FILE_2_ADDR	= 0x40000
-
-# System parameter area #
-#   3fc000   4177920
-#   3fd000   4182016
-#   3fe000   4186112
-#   3ff000   4190208
-
-# 0fc000   1032192
-# 0fd000   1036288
-# 0fe000   1040384
-# 0ff000   1044480
-FW_SYSPARM1M_SEC0 = 0x0fc000
-FW_SYSPARM1M_SEC1 = 0x0fd000
-FW_SYSPARM1M_SEC2 = 0x0fe000
-FW_SYSPARM1M_SEC3 = 0x0ff000
-
-FW_SYSPARM_SEC0 = 0x3fc000
-FW_SYSPARM_SEC1 = 0x3fd000
-FW_SYSPARM_SEC2 = 0x3fe000
-FW_SYSPARM_SEC3 = 0x3ff000
-
-
-
-
-
 # select which tools to use as compiler, librarian and linker
 CC		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
 AR		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-ar
 LD		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
-
 
 
 ####
@@ -158,22 +127,35 @@ endef
 
 .PHONY: all checkdirs flash clean
 
-all:  checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
+all:  $(RBOOT_BIN) checkdirs $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin
+
+$(RBOOT_BIN):
+	make -C $(RBOOT_DIR) RBOOT_DELAY_MICROS=2000000 RBOOT_RTC_ENABLED=1 SPI_SIZE=1M
 
 16kblank.bin:
 	dd if=/dev/zero of=16kblank.bin bs=4k count=4
 
-$(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
-	$(vecho) "FW $(FW_BASE)"
-	$(Q) $(ESPTOOL) elf2image --flash_size $(FLASH_SIZE) -o $(FW_BASE)/ $(TARGET_OUT)
 
-$(TARGET_OUT): $(APP_AR)
-	$(vecho) "LD $@"
-	$(Q) $(LD) -L$(SDK_LIBDIR) $(LD_SCRIPT) $(LDFLAGS) -Wl,--start-group $(LIBS) $(APP_AR) -Wl,--end-group -o $@
+# $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
+# 	$(vecho) "FW $(FW_BASE)"
+# 	$(Q) $(ESPTOOL) elf2image --flash_size $(FLASH_SIZE) -o $(FW_BASE)/ $(TARGET_OUT)
+# 
+# $(TARGET_OUT): $(APP_AR)
+# 	$(vecho) "LD $@"
+# 	$(Q) $(LD) -L$(SDK_LIBDIR) $(LD_SCRIPT) $(LDFLAGS) -Wl,--start-group $(LIBS) $(APP_AR) -Wl,--end-group -o $@
+# 
+# $(APP_AR): $(OBJ)
+# 	$(vecho) "AR $@"
+# 	$(Q) $(AR) cru $@ $^
 
-$(APP_AR): $(OBJ)
-	$(vecho) "AR $@"
-	$(Q) $(AR) cru $@ $^
+%.elf: $(OBJ)
+	@echo "LD $(notdir $@)"
+	$(LD) -L$(SDK_LIBDIR) -T$(notdir $(basename $@)).ld $(LDFLAGS) -Wl,--start-group $(LIBS) $^ -Wl,--end-group -o $@
+
+$(FIRMW_DIR)/%.bin: %.elf
+	@echo "FW $(notdir $@)"
+	$(ESPTOOL2) $(FW_USER_ARGS) $^ $@ $(FW_SECTS)
+
 
 checkdirs: $(BUILD_DIR) $(FW_BASE)
 
@@ -182,6 +164,16 @@ $(BUILD_DIR):
 
 $(FW_BASE):
 	$(Q) mkdir -p $@
+
+chipinfo:
+	@echo "Flash ID"
+	$(ESPTOOL) --port $(ESPPORT) flash_id
+	@echo "Chip ID"	
+	$(ESPTOOL) --port $(ESPPORT) chip_id
+	@echo "MAC"	
+	$(ESPTOOL) --port $(ESPPORT) read_mac
+	
+
 
 flash: $(FW_FILE_1) $(FW_FILE_2)
 	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
@@ -197,10 +189,6 @@ flashdata: $(FW_FILE_1) $(FW_FILE_2) 16kblank.bin
 		$(FW_SYSPARM1M_SEC0) $(FW_DATA_DEFAULT) \
 		$(FW_SYSPARM_SEC0) $(FW_BLANK_DATA) \
 		$(FW_SYSPARM_SEC0) $(FW_DATA_DEFAULT)
-
-
-#		0x0fc000 $(FW_BLANK_DATA) \
-#		$(FW_SYSPARM_SEC0) $(FW_BLANK_DATA) \
 		
 	
 

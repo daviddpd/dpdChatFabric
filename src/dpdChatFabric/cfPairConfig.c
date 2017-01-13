@@ -122,7 +122,7 @@ cfPairWrite(chatFabricConfig *config, chatFabricPairing *pair)
 	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_mynonce, 0, (unsigned char *)&(pair->mynonce), crypto_secretbox_NONCEBYTES, NULL);
 	cfTagEncoder ( CP_DATA8, str, (uint32_t *)&i, cftag_nonce, 0, (unsigned char *)&(pair->nonce), crypto_secretbox_NONCEBYTES, NULL);
 
-	CHATFABRIC_DEBUG_FMT(config->debug, "%20s: %s ",  "========>" , "cfPairWrite" );			
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%20s: %s ",  "========>" , "cfPairWrite" );			
 	CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG,"shared key", (unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES );
 	CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG,"nonce", (unsigned char *)&pair->nonce, crypto_secretbox_NONCEBYTES);
 	CHATFABRIC_DEBUG_B2H(_GLOBAL_DEBUG,"mynonce", (unsigned char *)&pair->mynonce, crypto_secretbox_NONCEBYTES);
@@ -132,14 +132,10 @@ cfPairWrite(chatFabricConfig *config, chatFabricPairing *pair)
 	// FIXME :: should this be factored out into a writing module, so that multiple pairs 
 	//			can be saved into the flashConfig block.
 	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
-// 		CHATFABRIC_DEBUG_FMT(config->debug,
-// 			"[DEBUG][%s:%s:%d] Failed to Save Config to Flash\n",
-// 			__FILE__, __FUNCTION__, __LINE__ );
+ 		CHATFABRIC_DEBUG_FMT(config->debug, "%s", "Failed to Save Config to Flash\n" );
 		return;
 	} else {
-// 		CHATFABRIC_DEBUG_FMT(config->debug,  
-// 			"[DEBUG][%s:%s:%d] Save Succesful, pair length: %d\n", 
-// 			__FILE__, __FUNCTION__, __LINE__, len );		
+ 		CHATFABRIC_DEBUG_FMT(config->debug, "%s", "Save Succesful." );
 	}
 
 #else
@@ -177,7 +173,7 @@ cfPairRead(chatFabricConfig *config, chatFabricPairing *pair)
 
 #ifdef ESP8266
 	if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig), 4096) == FALSE ) {
-//		CHATFABRIC_DEBUG_FMT(config->debug, "Read from flash failed." ); 
+		CHATFABRIC_DEBUG_FMT(config->debug, "%s", "Read from flash failed." ); 
 		return;
 	}
 

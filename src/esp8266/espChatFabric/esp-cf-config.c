@@ -22,9 +22,9 @@ espCfConfigInit()
 
 	config.pairfile = "1";		
 	config.callback = (void*)&deviceCallBack;
-	config.debug = 1;
+	config.debug = 0;
 
-	
+	// FIXME: move to define/constant
 	memcpy( &config.wifi_ap_passwd, "esp8266!demo", 12 );
 
 #ifdef STA_DEFAULT_NETWORK
@@ -107,13 +107,13 @@ if (
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
 	config.controlers[i].gpio = 13;
-//	config.debug = 1;
+	config.debug = 0;
 
 } else if (1) {
 
 	int i =	0;		
 
-	config.debug = 1;
+	config.debug = 0;
 
 	config.numOfControllers = 4;
 	
