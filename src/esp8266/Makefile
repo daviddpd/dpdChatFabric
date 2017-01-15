@@ -17,6 +17,10 @@ BUILD_BASE	= build
 FW_BASE		= firmware
 FIRMW_DIR	= firmware
 
+FW_SECTS      = .text .data .rodata
+FW_USER_ARGS  = -quiet -bin -boot2
+
+
 # base directory for the compiler
 #XTENSA_TOOLS_ROOT ?= /home/vagrant/esp-open-sdk/xtensa-lx106-elf/bin
 XTENSA_TOOLS_ROOT ?= /Volumes/esp8266/esp-open-sdk/xtensa-lx106-elf/bin

@@ -111,10 +111,10 @@ There will be a third actor, a gateway or relay, which will have the features of
 	# pair with device 
 	bin/controller -c controller.conf --pairfile device.pair --ip 192.168.1.229 --port 2030 --debug --tcp
 	# get list of controls on device, not needed/fully implemented in CLI
-	bin/controller -c controller.conf --pairfile e05b.pair --ip 192.168.1.229 --port 2030 --debug --tcp --get
+	bin/controller -c controller.conf --pairfile device.pair --ip 192.168.1.229 --port 2030 --debug --tcp --get
 	# Toggle boolean control 0
-	bin/controller -c controller.conf --pairfile e05b.pair --ip 192.168.1.229 --port 2030 --debug --tcp --set --control 0 --value 1
-	bin/controller -c controller.conf --pairfile e05b.pair --ip 192.168.1.229 --port 2030 --debug --tcp --set --control 0 --value 0
+	bin/controller -c controller.conf --pairfile device.pair --ip 192.168.1.229 --port 2030 --debug --tcp --set --control 0 --value 1
+	bin/controller -c controller.conf --pairfile device.pair --ip 192.168.1.229 --port 2030 --debug --tcp --set --control 0 --value 0
 	
 
 ```
