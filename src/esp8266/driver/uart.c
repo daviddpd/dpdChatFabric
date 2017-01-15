@@ -209,58 +209,56 @@ void at_port_print(const char *str) __attribute__((alias("uart0_sendStr")));
  * Parameters   : void *para - point to ETS_UART_INTR_ATTACH's arg
  * Returns      : NONE
 *******************************************************************************/
-extern void ProcessCommand(char* str);
-LOCAL void uart0_rx_intr_handler(void *para)
+LOCAL void
+uart0_rx_intr_handler(void *para)
 {
     /* uart0 and uart1 intr combine togther, when interrupt occur, see reg 0x3ff20020, bit2, bit0 represents
-     * uart1 and uart0 respectively
-     */
-    RcvMsgBuff *pRxBuff = (RcvMsgBuff *)para;
+    * uart1 and uart0 respectively
+    */
     uint8 RcvChar;
-
-    if (UART_RXFIFO_FULL_INT_ST != (READ_PERI_REG(UART_INT_ST(UART0)) & UART_RXFIFO_FULL_INT_ST)) {
-        return;
+    uint8 uart_no = UART0;//UartDev.buff_uart_no;
+    uint8 fifo_len = 0;
+    uint8 buf_idx = 0;
+    uint8 temp,cnt;
+    //RcvMsgBuff *pRxBuff = (RcvMsgBuff *)para;
+    
+    	/*ATTENTION:*/
+	/*IN NON-OS VERSION SDK, DO NOT USE "ICACHE_FLASH_ATTR" FUNCTIONS IN THE WHOLE HANDLER PROCESS*/
+	/*ALL THE FUNCTIONS CALLED IN INTERRUPT HANDLER MUST BE DECLARED IN RAM */
+	/*IF NOT , POST AN EVENT AND PROCESS IN SYSTEM TASK */
+    if(UART_FRM_ERR_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_FRM_ERR_INT_ST)){
+        DBG1("FRM_ERR\r\n");
+        WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_FRM_ERR_INT_CLR);
+    }else if(UART_RXFIFO_FULL_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_FULL_INT_ST)){
+        DBG("f");
+        uart_rx_intr_disable(UART0);
+        WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR);
+        system_os_post(uart_recvTaskPrio, 0, 0);
+    }else if(UART_RXFIFO_TOUT_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_TOUT_INT_ST)){
+        DBG("t");
+        uart_rx_intr_disable(UART0);
+        WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_TOUT_INT_CLR);
+        system_os_post(uart_recvTaskPrio, 0, 0);
+    }else if(UART_TXFIFO_EMPTY_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_TXFIFO_EMPTY_INT_ST)){
+        DBG("e");
+	/* to output uart data from uart buffer directly in empty interrupt handler*/
+	/*instead of processing in system event, in order not to wait for current task/function to quit */
+	/*ATTENTION:*/
+	/*IN NON-OS VERSION SDK, DO NOT USE "ICACHE_FLASH_ATTR" FUNCTIONS IN THE WHOLE HANDLER PROCESS*/
+	/*ALL THE FUNCTIONS CALLED IN INTERRUPT HANDLER MUST BE DECLARED IN RAM */
+	CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_TXFIFO_EMPTY_INT_ENA);
+	#if UART_BUFF_EN
+		tx_start_uart_buffer(UART0);
+	#endif
+        //system_os_post(uart_recvTaskPrio, 1, 0);
+        WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_TXFIFO_EMPTY_INT_CLR);
+        
+    }else if(UART_RXFIFO_OVF_INT_ST  == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_OVF_INT_ST)){
+        WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_RXFIFO_OVF_INT_CLR);
+        DBG1("RX OVF!!\r\n");
     }
 
-    WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR);
-
-    while (READ_PERI_REG(UART_STATUS(UART0)) & (UART_RXFIFO_CNT << UART_RXFIFO_CNT_S)) {
-        RcvChar = READ_PERI_REG(UART_FIFO(UART0)) & 0xFF;
-
-        /* you can add your handle code below.*/
-
-        // insert here for get one command line from uart
-		uart_tx_one_char(RcvChar);
-        if (RcvChar == '\r') continue;
-		if (RcvChar == '\n') {
-
-			int len;
-			char *str;
-			len = pRxBuff->pWritePos - pRxBuff->pReadPos;
-			if (len == 0) continue;
-			if (len < 0) len += RX_BUFF_SIZE;
-			str = (char*)os_zalloc(len+1);
-			if (str) {
-				uint8 loop;
-				for (loop = 0; loop < len; loop++) str[loop] = uart0_rx_one_char();
-				str[len] = '\0';
-				ProcessCommand(str);
-				os_free(str);
-			}
-
-        } else {
-			*(pRxBuff->pWritePos) = RcvChar;
-			pRxBuff->pWritePos++;
-		}
-
-        // if we hit the end of the buffer, loop back to the beginning
-        if (pRxBuff->pWritePos == (pRxBuff->pRcvMsgBuff + RX_BUFF_SIZE)) {
-            // overflow ...we may need more error handle here.
-            pRxBuff->pWritePos = pRxBuff->pRcvMsgBuff ;
-        }
-    }
 }
-
 
 /******************************************************************************
  * FunctionName : uart_init
