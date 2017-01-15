@@ -50,7 +50,7 @@ LOCAL void uart0_rx_intr_handler(void *para);
  * Parameters   : uart_no, use UART0 or UART1 defined ahead
  * Returns      : NONE
 *******************************************************************************/
-LOCAL void CP_ICACHE_FLASH_ATTR
+LOCAL void ICACHE_FLASH_ATTR
 uart_config(uint8 uart_no)
 {
     if (uart_no == UART1){
@@ -128,7 +128,7 @@ uart_config(uint8 uart_no)
  * Parameters   : char c - character to tx
  * Returns      : NONE
 *******************************************************************************/
-LOCAL void CP_ICACHE_FLASH_ATTR
+LOCAL void ICACHE_FLASH_ATTR
 uart1_write_char(char c)
 {
     if (c == '\n'){
@@ -142,7 +142,7 @@ uart1_write_char(char c)
 }
 
 //os_printf output to fifo or to the tx buffer
-LOCAL void CP_ICACHE_FLASH_ATTR
+LOCAL void ICACHE_FLASH_ATTR
 uart0_write_char_no_wait(char c)
 {
 #if UART_BUFF_EN    //send to uart0 fifo but do not wait 
@@ -177,7 +177,7 @@ uart0_write_char_no_wait(char c)
  *                uint16 len - buffer len
  * Returns      :
 *******************************************************************************/
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 uart0_tx_buffer(uint8 *buf, uint16 len)
 {
     uint16 i;
@@ -194,7 +194,7 @@ uart0_tx_buffer(uint8 *buf, uint16 len)
  *                uint16 len - buffer len
  * Returns      :
 *******************************************************************************/
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 uart0_sendStr(const char *str)
 {
     while(*str){
@@ -209,56 +209,58 @@ void at_port_print(const char *str) __attribute__((alias("uart0_sendStr")));
  * Parameters   : void *para - point to ETS_UART_INTR_ATTACH's arg
  * Returns      : NONE
 *******************************************************************************/
-LOCAL void
-uart0_rx_intr_handler(void *para)
+extern void ProcessCommand(char* str);
+LOCAL void uart0_rx_intr_handler(void *para)
 {
     /* uart0 and uart1 intr combine togther, when interrupt occur, see reg 0x3ff20020, bit2, bit0 represents
-    * uart1 and uart0 respectively
-    */
+     * uart1 and uart0 respectively
+     */
+    RcvMsgBuff *pRxBuff = (RcvMsgBuff *)para;
     uint8 RcvChar;
-    uint8 uart_no = UART0;//UartDev.buff_uart_no;
-    uint8 fifo_len = 0;
-    uint8 buf_idx = 0;
-    uint8 temp,cnt;
-    //RcvMsgBuff *pRxBuff = (RcvMsgBuff *)para;
-    
-    	/*ATTENTION:*/
-	/*IN NON-OS VERSION SDK, DO NOT USE "CP_ICACHE_FLASH_ATTR" FUNCTIONS IN THE WHOLE HANDLER PROCESS*/
-	/*ALL THE FUNCTIONS CALLED IN INTERRUPT HANDLER MUST BE DECLARED IN RAM */
-	/*IF NOT , POST AN EVENT AND PROCESS IN SYSTEM TASK */
-    if(UART_FRM_ERR_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_FRM_ERR_INT_ST)){
-        DBG1("FRM_ERR\r\n");
-        WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_FRM_ERR_INT_CLR);
-    }else if(UART_RXFIFO_FULL_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_FULL_INT_ST)){
-        DBG("f");
-        uart_rx_intr_disable(UART0);
-        WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR);
-        system_os_post(uart_recvTaskPrio, 0, 0);
-    }else if(UART_RXFIFO_TOUT_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_TOUT_INT_ST)){
-        DBG("t");
-        uart_rx_intr_disable(UART0);
-        WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_TOUT_INT_CLR);
-        system_os_post(uart_recvTaskPrio, 0, 0);
-    }else if(UART_TXFIFO_EMPTY_INT_ST == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_TXFIFO_EMPTY_INT_ST)){
-        DBG("e");
-	/* to output uart data from uart buffer directly in empty interrupt handler*/
-	/*instead of processing in system event, in order not to wait for current task/function to quit */
-	/*ATTENTION:*/
-	/*IN NON-OS VERSION SDK, DO NOT USE "CP_ICACHE_FLASH_ATTR" FUNCTIONS IN THE WHOLE HANDLER PROCESS*/
-	/*ALL THE FUNCTIONS CALLED IN INTERRUPT HANDLER MUST BE DECLARED IN RAM */
-	CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_TXFIFO_EMPTY_INT_ENA);
-	#if UART_BUFF_EN
-		tx_start_uart_buffer(UART0);
-	#endif
-        //system_os_post(uart_recvTaskPrio, 1, 0);
-        WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_TXFIFO_EMPTY_INT_CLR);
-        
-    }else if(UART_RXFIFO_OVF_INT_ST  == (READ_PERI_REG(UART_INT_ST(uart_no)) & UART_RXFIFO_OVF_INT_ST)){
-        WRITE_PERI_REG(UART_INT_CLR(uart_no), UART_RXFIFO_OVF_INT_CLR);
-        DBG1("RX OVF!!\r\n");
+
+    if (UART_RXFIFO_FULL_INT_ST != (READ_PERI_REG(UART_INT_ST(UART0)) & UART_RXFIFO_FULL_INT_ST)) {
+        return;
     }
 
+    WRITE_PERI_REG(UART_INT_CLR(UART0), UART_RXFIFO_FULL_INT_CLR);
+
+    while (READ_PERI_REG(UART_STATUS(UART0)) & (UART_RXFIFO_CNT << UART_RXFIFO_CNT_S)) {
+        RcvChar = READ_PERI_REG(UART_FIFO(UART0)) & 0xFF;
+
+        /* you can add your handle code below.*/
+
+        // insert here for get one command line from uart
+		uart_tx_one_char(RcvChar);
+        if (RcvChar == '\r') continue;
+		if (RcvChar == '\n') {
+
+			int len;
+			char *str;
+			len = pRxBuff->pWritePos - pRxBuff->pReadPos;
+			if (len == 0) continue;
+			if (len < 0) len += RX_BUFF_SIZE;
+			str = (char*)os_zalloc(len+1);
+			if (str) {
+				uint8 loop;
+				for (loop = 0; loop < len; loop++) str[loop] = uart0_rx_one_char();
+				str[len] = '\0';
+				ProcessCommand(str);
+				os_free(str);
+			}
+
+        } else {
+			*(pRxBuff->pWritePos) = RcvChar;
+			pRxBuff->pWritePos++;
+		}
+
+        // if we hit the end of the buffer, loop back to the beginning
+        if (pRxBuff->pWritePos == (pRxBuff->pRcvMsgBuff + RX_BUFF_SIZE)) {
+            // overflow ...we may need more error handle here.
+            pRxBuff->pWritePos = pRxBuff->pRcvMsgBuff ;
+        }
+    }
 }
+
 
 /******************************************************************************
  * FunctionName : uart_init
@@ -269,7 +271,7 @@ uart0_rx_intr_handler(void *para)
 *******************************************************************************/
 #if UART_SELFTEST&UART_BUFF_EN
 os_timer_t buff_timer_t;
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 uart_test_rx()
 {
     uint8 uart_buf[128]={0};
@@ -279,7 +281,7 @@ uart_test_rx()
 }
 #endif
 
-LOCAL void CP_ICACHE_FLASH_ATTR ///////
+LOCAL void ICACHE_FLASH_ATTR ///////
 uart_recvTask(os_event_t *events)
 {
     if(events->sig == 0){
@@ -306,7 +308,7 @@ uart_recvTask(os_event_t *events)
     }
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 uart_init(UartBautRate uart0_br, UartBautRate uart1_br)
 {
     /*this is a example to process uart data from task,please change the priority to fit your application task if exists*/
@@ -343,7 +345,7 @@ uart_init(UartBautRate uart0_br, UartBautRate uart1_br)
     #endif
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 uart_reattach()
 {
     uart_init(BIT_RATE_115200, BIT_RATE_115200);
@@ -396,7 +398,7 @@ void uart1_sendStr_no_wait(const char *str)
  * Parameters   : char *pdata - data point  to be enqueue
  * Returns      : NONE
 *******************************************************************************/
-struct UartBuffer* CP_ICACHE_FLASH_ATTR
+struct UartBuffer* ICACHE_FLASH_ATTR
 Uart_Buf_Init(uint32 buf_size)
 {
     uint32 heap_size = system_get_free_heap_size();
@@ -449,7 +451,7 @@ LOCAL void Uart_Buf_Cpy(struct UartBuffer* pCur, char* pdata , uint16 data_len)
  * Parameters   : struct UartBuffer* pTxBuff - tx buffer struct pointer
  * Returns      : NONE
 *******************************************************************************/
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 uart_buf_free(struct UartBuffer* pBuff)
 {
     os_free(pBuff->pUartBuff);
@@ -458,7 +460,7 @@ uart_buf_free(struct UartBuffer* pBuff)
 
 
 //rx buffer dequeue
-uint16 CP_ICACHE_FLASH_ATTR
+uint16 ICACHE_FLASH_ATTR
 rx_buff_deq(char* pdata, uint16 data_len )
 {
     uint16 buf_len =  (pRxBuffer->UartBuffSize- pRxBuffer->Space);
@@ -525,7 +527,7 @@ void Uart_rx_buff_enq()
 
 
 //fill the uart tx buffer
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 tx_buff_enq(char* pdata, uint16 data_len )
 {
     CLEAR_PERI_REG_MASK(UART_INT_ENA(UART0), UART_TXFIFO_EMPTY_INT_ENA);
@@ -635,26 +637,26 @@ uart0_write_char(char c)
     }
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_SetWordLength(uint8 uart_no, UartBitsNum4Char len) 
 {
     SET_PERI_REG_BITS(UART_CONF0(uart_no),UART_BIT_NUM,len,UART_BIT_NUM_S);
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_SetStopBits(uint8 uart_no, UartStopBitsNum bit_num) 
 {
     SET_PERI_REG_BITS(UART_CONF0(uart_no),UART_STOP_BIT_NUM,bit_num,UART_STOP_BIT_NUM_S);
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_SetLineInverse(uint8 uart_no, UART_LineLevelInverse inverse_mask) 
 {
     CLEAR_PERI_REG_MASK(UART_CONF0(uart_no), UART_LINE_INV_MASK);
     SET_PERI_REG_MASK(UART_CONF0(uart_no), inverse_mask);
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_SetParity(uint8 uart_no, UartParityMode Parity_mode) 
 {
     CLEAR_PERI_REG_MASK(UART_CONF0(uart_no), UART_PARITY |UART_PARITY_EN);
@@ -664,13 +666,13 @@ UART_SetParity(uint8 uart_no, UartParityMode Parity_mode)
     }
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_SetBaudrate(uint8 uart_no,uint32 baud_rate)
 {
     uart_div_modify(uart_no, UART_CLK_FREQ /baud_rate);
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_SetFlowCtrl(uint8 uart_no,UART_HwFlowCtrl flow_ctrl,uint8 rx_thresh)
 {
     if(flow_ctrl&USART_HardwareFlowControl_RTS){
@@ -688,7 +690,7 @@ UART_SetFlowCtrl(uint8 uart_no,UART_HwFlowCtrl flow_ctrl,uint8 rx_thresh)
     }
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_WaitTxFifoEmpty(uint8 uart_no , uint32 time_out_us) //do not use if tx flow control enabled
 {
     uint32 t_s = system_get_time();
@@ -703,7 +705,7 @@ UART_WaitTxFifoEmpty(uint8 uart_no , uint32 time_out_us) //do not use if tx flow
 }
 
 
-bool CP_ICACHE_FLASH_ATTR
+bool ICACHE_FLASH_ATTR
 UART_CheckOutputFinished(uint8 uart_no, uint32 time_out_us)
 {
     uint32 t_start = system_get_time();
@@ -728,27 +730,27 @@ UART_CheckOutputFinished(uint8 uart_no, uint32 time_out_us)
 }
 
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_ResetFifo(uint8 uart_no)
 {
     SET_PERI_REG_MASK(UART_CONF0(uart_no), UART_RXFIFO_RST | UART_TXFIFO_RST);
     CLEAR_PERI_REG_MASK(UART_CONF0(uart_no), UART_RXFIFO_RST | UART_TXFIFO_RST);
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_ClearIntrStatus(uint8 uart_no,uint32 clr_mask)
 {
     WRITE_PERI_REG(UART_INT_CLR(uart_no), clr_mask);
 }
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_SetIntrEna(uint8 uart_no,uint32 ena_mask)
 {
     SET_PERI_REG_MASK(UART_INT_ENA(uart_no), ena_mask);
 }
 
 
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 UART_SetPrintPort(uint8 uart_no)
 {
     if(uart_no==1){
@@ -766,7 +768,7 @@ UART_SetPrintPort(uint8 uart_no)
 
 
 /*test code*/
-void CP_ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 uart_init_2(UartBautRate uart0_br, UartBautRate uart1_br)
 {
     // rom use 74880 baut_rate, here reinitialize

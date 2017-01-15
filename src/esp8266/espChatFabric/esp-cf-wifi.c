@@ -2,7 +2,7 @@
 #include "esp-cf-wifi.h"
 
 extern int _GLOBAL_DEBUG;
-
+extern uint32 realtime_stamp;
 void udp_callback(void *arg, char *data, unsigned short length);
 void tcp_listen(void *arg);
 
@@ -14,14 +14,14 @@ LOCAL os_timer_t sntp_timer;
 
 void CP_ICACHE_FLASH_ATTR espCfWiFi_ntp20Check(void *arg)
 { 
-	uint32 current_stamp;
-	current_stamp = sntp_get_current_timestamp(); 
-	if(current_stamp == 0){
-		os_timer_arm(&sntp_timer, 100, 0); 
+//	uint32 current_stamp;
+//	current_stamp = realtime_stamp;
+	if(realtime_stamp == 0){
+		os_timer_arm(&sntp_timer, 500, 0); 
 	} else {
 		os_timer_disarm(&sntp_timer);
-		ntp_unix_timestamp = current_stamp;
-		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "NTP: (%d) (%s)", current_stamp, sntp_get_real_time(current_stamp));
+		ntp_unix_timestamp = realtime_stamp;
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "NTP: (%d) (%s)", ntp_unix_timestamp, sntp_get_real_time(ntp_unix_timestamp));
 		sntp_stop();
 	} 
 } 
@@ -44,7 +44,7 @@ espCfWiFi_ntp20Init() {
 
 	os_timer_disarm(&sntp_timer);
 	os_timer_setfn(&sntp_timer, (os_timer_func_t *)espCfWiFi_ntp20Check, NULL); 
-	os_timer_arm(&sntp_timer, 100, 0);
+	os_timer_arm(&sntp_timer, 1000, 0);
 
 }
 

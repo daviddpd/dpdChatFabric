@@ -13,6 +13,7 @@
 
 # Output directors to store intermediate compiled files
 # relative to the project directory
+
 BUILD_BASE	= build
 FW_BASE		= firmware
 FIRMW_DIR	= firmware
@@ -27,6 +28,8 @@ XTENSA_TOOLS_ROOT ?= /Volumes/esp8266/esp-open-sdk/xtensa-lx106-elf/bin
 
 # base directory of the ESP8266 SDK package, absolute
 SDK_BASE	?= /Volumes/esp8266/esp-open-sdk/sdk
+
+RBOOT_BASE  ?= /Users/dpd/Documents/github/rboot
 
 # esptool.py path and port
 ESPTOOL		?= /usr/local/bin/esptool.py
@@ -43,8 +46,8 @@ RBOOT_BIN	?= /Users/dpd/Documents/github/rboot/firmware/rboot.bin
 TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= ../dpdChatFabric ../dpdChatPacket driver user espChatFabric ../crypto ../util ../uuid_wrapper ../uuid
-EXTRA_INCDIR    = include ../crypto ../includes 
+MODULES		= ../dpdChatFabric ../dpdChatPacket driver user espChatFabric ../crypto ../util ../uuid_wrapper ../uuid rboot-api shell
+EXTRA_INCDIR    = include ../crypto ../includes $(RBOOT_BASE) rboot-api
 
 # libraries used in this project, mainly provided by the SDK
 #LIBS		= c gcc hal pp phy net80211 lwip wpa main
@@ -110,7 +113,16 @@ FW_FILE_2	:= $(addprefix $(FW_BASE)/,$(FW_FILE_2_ADDR).bin)
 FW_DATA_DEFAULT := $(SDK_BASE)/bin/esp_init_data_default.bin
 FW_BLANK_DATA	:= 16kblank.bin
 
-FLASH_SIZE := 32m  #    [--flash_size {4m,2m,8m,16m,32m,16m-c1,32m-c1,32m-c2}]
+FLASH_SIZE := 8m  #    [--flash_size {4m,2m,8m,16m,32m,16m-c1,32m-c1,32m-c2}]
+ADDR_RBOOT	= 0x00000
+ADDR_ROM0	= 0x02000
+ADDR_ROM1	= 0x82000
+ADDR_DEFAULTBIN	= 0xFC000
+ADDR_DATA0 = 0xFC000
+ADDR_DATA1 = 0xFD000
+ADDR_DATA2 = 0xFE000
+ADDR_DATA3 = 0xFD000
+
 
 V ?= $(VERBOSE)
 ifeq ("$(V)","1")
@@ -129,15 +141,17 @@ $1/%.o: %.c
 	$(Q) $(CC) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CFLAGS) -c $$< -o $$@
 endef
 
-.PHONY: all checkdirs flash clean
+.PHONY: all checkdirs flash 
 
 all:  $(RBOOT_BIN) checkdirs $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin
 
 $(RBOOT_BIN):
-	make -C $(RBOOT_DIR) RBOOT_DELAY_MICROS=2000000 RBOOT_RTC_ENABLED=1 SPI_SIZE=1M
+	make -C $(RBOOT_DIR) RBOOT_RTC_ENABLED=1 SPI_SIZE=1M
 
 16kblank.bin:
 	dd if=/dev/zero of=16kblank.bin bs=4k count=4
+12kblank.bin:
+	dd if=/dev/zero of=16kblank.bin bs=4k count=3
 
 
 # $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
@@ -152,11 +166,11 @@ $(RBOOT_BIN):
 # 	$(vecho) "AR $@"
 # 	$(Q) $(AR) cru $@ $^
 
-%.elf: $(OBJ)
+$(BUILD_BASE)/%.elf: $(OBJ)
 	@echo "LD $(notdir $@)"
 	$(LD) -L$(SDK_LIBDIR) -T$(notdir $(basename $@)).ld $(LDFLAGS) -Wl,--start-group $(LIBS) $^ -Wl,--end-group -o $@
 
-$(FIRMW_DIR)/%.bin: %.elf
+$(FIRMW_DIR)/%.bin: $(BUILD_BASE)/%.elf
 	@echo "FW $(notdir $@)"
 	$(ESPTOOL2) $(FW_USER_ARGS) $^ $@ $(FW_SECTS)
 
@@ -177,26 +191,30 @@ chipinfo:
 	@echo "MAC"	
 	$(ESPTOOL) --port $(ESPPORT) read_mac
 	
+# esptool.py --port /dev/cu.usbserial-DJ00A0O3 write_flash -fs 8m 
+# 0x00000 /Users/dpd/Documents/github/rboot/firmware/rboot.bin 
+# 0x02000 firmware/rom0.bin 
+# 0x82000 firmware/rom1.bin 
+# 0xFC000 16kblank.bin 
+# 0x0fc000 /Volumes/esp8266/esp-open-sdk/sdk/bin/esp_init_data_default.bin
+# RBOOT_BASE
 
-
-flash: $(FW_FILE_1) $(FW_FILE_2)
+flash: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 12kblank.bin 
 	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
-		$(FW_FILE_1_ADDR) $(FW_FILE_1)  \
-		$(FW_FILE_2_ADDR) $(FW_FILE_2)  \
-		$(FW_SYSPARM_SEC0) $(FW_DATA_DEFAULT)
+		$(ADDR_RBOOT) $(RBOOT_BASE)/firmware/rboot.bin \
+		$(ADDR_ROM0) $(FIRMW_DIR)/rom0.bin \
+		$(ADDR_ROM1) $(FIRMW_DIR)/rom1.bin \
+		$(ADDR_DATA0) $(FW_DATA_DEFAULT) 
 
-flashdata: $(FW_FILE_1) $(FW_FILE_2) 16kblank.bin
+flashdata: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 12kblank.bin 
 	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
-		$(FW_FILE_1_ADDR) $(FW_FILE_1) \
-		$(FW_FILE_2_ADDR) $(FW_FILE_2) \
-		$(FW_SYSPARM1M_SEC0) $(FW_BLANK_DATA) \
-		$(FW_SYSPARM1M_SEC0) $(FW_DATA_DEFAULT) \
-		$(FW_SYSPARM_SEC0) $(FW_BLANK_DATA) \
-		$(FW_SYSPARM_SEC0) $(FW_DATA_DEFAULT)
-		
-	
+		$(ADDR_RBOOT) $(RBOOT_BASE)/firmware/rboot.bin  \
+		$(ADDR_ROM0) $(FIRMW_DIR)/rom0.bin  \
+		$(ADDR_ROM1) $(FIRMW_DIR)/rom1.bin  \
+		$(ADDR_DATA0) $(FW_DATA_DEFAULT) \
+		$(ADDR_DATA1) 12kblank.bin
 
 clean:
-	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket ./util ./uuid_wrapper ./uuid 
+	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket ./util ./uuid_wrapper ./uuid  $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))

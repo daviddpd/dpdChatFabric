@@ -16,16 +16,6 @@
  */
 #ifndef UART_APP_H
 #define UART_APP_H
-#ifdef ESP8266
-//#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
-#ifndef CP_ICACHE_FLASH_ATTR
-#define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
-#endif
-#define ESP_WORD_ALIGN __attribute__ ((aligned (4)))
-#else
-#define CP_ICACHE_FLASH_ATTR __attribute__(())
-#define ESP_WORD_ALIGN __attribute__ (())
-#endif
 
 #include "uart_register.h"
 #include "eagle_soc.h"
@@ -188,7 +178,7 @@ typedef enum {
     BLOCK = 1,
 } TCPState;
 
-//void CP_ICACHE_FLASH_ATTR uart_test_rx();
+//void ICACHE_FLASH_ATTR uart_test_rx();
 STATUS uart_tx_one_char(uint8 uart, uint8 TxChar);
 STATUS uart_tx_one_char_no_wait(uint8 uart, uint8 TxChar);
 void  uart1_sendStr_no_wait(const char *str);

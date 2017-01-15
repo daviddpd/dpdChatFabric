@@ -366,18 +366,13 @@ clock_loop()
 	
 	if (ntp_unix_timestamp > 0) {
 	    ntp_unix_timestamp++;
-		if ( ( ntp_unix_timestamp % 10) == 0 ) { 
+/*		if ( ( ntp_unix_timestamp % 10) == 0 ) { 
 			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp ); 
 			adcBultin();
 		}
-
-
-
+*/
 	}
-
 	seconds_since_boot++;
-
-	
 }
 
 void CP_ICACHE_FLASH_ATTR
@@ -671,6 +666,9 @@ user_init_stage2()
 	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
 	os_timer_arm(&statusReg, 2000, 1);
 
+
+//	startShell();
+
 	
 }
 void CP_ICACHE_FLASH_ATTR
@@ -690,13 +688,12 @@ user_init()
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
 	#ifdef VERSION_DATE
 	#ifdef VERSION_GIT
-	os_printf("%040x\n", 0);
-	os_printf("%040x\n", 0);	
+	os_printf("%040d\n", 0);	
+	os_printf("%040d\n", 0);	
 	os_printf("chatFabric comnplie date: %s git:%s SDK Version: %s\n" , VERSION_DATE, VERSION_GIT, system_get_sdk_version() );
 	CHATFABRIC_PRINT("\n");
 	#endif
 	#endif
-	
 	
 
 	currentMode = MODE_BOOTING;
