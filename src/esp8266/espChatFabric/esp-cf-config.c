@@ -113,7 +113,7 @@ if (
 
 	int i =	0;		
 
-	config.debug = 0;
+	config.debug = 1;
 
 	config.numOfControllers = 4;
 	

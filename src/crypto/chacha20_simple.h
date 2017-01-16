@@ -16,7 +16,14 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #ifndef CHACHA20_SIMPLE_H
 #define CHACHA20_SIMPLE_H
+#ifdef ESP8266
+#include <c_types.h>
+#ifndef UINT32_C
+#define UINT32_C(v)  (v ## U)
+#endif
+#else
 #include <stdint.h>
+#endif
 
 #define ROTL32(v, n) ((v) << (n)) | ((v) >> (32 - (n)))
 

@@ -1299,7 +1299,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 				unsigned char *sessionNonce = (unsigned char*)calloc(crypto_secretbox_NONCEBYTES,sizeof(unsigned char));
 				chatPacket_calcNonce(cp->serial, (unsigned char *)&(pair->mynonce), sessionNonce);
 
-				CHATFABRIC_DEBUG_FMT(config_debug, "%8s :  %4d ",  "serial" , cp->serial );
+				CHATFABRIC_DEBUG_FMT(config->debug, "%8s :  %4d ",  "serial" , cp->serial );
 				CHATFABRIC_DEBUG_B2H(config->debug, "shared key (PL)", (unsigned char *)&pair->sharedkey, crypto_box_PUBLICKEYBYTES );
 				CHATFABRIC_DEBUG_B2H(config->debug, "session Nonce (PL)", (unsigned char *)sessionNonce, crypto_secretbox_NONCEBYTES );
 				CHATFABRIC_DEBUG_B2H(config->debug, "xxNonce (PL)", (unsigned char *)&pair->nonce, crypto_secretbox_NONCEBYTES );
@@ -1308,7 +1308,6 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 				
 				#ifdef HAVE_LOCAL_CRYPTO
 				mac=(unsigned char*)calloc(crypto_secretbox_MACBYTES,sizeof(unsigned char) );
-				
 				poly1305_auth(mac,  b+i,  cp->payloadLength - crypto_secretbox_MACBYTES, (unsigned char *)&pair->sharedkey);
 				ret = poly1305_verify(mac, b+i+cp->payloadLength-crypto_secretbox_MACBYTES);
 				free(mac);
@@ -1324,6 +1323,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 					CHATFABRIC_PRINT(" ===> Decryption (payload) Failed \n" );
 
 				}
+				CHATFABRIC_DEBUG(config->debug, "CheckPoint");				
 				#endif
 				#ifdef HAVE_SODIUM
 				decrypted=(unsigned char*)calloc(cp->payloadLength - crypto_secretbox_MACBYTES,sizeof(unsigned char));	

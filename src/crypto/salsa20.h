@@ -1,8 +1,14 @@
 #ifndef _SALSA20_H_
 #define _SALSA20_H_
 
+
+#ifdef ESP8266
+#include <c_types.h>
+#else
 #include <stdint.h>
+#endif
 #include <stddef.h>
+
 
 /**
  * Return codes for s20_crypt

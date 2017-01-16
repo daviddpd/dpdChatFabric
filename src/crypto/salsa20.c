@@ -1,5 +1,3 @@
-#include <stdint.h>
-#include <stddef.h>
 #include "salsa20.h"
 #ifdef ESP8266
 #define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))

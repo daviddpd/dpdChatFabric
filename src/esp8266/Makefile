@@ -51,7 +51,7 @@ EXTRA_INCDIR    = include ../crypto ../includes $(RBOOT_BASE) rboot-api
 
 # libraries used in this project, mainly provided by the SDK
 #LIBS		= c gcc hal pp phy net80211 lwip wpa main
-LIBS		= cirom gcc hal pp phy net80211 lwip wpa main pwm
+LIBS		= cirom gcc hal pp phy net80211 lwip wpa wpa2 main pwm crypto
 
 # compiler flags using during compilation of source files -fno-inline-functions
 CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wno-implicit -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN
@@ -146,12 +146,14 @@ endef
 all:  $(RBOOT_BIN) checkdirs $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin
 
 $(RBOOT_BIN):
-	make -C $(RBOOT_DIR) RBOOT_RTC_ENABLED=1 SPI_SIZE=1M
+	make -C $(RBOOT_DIR) RBOOT_DELAY_MICROS=1000000 RBOOT_RTC_ENABLED=1 SPI_SIZE=1M
 
+4kblank.bin:
+	dd if=/dev/zero of=4kblank.bin bs=4k count=1
 16kblank.bin:
 	dd if=/dev/zero of=16kblank.bin bs=4k count=4
 12kblank.bin:
-	dd if=/dev/zero of=16kblank.bin bs=4k count=3
+	dd if=/dev/zero of=12kblank.bin bs=4k count=3
 
 
 # $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
@@ -199,20 +201,21 @@ chipinfo:
 # 0x0fc000 /Volumes/esp8266/esp-open-sdk/sdk/bin/esp_init_data_default.bin
 # RBOOT_BASE
 
-flash: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 12kblank.bin 
+flash: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 12kblank.bin 4kblank.bin
 	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
 		$(ADDR_RBOOT) $(RBOOT_BASE)/firmware/rboot.bin \
 		$(ADDR_ROM0) $(FIRMW_DIR)/rom0.bin \
 		$(ADDR_ROM1) $(FIRMW_DIR)/rom1.bin \
+		$(ADDR_DATA0) 4kblank.bin \
 		$(ADDR_DATA0) $(FW_DATA_DEFAULT) 
 
-flashdata: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 12kblank.bin 
+flashdata: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 16kblank.bin 
 	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
 		$(ADDR_RBOOT) $(RBOOT_BASE)/firmware/rboot.bin  \
 		$(ADDR_ROM0) $(FIRMW_DIR)/rom0.bin  \
 		$(ADDR_ROM1) $(FIRMW_DIR)/rom1.bin  \
-		$(ADDR_DATA0) $(FW_DATA_DEFAULT) \
-		$(ADDR_DATA1) 12kblank.bin
+		$(ADDR_DATA0) 16kblank.bin \
+		$(ADDR_DATA0) $(FW_DATA_DEFAULT)
 
 clean:
 	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE) ./crypto ./dpdChatFabric  ./dpdChatPacket ./util ./uuid_wrapper ./uuid  $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 

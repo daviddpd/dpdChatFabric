@@ -688,8 +688,11 @@ user_init()
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
 	#ifdef VERSION_DATE
 	#ifdef VERSION_GIT
-	os_printf("%040d\n", 0);	
-	os_printf("%040d\n", 0);	
+	for (i=0; i<256; i++) {
+		os_printf(".");
+		os_delay_us(10000);
+	}
+	os_printf("\n");	
 	os_printf("chatFabric comnplie date: %s git:%s SDK Version: %s\n" , VERSION_DATE, VERSION_GIT, system_get_sdk_version() );
 	CHATFABRIC_PRINT("\n");
 	#endif

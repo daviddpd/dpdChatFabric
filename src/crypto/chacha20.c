@@ -1,5 +1,3 @@
-#include <stdint.h>
-#include <string.h>
 #include "chacha20.h"
 
 static inline void u32t8le(uint32_t v, uint8_t p[4]) {

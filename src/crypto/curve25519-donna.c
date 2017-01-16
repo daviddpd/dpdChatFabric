@@ -46,7 +46,17 @@
  * from the sample implementation. */
 
 #include <string.h>
+
+#ifdef ESP8266
+#include <c_types.h>
+typedef sint64_t limb;
+#else
 #include <stdint.h>
+typedef uint8_t u8;
+typedef int32_t s32;
+typedef int64_t limb;
+#endif
+
 #ifdef ESP8266
 #define CP_ICACHE_FLASH_ATTR __attribute__((section(".irom0.text")))
 #else
@@ -56,9 +66,6 @@
 #define inline __inline
 #endif
 
-typedef uint8_t u8;
-typedef int32_t s32;
-typedef int64_t limb;
 
 /* Field element representation:
  *
