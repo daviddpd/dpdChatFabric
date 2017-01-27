@@ -178,7 +178,7 @@ bool CP_ICACHE_FLASH_ATTR  uuuid2_eq(uuuid2_t *a, uuuid2_t *b) {
 bool CP_ICACHE_FLASH_ATTR  uuuid2_copy(uuuid2_t *from, uuuid2_t *to) {
 	if ( sizeof(from->bytes) != sizeof(to->bytes) ) 
 	{ 
-		CHATFABRIC_DEBUG(1, " Size Mismatch" );
+//		CHATFABRIC_DEBUG(1, " Size Mismatch" );
 
 		return 0; 
 		

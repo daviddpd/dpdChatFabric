@@ -70,7 +70,11 @@ uint32_t ntpcounter = 0;
 uint32_t ntpstatus_printed = 0;
 
 uint32 duty = 0;
+int8 dimmerDirection = 1;
+int8 dimmerLevel = 0;
 int stepper = 0;
+#define DIMMER_UNITS 20
+#define DIMMER_INTERVAL 5000
 
 
 LOCAL os_timer_t boottimer;
@@ -82,6 +86,7 @@ LOCAL os_timer_t statusReg;
 LOCAL os_timer_t ntpTimer;
 LOCAL os_timer_t clockTimer;
 LOCAL os_timer_t sleepTimer;
+LOCAL os_timer_t blinkingTimer;
 
 
 
@@ -103,6 +108,7 @@ void udp_callback(void *arg, char *data, unsigned short length);
 //void changeMode(enum deviceModes m);
 enum deviceModes menuItem = MODE_MENU_NONE;
 void adcBultin();
+void adcCallBack();
 
 
 void CP_ICACHE_FLASH_ATTR
@@ -171,13 +177,13 @@ pwm_setup()
 	};
 	
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "io_info" );
-    set_pwm_debug_en(1);//disable debug print in pwm driver
+    set_pwm_debug_en(0);//disable debug print in pwm driver
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm debug" );
 	
     /*PIN FUNCTION INIT FOR PWM OUTPUT*/
 //    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
 
-    pwm_init(50,  pwm_duty_init ,1,io_info);
+    pwm_init(800, pwm_duty_init ,1,io_info);
 	CHATFABRIC_DEBUG(_GLOBAL_DEBUG,	 "pwm init" );
     
 	pwm_start();
@@ -227,6 +233,12 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 	
 			if (cp->action == ACTION_GET ) 
 			{
+				if ( config->controlers[i].readFuction != 0 )
+				{
+					CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Starting readFunction callback" );
+					config->controlers[i].readFuction(&(config->controlers[i]));
+					CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Done readFunction callback" );
+				}
 
 				reply->action = ACTION_READ;
 				reply->action_control = cp->action_control;
@@ -235,7 +247,7 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 				reply->action_length = 0;
 		
 		
-			} else if (cp->action == ACTION_SET ) 
+			} else if (cp->action == ACTION_SET && config->controlers[i].readOnly != 1 ) 
 			{
 				config->controlers[i].value = cp->action_value;
 
@@ -361,18 +373,59 @@ tcp_listen(void *arg)
 static void CP_ICACHE_FLASH_ATTR
 clock_loop()
 {
-	uint32	period;
-	uint32 period_max;
 	
 	if (ntp_unix_timestamp > 0) {
-	    ntp_unix_timestamp++;
-/*		if ( ( ntp_unix_timestamp % 10) == 0 ) { 
-			CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp ); 
-			adcBultin();
-		}
-*/
+	    ntp_unix_timestamp++;		
+//		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp ); 
+		
 	}
 	seconds_since_boot++;
+	
+}
+
+
+static void 
+blinking_loop() {
+	uint32 duty = 0;
+	uint32 period = 0;
+	uint32 period_max =0;;
+	uint32 perunit =0;
+
+	os_timer_disarm(&blinkingTimer);
+		
+		period = pwm_get_period();
+		period_max = ((period * 1000) / 45);
+		perunit = period_max/DIMMER_UNITS; // 100%
+
+		duty =  dimmerLevel * perunit;
+/*
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "BLINKING Loop Period: %6d ; Period Max %6d ;  Duty %6d ; DimmerLevel %6d ; DimmerLevel %6d ; DimmerDirection %6d ", 
+			period,
+			period_max,
+			duty,
+			dimmerLevel,
+			dimmerDirection
+			); 
+*/
+							
+		pwm_set_duty( duty, 0 );
+		pwm_start();
+
+		if ( dimmerDirection == 1 ) {
+			dimmerLevel++;
+		} else {
+			dimmerLevel--;
+		}
+		
+		if ( dimmerLevel > DIMMER_UNITS ) {
+			dimmerLevel = DIMMER_UNITS-1;
+			dimmerDirection = 0;
+		} else if ( dimmerLevel < 0 ) {
+			dimmerDirection = 1;
+			dimmerLevel = 0;
+		}
+
+	os_timer_arm(&blinkingTimer, DIMMER_INTERVAL, 1);
 }
 
 void CP_ICACHE_FLASH_ATTR
@@ -382,8 +435,6 @@ statusLoop() {
 	if ( pair[0].hasPublicKey && ( menuItem == MODE_MENU_NONE ) ) {
 		currentMode = MODE_STA_PAIRED;
 	} 
-
-
 }
 
 
@@ -457,7 +508,7 @@ userGPIOInit()
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
 //	PIN_FUNC_SELECT(PERIPHS_IO_MUX_SD_DATA3_U, FUNC_GPIO10);
 
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
+//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO4_U, FUNC_GPIO4);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
@@ -536,11 +587,27 @@ adcBultin() {
 		uint16 data0volt_f  = (uint16)((v*voltsPerUnit - data0volt_i ) *100);
 
 
-		CHATFABRIC_DEBUG_FMT(1, "[perUnit: %02u.%03u]  ADC0: %04x : volts  %02u.%03u   ", voltsPerUnit_i, voltsPerUnit_f,  v,  data0volt_i, data0volt_f);
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "[perUnit: %02u.%03u]  ADC0: %04x : volts  %02u.%03u   ", voltsPerUnit_i, voltsPerUnit_f,  v,  data0volt_i, data0volt_f);
 
 
 }
 
+
+void CP_ICACHE_FLASH_ATTR
+adcCallBack(void * control ) {
+
+	cfControl *z = (cfControl *)control;
+	uint16 a,b,c,v = 0;
+	a = system_adc_read();
+	os_delay_us(1000);
+	b = system_adc_read();
+	os_delay_us(1000);
+	c = system_adc_read();
+	v = ( a + b + c ) / 3; 
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, " ADC0: %6d %6d %6d  ADC0_AVG: %6d", a, b, c, v);	
+	z->value = v;
+
+}
 // void CP_ICACHE_FLASH_ATTR
 // adc() {
 // 	if ( 
@@ -683,6 +750,10 @@ void CP_ICACHE_FLASH_ATTR
 user_init()
 {
 	int i;
+
+	os_timer_disarm(&blinkingTimer);
+	os_timer_setfn(&blinkingTimer, (os_timer_func_t *)blinking_loop, NULL);
+	os_timer_arm(&blinkingTimer, DIMMER_INTERVAL, 1);
 
 	seconds_since_boot=0;
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);

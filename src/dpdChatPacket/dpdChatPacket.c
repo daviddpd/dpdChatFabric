@@ -1531,7 +1531,7 @@ chatPacket_print (chatPacket *cp, enum chatPacketDirection d) {
 
 	uint32_t i, pl=0;
 #ifdef IOS_APP
-	uuid_string_t str;
+	char * str;
 #else
 	char *str;
 #endif

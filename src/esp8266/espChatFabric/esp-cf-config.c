@@ -1,6 +1,7 @@
 #include "esp-cf-config.h"
 
 extern void* deviceCallBack;
+extern void* adcCallBack;
 extern hostmeta_t hostMeta;
 enum deviceModes currentMode = MODE_UNDEFINED;
 struct station_config stationConf;
@@ -115,7 +116,7 @@ if (
 
 	config.debug = 1;
 
-	config.numOfControllers = 4;
+	config.numOfControllers = 5;
 	
 	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
 	config.controlers[i].control = i;
@@ -127,7 +128,9 @@ if (
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
 	config.controlers[i].gpio = 12;
-
+	config.controlers[i].readOnly = 0;
+	config.controlers[i].readFuction = 0;
+	
 	i++;
 	config.controlers[i].control = i;
 	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
@@ -138,6 +141,8 @@ if (
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
 	config.controlers[i].gpio = 13;
+	config.controlers[i].readOnly = 0;
+	config.controlers[i].readFuction = 0;
 
 	i++;
 	config.controlers[i].control = i;
@@ -149,6 +154,8 @@ if (
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 100;
 	config.controlers[i].gpio = 14;
+	config.controlers[i].readOnly = 0;
+	config.controlers[i].readFuction = 0;
 
 
 	i++;
@@ -161,7 +168,22 @@ if (
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
 	config.controlers[i].gpio = 16;
+	config.controlers[i].readOnly = 0;
+	config.controlers[i].readFuction = 0;
 
+	i++;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_GAUGE;
+	config.controlers[i].value = 0;
+	config.controlers[i].value_mask = 0x00;
+	config.controlers[i].label = "ADC";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 1024;			
+	config.controlers[i].gpio = -1;
+	config.controlers[i].readOnly = 1;
+	config.controlers[i].readFuction = (void*)&adcCallBack;
+	
 
 } else {
 
@@ -203,6 +225,18 @@ if (
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 1;
 	config.controlers[i].gpio = 13;
+
+	i++;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
+	config.controlers[i].value = 0;
+	config.controlers[i].value_mask = 0x00;
+	config.controlers[i].label = "red";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 1;
+	config.controlers[i].gpio = 12;
+
 
 	i++;
 	config.controlers[i].control = i;

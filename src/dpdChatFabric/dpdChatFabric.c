@@ -131,6 +131,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 	unsigned char * nullmsg = 0;
 //	b->length = 0;		
 	enum chatFabricErrors e;
+	CHATFABRIC_DEBUG(config->debug, "chatFabric Controller" );
 
 #ifndef ESP8266
 	chatFabric_consetup(c, config->ip, config->port);
@@ -141,9 +142,11 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 #endif
 
 	if ( pair->state != STATE_PAIRED ) {
+		CHATFABRIC_DEBUG(config->debug, "chatFabric Controller - Not paired" );
 		cp = chatPacket_init (config, pair, CMD_PAIR_REQUEST,  nullmsg, 0,  0);
 		chatPacket_encode ( cp, config, pair,  &mb, _CHATPACKET_ENCRYPTED, COMMAND);
 	} else {
+		CHATFABRIC_DEBUG(config->debug, "chatFabric Controller - PAIRED" );
 		if ( a->action == ACTION_APP_LIST ) {
 			cp = chatPacket_init (config, pair, CMD_APP_LIST,  NULL, 0,  CMD_SEND_REPLY_TRUE);
 		} else if ( a->action == ACTION_GET_CONFIG ) {
@@ -178,6 +181,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 	
 	int retry = 3;
 	do {
+		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%3d %s", retry, "chatFabric Controller - Connection ... " );
 		if ( c->type == SOCK_STREAM ) {
 			if (c->bind == 1 ) {
 				n = write(c->acceptedSocket, mb.msg, mb.length);

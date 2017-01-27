@@ -66,6 +66,9 @@ typedef struct {
 	int32_t rangeHigh;
 	int32_t gpio;
 	uint32_t labelLength;
+	int32_t readOnly;
+	void (*readFuction)(void* control);
+
 	char *label;
 	unsigned char *data; 
 //	void (*callback)(void *config, chatPacket *cp,  chatFabricPairing *pair, chatPacket *reply, enum chatPacketCommands *replyCmd);	
