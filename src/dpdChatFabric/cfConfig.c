@@ -139,8 +139,8 @@ void CP_ICACHE_FLASH_ATTR
 cfConfigSetFromStr(chatFabricConfig *config, unsigned char* cstr, int cstr_len) {
 	_cfConfigRead(config, 1, cstr, cstr_len);
 }
-
-
+   
+   
 void CP_ICACHE_FLASH_ATTR
 cfConfigRead(chatFabricConfig *config) {
 	_cfConfigRead(config, 0, NULL, 0);
@@ -158,19 +158,19 @@ _cfConfigRead(chatFabricConfig *config, int fromStr, unsigned char* cstr, int cs
 
 #ifdef ESP8266
 	int fp=0;
-	CHATFABRIC_DEBUG_FMT(1, "Starting Config Read, fromStr = %d", fromStr ); 
+	CHATFABRIC_DEBUG_FMT(config->debug, "Starting Config Read, fromStr = %d", fromStr ); 
 
 	if ( !fromStr ) {
 
-		CHATFABRIC_DEBUG_B2H(1, "Config String, RAM, preload   :",
+		CHATFABRIC_DEBUG_B2H(config->debug, "Config String, RAM, preload   :",
 			(unsigned char*)&(flashConfig[0]), 32  );
 
 		if ( system_param_load (CP_ESP_PARAM_START_SEC, 0, &(flashConfig[0]), 4096) == FALSE ) {
-			CHATFABRIC_DEBUG(1, "Read from flash failed." ); 
+			CHATFABRIC_DEBUG(config->debug, "Read from flash failed." ); 
 			return;
 		}
 
-		CHATFABRIC_DEBUG_B2H(1, "Config String, RAM, post-load :", 
+		CHATFABRIC_DEBUG_B2H(config->debug, "Config String, RAM, post-load :", 
 			(unsigned char*)&(flashConfig[0]), 32  );
 	}
 
@@ -425,16 +425,16 @@ cfConfigWrite(chatFabricConfig *config) {
 	memcpy( &(flashConfig[configstr.length]), keys.msg, keys.length);
 	memcpy( &(flashConfig[configstr.length+keys.length]), &ch, 1);
 	
-    CHATFABRIC_DEBUG_B2H(1, "Config String, RAM, presave   :",
+    CHATFABRIC_DEBUG_B2H(config->debug, "Config String, RAM, presave   :",
     	(unsigned char*)&(flashConfig[0]), 32  );
 	
 	if ( system_param_save_with_protect (CP_ESP_PARAM_START_SEC, &(flashConfig[0]), 4096) == FALSE ) {
-		CHATFABRIC_DEBUG(1, "ESP Save With Protect Failed.");
+		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect Failed.");
 	} else {
-		CHATFABRIC_DEBUG(1, "ESP Save With Protect - SUCCESS.");	
+		CHATFABRIC_DEBUG(config->debug, "ESP Save With Protect - SUCCESS.");	
 	}
 
-    CHATFABRIC_DEBUG_B2H(1, "Config String, RAM, postsave  :",
+    CHATFABRIC_DEBUG_B2H(config->debug, "Config String, RAM, postsave  :",
     	(unsigned char*)&(flashConfig[0]), 32  );
 
 #else

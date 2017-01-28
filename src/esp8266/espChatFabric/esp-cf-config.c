@@ -10,6 +10,29 @@ chatFabricConnection ESP_WORD_ALIGN c;
 chatFabricConfig ESP_WORD_ALIGN config;  
 msgbuffer ESP_WORD_ALIGN b;
 
+#define RAW_READ 32
+
+void CP_ICACHE_FLASH_ATTR
+espCfConfigRawRead() {	
+	unsigned char *tmp;
+	char str[64] = {0};
+	int i, sec;
+	tmp = calloc(RAW_READ, sizeof(unsigned char)) ;
+	
+	for (sec=PRIV_PARAM_START_SEC; sec<PRIV_PARAM_START_SEC+3; sec++) {
+		CHATFABRIC_DEBUG_FMT(1, " == Address : %05x", sec );
+		for (i=0; i<SPI_FLASH_SEC_SIZE; i=i+RAW_READ) 
+		{
+			spi_flash_read(sec * SPI_FLASH_SEC_SIZE + i, (uint32 *)tmp, RAW_READ);
+			os_sprintf (&str, "[FLASH %08x]", sec * SPI_FLASH_SEC_SIZE + i );
+			util_bin2hex ( " ", (char*)&str, tmp, RAW_READ  );
+//			CHATFABRIC_DEBUG_B2H(1, str, (unsigned char*)&(tmp[0]), RAW_READ  );
+		}
+	}
+
+}
+
+
 void CP_ICACHE_FLASH_ATTR
 espCfConfigInit()
 {

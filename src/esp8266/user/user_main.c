@@ -44,6 +44,8 @@ extern hostmeta_t hostMeta;
 extern char ntp_status_str[];
 extern struct mdns_info *mdnsinfo;
 
+extern void ProcessCommand(char* str);
+
 int bootstatus = 0;  // 1 - network up, 2-ready
 // os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 static void loop();
@@ -526,14 +528,14 @@ userGPIOInit()
 	GPIO_DIS_OUTPUT(0); // set for input
 	GPIO_DIS_OUTPUT(2); // set for input
 	GPIO_DIS_OUTPUT(4); // set for input
-	GPIO_DIS_OUTPUT(5); // set for input
+//	GPIO_DIS_OUTPUT(5); // set for input
 //	GPIO_DIS_OUTPUT(2); // set for input
 //	GPIO_DIS_OUTPUT(3); // set for input
 
 //    gpio_pin_intr_state_set(GPIO_ID_PIN(13), GPIO_PIN_INTR_NEGEDGE);    
     gpio_pin_intr_state_set(GPIO_ID_PIN(2), GPIO_PIN_INTR_POSEDGE);    
     gpio_pin_intr_state_set(GPIO_ID_PIN(0), GPIO_PIN_INTR_POSEDGE);    
-    gpio_pin_intr_state_set(GPIO_ID_PIN(5), GPIO_PIN_INTR_POSEDGE); 
+//    gpio_pin_intr_state_set(GPIO_ID_PIN(5), GPIO_PIN_INTR_POSEDGE); 
     gpio_pin_intr_state_set(GPIO_ID_PIN(4), GPIO_PIN_INTR_POSEDGE);    
 
 //  gpio_pin_intr_state_set(GPIO_ID_PIN(13), GPIO_PIN_INTR_NEGEDGE);
@@ -734,8 +736,8 @@ user_init_stage2()
 	os_timer_arm(&statusReg, 2000, 1);
 
 
-//	startShell();
-
+	//startShell
+	ProcessCommand("help");
 	
 }
 void CP_ICACHE_FLASH_ATTR
@@ -754,6 +756,8 @@ user_init()
 	os_timer_disarm(&blinkingTimer);
 	os_timer_setfn(&blinkingTimer, (os_timer_func_t *)blinking_loop, NULL);
 	os_timer_arm(&blinkingTimer, DIMMER_INTERVAL, 1);
+	uart0enabled = 1;
+	userGPIOInit();
 
 	seconds_since_boot=0;
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
@@ -771,8 +775,7 @@ user_init()
 	
 
 	currentMode = MODE_BOOTING;
-	uart0enabled = 1;
-	userGPIOInit();
+
 	user_init_stage2();
 
 

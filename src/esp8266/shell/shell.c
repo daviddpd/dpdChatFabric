@@ -10,12 +10,23 @@
 #include <user_interface.h>
 #include <time.h>
 #include <mem.h>
+#include "dpdChatFabric.h"
+#include "dpdChatPacket.h"
+#include "esp8266.h"
+#include "util.h"
+#include "esp-cf-config.h"
+#include "esp-cf-wifi.h"
 
 #include "shell.h"
 
 #include "rboot-api.h"
+#include "rboot-ota.h"
 
+#define BUFF_LEN 64
+char shellBuffer[BUFF_LEN] = {0};
+int8 sbi = 0;
 static os_timer_t network_timer;
+extern chatFabricConfig config;  
 
 void ICACHE_FLASH_ATTR user_rf_pre_init() {
 }
@@ -67,7 +78,6 @@ void ICACHE_FLASH_ATTR Switch() {
 	system_restart();
 }
 
-/*
 static void ICACHE_FLASH_ATTR OtaUpdate_CallBack(bool result, uint8 rom_slot) {
 
 	if(result == true) {
@@ -98,19 +108,66 @@ static void ICACHE_FLASH_ATTR OtaUpdate() {
 	}
 	
 }
-*/
+
+void shellCircleBuffer (char RcvChar) {
+
+		if ( sbi == BUFF_LEN-1 ) {
+			sbi = 0;
+			shellBuffer[sbi] = 0;
+			os_printf( " ===> Serial in buffer overflow. \n " );
+			return;
+		}
+		if ( RcvChar == 8  || RcvChar == 127)  // backspace & delete 
+		{
+			// sbi - next open space
+			sbi--; // pervious char
+			shellBuffer[sbi] = 0; // delete the char
+			// do not increment 
+			return;
+		}
+		
+        if (RcvChar == '\r') return;
+
+		if (RcvChar == '\n' ) {
+			shellBuffer[sbi] = 0;
+//			os_printf( " ===> Serial: %d %s \n ", sbi, shellBuffer );
+			ProcessCommand((char*)&shellBuffer);
+			sbi = 0;
+			shellBuffer[sbi] = 0;			
+		} else {
+			shellBuffer[sbi] = RcvChar;
+			sbi++;
+		}
+
+	return;
+}
 
 void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 	if (!strcmp(str, "help")) {
+		os_printf(" =============================================== \n");	
+		os_printf("chatFabric comnplie date: %s git:%s SDK Version: %s\n" , VERSION_DATE, VERSION_GIT, system_get_sdk_version() );
+		os_printf("\n\n");	
 		os_printf("available commands\r\n");
 		os_printf("  help - display this message\r\n");
 		os_printf("  ip - show current ip address\r\n");
-		os_printf("  connect - connect to wifi\r\n");
 		os_printf("  restart - restart the esp8266\r\n");
 		os_printf("  switch - switch to the other rom and reboot\r\n");
 		os_printf("  ota - perform ota update, switch rom and reboot\r\n");
 		os_printf("  info - show esp8266 info\r\n");
+		os_printf("\n");	
+		os_printf("  === chatFabric controls ===\r\n");
+		os_printf("  unpair - clear all chatFabric paining info\r\n");
+		os_printf("  init - re-init all chatFabric config (factory reset)\r\n");
+		os_printf("  debugoff - disable chatFabric debugging (DOES NOT SAVE CONFIG)\r\n");
+		os_printf("  debugon - disable chatFabric debugging (DOES NOT SAVE CONFIG)\r\n");
+		os_printf("  saveconfig - Saves the config into flash memory\r\n");
+		os_printf("  readconfig - re-read the config into from flash memory to RAM.\r\n");
+		os_printf("  configrawread - read from flash memory to RAM, print to hex\r\n");
 		os_printf("\r\n");
+	} else if (str[0] == 0) {
+		return;
+	} else if (!strcmp(str, "ota")) {
+		OtaUpdate();
 	} else if (!strcmp(str, "restart")) {
 		os_printf("Restarting...\r\n\r\n");
 		system_restart();
@@ -118,16 +175,30 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 		ShowIP();
 	} else if (!strcmp(str, "info")) {
 		ShowInfo();
+	} else if (!strcmp(str, "unpair")) {	
+		cfPairInit(&pair[0]);
+		currentMode = MODE_STA_UNPAIRED;
+		os_printf ( " ==> Unpaired !\n");
+	} else if (!strcmp(str, "init")) {	
+		currentMode = MODE_BOOTING;
+		chatFabricInit();
+		system_restart();		
+	} else if (!strcmp(str, "debugon")) {	
+		_GLOBAL_DEBUG = 1;
+		config.debug = 1;
+	} else if (!strcmp(str, "debugoff")) {	
+		_GLOBAL_DEBUG = 0;
+		config.debug = 0;	
+	} else if (!strcmp(str, "saveconfig")) {	
+		cfConfigWrite(&config);
+	} else if (!strcmp(str, "readconfig")) {			
+		cfConfigRead(&config);		
+		_GLOBAL_DEBUG = config.debug;
+	} else if (!strcmp(str, "configrawread")) {		
+		espCfConfigRawRead();
+	} else  {	
+		os_printf ( " ==> Command Unknown.\n");		
 	}
-}
 
-void ICACHE_FLASH_ATTR startShell(void) {
-
-	char msg[50];
-
-//	uart_init(BIT_RATE_115200,BIT_RATE_115200);
-	os_sprintf(msg, "\r\nCurrently running rom %d.\r\n", rboot_get_current_rom());
-	os_printf(msg);
-	os_printf("type \"help\" and press <enter> for help...\r\n");
-
+	
 }

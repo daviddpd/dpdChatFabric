@@ -43,7 +43,7 @@ extern chatFabricConnection ESP_WORD_ALIGN c;
 extern chatFabricConfig ESP_WORD_ALIGN config;  
 extern msgbuffer ESP_WORD_ALIGN b;
 
-
+void espCfConfigRawRead();
 void espCfConfigInit();
 
 
