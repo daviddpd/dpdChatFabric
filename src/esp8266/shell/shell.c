@@ -162,7 +162,10 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 		os_printf("  debugon - disable chatFabric debugging (DOES NOT SAVE CONFIG)\r\n");
 		os_printf("  saveconfig - Saves the config into flash memory\r\n");
 		os_printf("  readconfig - re-read the config into from flash memory to RAM.\r\n");
-		os_printf("  configrawread - read from flash memory to RAM, print to hex\r\n");
+		os_printf("  raw0 - read from flash memory to RAM, print to hex\r\n");
+		os_printf("  raw1 - read from flash memory to RAM, print to hex\r\n");
+		os_printf("  raw2 - read from flash memory to RAM, print to hex\r\n");
+		os_printf("  raw3 - read from flash memory to RAM, print to hex\r\n");
 		os_printf("\r\n");
 	} else if (str[0] == 0) {
 		return;
@@ -181,7 +184,15 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 		os_printf ( " ==> Unpaired !\n");
 	} else if (!strcmp(str, "init")) {	
 		currentMode = MODE_BOOTING;
+
+		bzero(&flashConfig, 4096);
+		cfConfigWrite(&config);
+		
 		chatFabricInit();
+		createHostMeta();
+		espCfConfigInit();
+		cfConfigWrite(&config);
+
 		system_restart();		
 	} else if (!strcmp(str, "debugon")) {	
 		_GLOBAL_DEBUG = 1;
@@ -194,8 +205,14 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 	} else if (!strcmp(str, "readconfig")) {			
 		cfConfigRead(&config);		
 		_GLOBAL_DEBUG = config.debug;
-	} else if (!strcmp(str, "configrawread")) {		
-		espCfConfigRawRead();
+	} else if (!strcmp(str, "raw0")) {		
+		espCfConfigRawRead(0);
+	} else if (!strcmp(str, "raw1")) {		
+		espCfConfigRawRead(1);
+	} else if (!strcmp(str, "raw2")) {		
+		espCfConfigRawRead(2);
+	} else if (!strcmp(str, "raw3")) {		
+		espCfConfigRawRead(3);
 	} else  {	
 		os_printf ( " ==> Command Unknown.\n");		
 	}

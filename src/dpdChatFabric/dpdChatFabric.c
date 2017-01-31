@@ -144,7 +144,7 @@ chatFabric_controller(chatFabricConnection *c, chatFabricPairing *pair,
 	if ( pair->state != STATE_PAIRED ) {
 		CHATFABRIC_DEBUG(config->debug, "chatFabric Controller - Not paired" );
 		cp = chatPacket_init (config, pair, CMD_PAIR_REQUEST,  nullmsg, 0,  0);
-		chatPacket_encode ( cp, config, pair,  &mb, _CHATPACKET_ENCRYPTED, COMMAND);
+		chatPacket_encode ( cp, config, pair,  &mb, _CHATPACKET_CLEARTEXT, COMMAND);
 	} else {
 		CHATFABRIC_DEBUG(config->debug, "chatFabric Controller - PAIRED" );
 		if ( a->action == ACTION_APP_LIST ) {
@@ -373,9 +373,9 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 	
 	stateMachine ( config, cp, pair, cp_reply, &replyCmd, &e);
 	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
-		CHATFABRIC_DEBUG(1,  " Right after statemachine - Send Reply is TRUE." );
+		CHATFABRIC_DEBUG(config->debug,  " Right after statemachine - Send Reply is TRUE." );
 	} else {
-		CHATFABRIC_DEBUG(1,  " Right after statemachine - Send Reply is FALSE." );
+		CHATFABRIC_DEBUG(config->debug,  " Right after statemachine - Send Reply is FALSE." );
 	}
 
 	if ( config->callback != NULL && pair->state == STATE_PAIRED && 
@@ -387,7 +387,7 @@ chatFabric_device(chatFabricConnection *c, chatFabricPairing *pair, chatFabricCo
 		config->callback(config, cp, pair, cp_reply, &replyCmd);	
 	}
 	if ( replyCmd == CMD_SEND_REPLY_TRUE ) {
-		CHATFABRIC_DEBUG(1,  " Send Reply is TRUE." );
+		CHATFABRIC_DEBUG(config->debug,  " Send Reply is TRUE." );
 
 #ifndef ESP8266
 		if ( config->debug ) {
@@ -542,13 +542,17 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 			RETVAL = CMD_SEND_REPLY_FALSE;
 		break;	
 		case CMD_PAIR_REQUEST:
-			if ( pair->state == STATE_UNCONFIGURED ) {
 				reply->flags = 0;
-				reply->cmd = CMD_PAIR_REQUEST_ACK;
-				pair->state = STATE_PUBLICKEY_SETUP;
 				uuuid2_copy( &cp->from.u0, &pair->uuid.u0);
 				uuuid2_copy( &cp->from.u1, &pair->uuid.u1);
 				RETVAL = CMD_SEND_REPLY_TRUE;	
+			if ( pair->state == STATE_UNCONFIGURED ) {
+				pair->state = STATE_PUBLICKEY_SETUP;
+				reply->cmd = CMD_PAIR_REQUEST_ACK;
+			} else {			
+				reply->flags = 0;
+				RETVAL = CMD_SEND_REPLY_TRUE;	
+				reply->cmd = CMD_FAIL;
 			}
 		break;
 		case CMD_PAIR_REQUEST_ACK:
@@ -764,7 +768,7 @@ stateMachine (chatFabricConfig *config, chatPacket *cp, chatFabricPairing *pair,
 		break;
 
 		case CMD_FAIL:
-			RETVAL = CMD_SEND_REPLY_FALSE;
+			RETVAL = CMD_SEND_REPLY_FALSE;			
 		break;		
 		
 		case CMD_INVAILD_CMD:

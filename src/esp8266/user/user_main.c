@@ -25,13 +25,13 @@
 
 //typedef uint32_t     time_t;
 
-#define PWM_12_OUT_IO_MUX PERIPHS_IO_MUX_MTDI_U
-#define PWM_12_OUT_IO_NUM 12
-#define PWM_12_OUT_IO_FUNC  FUNC_GPIO12
+#define PWM_0_OUT_IO_MUX PERIPHS_IO_MUX_MTDI_U
+#define PWM_0_OUT_IO_NUM 12
+#define PWM_0_OUT_IO_FUNC  FUNC_GPIO12
 
-#define PWM_14_OUT_IO_MUX PERIPHS_IO_MUX_MTMS_U
-#define PWM_14_OUT_IO_NUM 14
-#define PWM_14_OUT_IO_FUNC  FUNC_GPIO14
+#define PWM_1_OUT_IO_MUX PERIPHS_IO_MUX_MTDO_U
+#define PWM_1_OUT_IO_NUM 15
+#define PWM_1_OUT_IO_FUNC  FUNC_GPIO15
 
 //extern enum deviceModes currentMode;
 
@@ -76,7 +76,7 @@ int8 dimmerDirection = 1;
 int8 dimmerLevel = 0;
 int stepper = 0;
 #define DIMMER_UNITS 20
-#define DIMMER_INTERVAL 5000
+#define DIMMER_INTERVAL 1000
 
 
 LOCAL os_timer_t boottimer;
@@ -175,21 +175,17 @@ pwm_setup()
     uint32 pwm_duty_init[1] = {0};
 
 	uint32 io_info[][3] = { 
-		{PWM_14_OUT_IO_MUX,PWM_14_OUT_IO_FUNC,PWM_14_OUT_IO_NUM}		
+		{PWM_0_OUT_IO_MUX,PWM_0_OUT_IO_FUNC,PWM_0_OUT_IO_NUM},		
+		{PWM_1_OUT_IO_MUX,PWM_1_OUT_IO_FUNC,PWM_1_OUT_IO_NUM}		
 	};
 	
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "io_info" );
     set_pwm_debug_en(0);//disable debug print in pwm driver
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm debug" );
 	
     /*PIN FUNCTION INIT FOR PWM OUTPUT*/
 //    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
 
-    pwm_init(800, pwm_duty_init ,1,io_info);
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG,	 "pwm init" );
-    
+    pwm_init(100, pwm_duty_init ,2,io_info);
 	pwm_start();
-	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "pwm start" );
 
 
 }
@@ -289,7 +285,7 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 						(uint32)perunit
 						);
 					
-					pwm_set_duty( duty, 0 );
+					pwm_set_duty( duty, 1 );
 					pwm_start();
 				}				
 			}
@@ -558,14 +554,12 @@ chatFabricInit()
 		cpStatus[i] = -1;
 	}
 
-	for (i=0; i<4096; i++ ){
-		flashConfig[i] = '\0';
-	}
+	bzero(&flashConfig, 4096);
 
-	heap =0;
-	heapLast = 0;
-	heapLast = heap;
-	heap = system_get_free_heap_size();
+//	heap =0;
+//	heapLast = 0;
+//	heapLast = heap;
+//	heap = system_get_free_heap_size();
 		
 
 }
@@ -698,13 +692,15 @@ adcCallBack(void * control ) {
 void CP_ICACHE_FLASH_ATTR
 user_init_stage2() 
 {
+	int i;
 	chatFabricInit();
-
 	createHostMeta();
 	espCfConfigInit();
 	cfConfigWrite(&config);
-	
-	cfPairInit(&pair[0]);
+
+	for (i=0; i<MAX_PAIRS; i++) {
+		cfPairInit(&pair[i]);
+	}
 	if ( flashConfig[2048] == cftag_header ) {
 		CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "reading pair config\n");
 		cfPairRead(&config, (chatFabricPairing *)&(pair[0]) );

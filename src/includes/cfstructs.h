@@ -238,13 +238,13 @@ enum chatFabricConfigTags  {
 	cftag_hasPublicKey	= 7, // 1+1
 	cftag_hasNonce		= 8, // 1+1
 	cftag_state		= 9, // 1+1
-	cftag_serial		= 10, // 1+4
-	cftag_hasPairs		= 11, // 1+4
+	cftag_serial		= 10, // 1+4 0x0a
+	cftag_hasPairs		= 11, // 1+4 0x0b
 
-	cftag_debug, // 1+4
-	cftag_port, // 1+4
+	cftag_debug, // 1+4 12 0x0c
+	cftag_port, // 1+4 13 0x0d
 
-	cftag_hostname, //  1+33 - hostname limit is 32char+null
+	cftag_hostname, //  1+33 - hostname limit is 32char+null 13, 0x0e
 
 	cftag_wifi_ap, // 1+1, wifi_ap_switch 
 	cftag_wifi_ap_ssid, // 1+33, wifi_ap_ssid

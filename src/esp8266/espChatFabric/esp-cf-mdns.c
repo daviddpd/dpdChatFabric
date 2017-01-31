@@ -45,6 +45,10 @@ espCfMdns()
 		os_sprintf(buffer2, "%s", config.hostname );
 	}
 
+	CHATFABRIC_DEBUG_FMT (_GLOBAL_DEBUG, "Setting Up mDNS; buffer2         : %s",  buffer2 );
+	CHATFABRIC_DEBUG_FMT (_GLOBAL_DEBUG, "Setting Up mDNS; mac2str         : %s-%02x:%02x:%02x:%02x:%02x:%02x", "cf",  MAC2STR(hostMeta.hwaddr) ) ;
+	CHATFABRIC_DEBUG_FMT (_GLOBAL_DEBUG, "Setting Up mDNS; config.hostname : %s",  config.hostname );
+
 	int len = strlen (buffer2) + 1;
 
 	mdnsinfo->host_name = (char*)malloc(len*sizeof(char));

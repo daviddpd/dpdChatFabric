@@ -1084,7 +1084,8 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 	unsigned char *decrypted=0;
 	int ret;
 	unsigned char * mac;
-	
+	char _uuidstr[37];
+
 	int config_debug = config->debug;
 
 	CHATFABRIC_DEBUG_FMT(config_debug, "RAW CP Length %d", len );
@@ -1100,14 +1101,14 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->cmd = ntohl(ni);
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %s", tagLookup(c), cmdLookup(cp->cmd) );
 					
 			break;
 			case cptag_serial:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->serial = ntohl(ni);					
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %d", tagLookup(c), cp->serial);
 			break;
 			case cptag_nonce:
 				memcpy(&cp->nonce, b+i, crypto_secretbox_NONCEBYTES);
@@ -1223,38 +1224,53 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 				i+=l;
 				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
 			break;
+
+	
+
 			case cptag_to0:
 				memcpy( &cp->to.u0.bytes, b+i, 16 );
 				i+=16;
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+				if ( _GLOBAL_DEBUG ) {
+					uuuid2_to_str((char*)&_uuidstr, 37, &cp->to.u0);
+					CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %s", tagLookup(c), _uuidstr );
+				}
 			break;
 			case cptag_to1:
 				memcpy( &cp->to.u1.bytes, b+i, 16 );
 				i+=16;
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+				if ( _GLOBAL_DEBUG ) {
+					uuuid2_to_str((char*)&_uuidstr, 37, &cp->to.u1);
+					CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %s", tagLookup(c), _uuidstr );
+				}
 			break;
 			case cptag_from0:
 				memcpy( &cp->from.u0.bytes, b+i, 16 );
 				i+=16;
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+				if ( _GLOBAL_DEBUG ) {
+					uuuid2_to_str((char*)&_uuidstr, 37, &cp->from.u0);
+					CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %s", tagLookup(c), _uuidstr );
+				}
 			break;
 			case cptag_from1:
 				memcpy( &cp->from.u1.bytes, b+i, 16 );
 				i+=16;
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+				if ( _GLOBAL_DEBUG ) {
+					uuuid2_to_str((char*)&_uuidstr, 37, &cp->from.u1);
+					CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %s", tagLookup(c), _uuidstr );
+				}
 			break;
 			case cptag_flags:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				cp->flags = ntohl(ni);			
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %04x", tagLookup(c), cp->flags );
 			break;
 			
 			case cptag_payloadLength:
 				memcpy(&ni, b+i, 4);
 				i+=4;
 				length = ntohl(ni);
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "CP Payload Length : %d / %d ", cp->payloadLength, length  );
+//				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "CP Payload Length : %d / %d ", cp->payloadLength, length  );
 				if ( length > cp->payloadLength ) {
 					free(cp->payload);
 					cp->payload=(unsigned char*)calloc(length,sizeof(unsigned char));
@@ -1269,7 +1285,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 				hp = cp->payloadRandomPaddingLength & 0xF0;
 				hp = hp >> 4;
 				lp = cp->payloadRandomPaddingLength & 0x0F;			
-				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s ", tagLookup(c) );
+				CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%-20s %d %d %d", tagLookup(c), cp->payloadRandomPaddingLength, hp, lp );
 			break;
 			case cptag_payloadRandomPaddingHigh:
 				if ( hp == 0 ) {
@@ -1323,7 +1339,7 @@ chatPacket_decode (chatPacket *cp,  chatFabricPairing *pair,
 					CHATFABRIC_PRINT(" ===> Decryption (payload) Failed \n" );
 
 				}
-				CHATFABRIC_DEBUG(config->debug, "CheckPoint");				
+//				CHATFABRIC_DEBUG(config->debug, "CheckPoint");				
 				#endif
 				#ifdef HAVE_SODIUM
 				decrypted=(unsigned char*)calloc(cp->payloadLength - crypto_secretbox_MACBYTES,sizeof(unsigned char));	

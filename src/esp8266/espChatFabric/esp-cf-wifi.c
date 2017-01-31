@@ -151,6 +151,7 @@ void CP_ICACHE_FLASH_ATTR
 espWiFiInit()
 {
     //Set station mode
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "WiFi Init");	
 
 	if ( config.wifi_ap_switch == 1 && config.wifi_sta_switch == 0 ) 
 	{
@@ -166,6 +167,7 @@ espWiFiInit()
 	}
     
     wifi_set_event_handler_cb(&espCfWiFi_callBack);
+
 /*
 
 	enum phy_mode { 
@@ -176,6 +178,7 @@ espWiFiInit()
 */
     wifi_set_phy_mode(PHY_MODE_11B);
     wifi_set_opmode( config.mode);
+	CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "WiFi Init - Mode Set");	
 
 	if ( config.mode == SOFTAP_MODE || config.mode == STATIONAP_MODE ) {
 		currentMode = MODE_STA_NOWIFI;
@@ -209,6 +212,8 @@ espWiFiInit()
 */	
 		struct softap_config apconfig;
 		bzero(&apconfig, sizeof(apconfig) );
+
+		CHATFABRIC_DEBUG(_GLOBAL_DEBUG, "Setting Host Name ... ");	
 		
 		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "wifi config hostname: (%d) (%s)", strlen(config.hostname), config.hostname);
 

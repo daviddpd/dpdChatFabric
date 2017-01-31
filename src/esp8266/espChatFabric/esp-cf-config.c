@@ -13,22 +13,28 @@ msgbuffer ESP_WORD_ALIGN b;
 #define RAW_READ 32
 
 void CP_ICACHE_FLASH_ATTR
-espCfConfigRawRead() {	
+espCfConfigRawRead(int page) {	
 	unsigned char *tmp;
 	char str[64] = {0};
 	int i, sec;
 	tmp = calloc(RAW_READ, sizeof(unsigned char)) ;
 	
-	for (sec=PRIV_PARAM_START_SEC; sec<PRIV_PARAM_START_SEC+3; sec++) {
+//	for (sec=CP_ESP_PARAM_START_SEC; sec<PRIV_PARAM_START_SEC+4; sec++) {
+
+		sec=PRIV_PARAM_START_SEC + page;
 		CHATFABRIC_DEBUG_FMT(1, " == Address : %05x", sec );
 		for (i=0; i<SPI_FLASH_SEC_SIZE; i=i+RAW_READ) 
 		{
 			spi_flash_read(sec * SPI_FLASH_SEC_SIZE + i, (uint32 *)tmp, RAW_READ);
 			os_sprintf (&str, "[FLASH %08x]", sec * SPI_FLASH_SEC_SIZE + i );
+//			os_printf ("[FLASH %08x]\n", sec * SPI_FLASH_SEC_SIZE + i );
 			util_bin2hex ( " ", (char*)&str, tmp, RAW_READ  );
 //			CHATFABRIC_DEBUG_B2H(1, str, (unsigned char*)&(tmp[0]), RAW_READ  );
 		}
-	}
+//	}
+
+		os_printf("\n");
+		CHATFABRIC_DEBUG_FMT(1, "/ == Address : %05x", sec );
 
 }
 
@@ -137,7 +143,7 @@ if (
 
 	int i =	0;		
 
-	config.debug = 1;
+	config.debug = 0;
 
 	config.numOfControllers = 5;
 	
@@ -172,7 +178,7 @@ if (
 	config.controlers[i].type = ACTION_TYPE_DIMMER;
 	config.controlers[i].value = 0;
 	config.controlers[i].value_mask = 0x00;	
-	config.controlers[i].label = "gpio14";
+	config.controlers[i].label = "gpio15";
 	config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 100;
