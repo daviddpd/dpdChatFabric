@@ -25,9 +25,9 @@
 
 //typedef uint32_t     time_t;
 
-#define PWM_0_OUT_IO_MUX PERIPHS_IO_MUX_MTDI_U
-#define PWM_0_OUT_IO_NUM 12
-#define PWM_0_OUT_IO_FUNC  FUNC_GPIO12
+#define PWM_0_OUT_IO_MUX PERIPHS_IO_MUX_MTMS_U
+#define PWM_0_OUT_IO_NUM 14
+#define PWM_0_OUT_IO_FUNC  FUNC_GPIO14
 
 #define PWM_1_OUT_IO_MUX PERIPHS_IO_MUX_MTDO_U
 #define PWM_1_OUT_IO_NUM 15
@@ -172,7 +172,7 @@ doButtonFunction(enum button b)
 void CP_ICACHE_FLASH_ATTR 
 pwm_setup() 
 {
-    uint32 pwm_duty_init[1] = {0};
+    uint32 pwm_duty_init[2] = {0};
 
 	uint32 io_info[][3] = { 
 		{PWM_0_OUT_IO_MUX,PWM_0_OUT_IO_FUNC,PWM_0_OUT_IO_NUM},		
@@ -184,7 +184,7 @@ pwm_setup()
     /*PIN FUNCTION INIT FOR PWM OUTPUT*/
 //    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
 
-    pwm_init(100, pwm_duty_init ,2,io_info);
+    pwm_init(1000, pwm_duty_init ,2,io_info);
 	pwm_start();
 
 
@@ -270,8 +270,14 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 					period_max = ((period * 1000) / 45);
 	
 					perunit = period_max/100; // 100%
-
-					duty =  config->controlers[i].value * perunit;
+					
+					if ( config->controlers[i].value < 1 ) {
+						duty =0;
+					} else if ( config->controlers[i].value > 99 ) {
+						duty = 22222; 
+					} else {
+						duty =  config->controlers[i].value * perunit;
+					}
 
 					
 					CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "=== %10s: %4d %-24s %4d %4d Duty: %d %d %d %d", "Control (Dimmer)", 
