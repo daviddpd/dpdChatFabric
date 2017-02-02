@@ -145,7 +145,7 @@ if (
 
 	config.debug = 0;
 
-	config.numOfControllers = 5;
+	config.numOfControllers = 6;
 	
 	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
 	config.controlers[i].control = i;
@@ -178,7 +178,7 @@ if (
 	config.controlers[i].type = ACTION_TYPE_DIMMER;
 	config.controlers[i].value = 0;
 	config.controlers[i].value_mask = 0x00;	
-	config.controlers[i].label = "gpio15";
+	config.controlers[i].label = "gpio14";
 	config.controlers[i].labelLength = strlen(config.controlers[i].label);
 	config.controlers[i].rangeLow= 0;
 	config.controlers[i].rangeHigh= 100;
@@ -186,6 +186,18 @@ if (
 	config.controlers[i].readOnly = 0;
 	config.controlers[i].readFuction = 0;
 
+	i++;
+	config.controlers[i].control = i;
+	config.controlers[i].type = ACTION_TYPE_DIMMER;
+	config.controlers[i].value = 0;
+	config.controlers[i].value_mask = 0x01;	
+	config.controlers[i].label = "gpio15";
+	config.controlers[i].labelLength = strlen(config.controlers[i].label);
+	config.controlers[i].rangeLow= 0;
+	config.controlers[i].rangeHigh= 100;
+	config.controlers[i].gpio = 15;
+	config.controlers[i].readOnly = 0;
+	config.controlers[i].readFuction = 0;
 
 	i++;
 	config.controlers[i].control = i;

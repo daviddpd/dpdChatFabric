@@ -51,7 +51,7 @@ EXTRA_INCDIR    = include ../crypto ../includes $(RBOOT_BASE) rboot-api
 
 # libraries used in this project, mainly provided by the SDK
 #LIBS		= c gcc hal pp phy net80211 lwip wpa main
-LIBS		= cirom gcc hal pp phy net80211 lwip wpa wpa2 main pwm crypto 
+LIBS		= cirom gcc hal pp phy net80211 lwip wpa wpa2 main crypto
 
 # compiler flags using during compilation of source files -fno-inline-functions
 CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wno-implicit -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN

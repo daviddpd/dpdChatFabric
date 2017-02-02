@@ -17,13 +17,10 @@
 #include "esp-cf-config.h"
 #include "esp-cf-wifi.h"
 #include "driver/spi.h"
-#include "pwm.h"
 #include <sys/time.h>
 #include "uuuid2.h"
 #include <c_types.h>
 #include <sys/types.h>
-
-//typedef uint32_t     time_t;
 
 #define PWM_0_OUT_IO_MUX PERIPHS_IO_MUX_MTMS_U
 #define PWM_0_OUT_IO_NUM 14
@@ -71,26 +68,8 @@ uint32_t controls[16];
 uint32_t ntpcounter = 0;
 uint32_t ntpstatus_printed = 0;
 
-uint32 duty = 0;
-int8 dimmerDirection = 1;
-int8 dimmerLevel = 0;
-int stepper = 0;
-#define DIMMER_UNITS 20
-#define DIMMER_INTERVAL 1000
-
-
-LOCAL os_timer_t boottimer;
-LOCAL os_timer_t poketimer;
-
 LOCAL os_timer_t buttonDebounce;
-LOCAL os_timer_t shiftReg;
 LOCAL os_timer_t statusReg;
-LOCAL os_timer_t ntpTimer;
-LOCAL os_timer_t clockTimer;
-LOCAL os_timer_t sleepTimer;
-LOCAL os_timer_t blinkingTimer;
-
-
 
 enum button {	
 	BUTTON_UNDEFINED,
@@ -105,8 +84,6 @@ void chatFabricInit();
 void userGPIOInit();
 void statusLoop();
 void udp_callback(void *arg, char *data, unsigned short length);
-//void shiftReg0();
-//void shiftReg1();
 //void changeMode(enum deviceModes m);
 enum deviceModes menuItem = MODE_MENU_NONE;
 void adcBultin();
@@ -137,9 +114,6 @@ doButtonFunction(enum button b)
 			case MODE_MENU_STAMODE:			
 			break;
 			case MODE_MENU_FACTORYRESET:
-//				shiftReg0();
-//				shiftReg1();
-
 				currentMode = MODE_BOOTING;
 //				changeMode(MODE_BOOTING);
 	
@@ -169,27 +143,6 @@ doButtonFunction(enum button b)
 	
 }
 
-void CP_ICACHE_FLASH_ATTR 
-pwm_setup() 
-{
-    uint32 pwm_duty_init[2] = {0};
-
-	uint32 io_info[][3] = { 
-		{PWM_0_OUT_IO_MUX,PWM_0_OUT_IO_FUNC,PWM_0_OUT_IO_NUM},		
-		{PWM_1_OUT_IO_MUX,PWM_1_OUT_IO_FUNC,PWM_1_OUT_IO_NUM}		
-	};
-	
-    set_pwm_debug_en(0);//disable debug print in pwm driver
-	
-    /*PIN FUNCTION INIT FOR PWM OUTPUT*/
-//    pwm_init(pwm_period,  pwm_duty_init ,0,io_info);
-
-    pwm_init(1000, pwm_duty_init ,2,io_info);
-	pwm_start();
-
-
-}
-
 
 void CP_ICACHE_FLASH_ATTR 
 gpioInitFromConfig(chatFabricConfig *config) 
@@ -215,7 +168,7 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 {
 
 	int i=0, x=0;
-	uint32 duty = 0;
+//	uint32 duty = 0;
 	uint32 period = 0;
 	uint32 period_max =0;;
 	uint32 perunit =0;
@@ -266,7 +219,10 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 				if  ( 	config->controlers[i].type == ACTION_TYPE_DIMMER ) 
 				{					
 			
-					period = pwm_get_period();
+					x = config->controlers[i].value_mask;
+
+//					duty[x] = config->controlers[i].value;
+/*					period = pwm_get_period();
 					period_max = ((period * 1000) / 45);
 	
 					perunit = period_max/100; // 100%
@@ -293,6 +249,7 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 					
 					pwm_set_duty( duty, 1 );
 					pwm_start();
+*/
 				}				
 			}
 		}
@@ -380,57 +337,11 @@ clock_loop()
 	
 	if (ntp_unix_timestamp > 0) {
 	    ntp_unix_timestamp++;		
-//		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "%d", ntp_unix_timestamp ); 
-		
 	}
 	seconds_since_boot++;
 	
 }
 
-
-static void 
-blinking_loop() {
-	uint32 duty = 0;
-	uint32 period = 0;
-	uint32 period_max =0;;
-	uint32 perunit =0;
-
-	os_timer_disarm(&blinkingTimer);
-		
-		period = pwm_get_period();
-		period_max = ((period * 1000) / 45);
-		perunit = period_max/DIMMER_UNITS; // 100%
-
-		duty =  dimmerLevel * perunit;
-/*
-		CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, "BLINKING Loop Period: %6d ; Period Max %6d ;  Duty %6d ; DimmerLevel %6d ; DimmerLevel %6d ; DimmerDirection %6d ", 
-			period,
-			period_max,
-			duty,
-			dimmerLevel,
-			dimmerDirection
-			); 
-*/
-							
-		pwm_set_duty( duty, 0 );
-		pwm_start();
-
-		if ( dimmerDirection == 1 ) {
-			dimmerLevel++;
-		} else {
-			dimmerLevel--;
-		}
-		
-		if ( dimmerLevel > DIMMER_UNITS ) {
-			dimmerLevel = DIMMER_UNITS-1;
-			dimmerDirection = 0;
-		} else if ( dimmerLevel < 0 ) {
-			dimmerDirection = 1;
-			dimmerLevel = 0;
-		}
-
-	os_timer_arm(&blinkingTimer, DIMMER_INTERVAL, 1);
-}
 
 void CP_ICACHE_FLASH_ATTR
 statusLoop() {
@@ -506,7 +417,7 @@ userGPIOInit()
 
     gpio_init();
 
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
@@ -610,89 +521,6 @@ adcCallBack(void * control ) {
 	z->value = v;
 
 }
-// void CP_ICACHE_FLASH_ATTR
-// adc() {
-// 	if ( 
-// 		hostMeta.hwaddr[0] == 0x18 
-// 		&& hostMeta.hwaddr[1] == 0xfe 
-// 		&& hostMeta.hwaddr[2] == 0x34 
-// 		&& hostMeta.hwaddr[3] == 0xd4 
-// 		&& hostMeta.hwaddr[4] == 0xd3
-// 		&& hostMeta.hwaddr[5] == 0x1d
-// 	
-// 	) {
-// 
-// 	int i=0;
-// 	uint16 data0;
-// 	uint16 data1;
-// 	uint32 data0sum = 0;
-// 	uint32 data1sum = 0;
-// 	
-// 	for (i=0; i<20; i++) {
-// 	
-// 		os_timer_disarm(&poketimer);
-// 		data0 = (uint16) spi_transaction(
-// 			HSPI, 
-// 			0, 
-// 			0,
-// 			0, 
-// 			0, 
-// 			4,
-// 			0b1101, 
-// 			12, 
-// 			0);
-// 		
-// 		data0sum+=data0;
-// 		
-// 		data1 = (uint16) spi_transaction(
-// 			HSPI, 
-// 			0, 
-// 			0,
-// 			0, 
-// 			0, 
-// 			4,
-// 			0b1111, 
-// 			12, 
-// 			0);
-// 		data1sum+=data1;
-// 
-// 		}
-// 		
-// //		double voltsPerUnit = 5.22 / 2047;
-// 		double voltsPerUnit = 25.61 /10000;
-// 		uint16 voltsPerUnit_i = (uint16)voltsPerUnit;
-// 		uint16 voltsPerUnit_f = (uint16)((voltsPerUnit - voltsPerUnit_i) *1000);
-// 
-// 		double data0volt  = (data0sum/20)*voltsPerUnit;
-// 		uint16 data0volt_i  = (uint16)data0volt;
-// 		uint16 data0volt_f  = (uint16)((data0*voltsPerUnit - data0volt_i ) *1000);
-// 
-// 
-// 		double data1volt  = (data1sum/20)*voltsPerUnit;
-// 		uint16 data1volt_i  = (uint16)data1volt;
-// 		uint16 data1volt_f  = (uint16)((data1*voltsPerUnit - data1volt_i ) *1000);
-// 
-// 
-// 		CHATFABRIC_DEBUG_FMT(1, "[perUnit: %02u.%03u]  ADC0: %04x : volts  %02u.%03u : ADC1: %04x : volts  %02u.%03u ",voltsPerUnit_i, voltsPerUnit_f,  data0,  data0volt_i, data0volt_f, data1, data1volt_i, data1volt_f);
-// 		
-// 		os_timer_setfn(&poketimer, (os_timer_func_t *)adc, NULL);
-// 		os_timer_arm(&poketimer, 500, 1);
-// 			
-// /*
-// 
-// 		uint16 cmd = ;
-// 		spi_tx16(HSPI, cmd);
-// 		uint16 data = (uint16) spi_rx16(HSPI);
-// 		CHATFABRIC_DEBUG_FMT(1, "ADC0: %04x", data ); 											
-// 
-// 		cmd = 0b0111100000000000;
-// 		spi_tx16(HSPI, cmd);
-// 		data = (uint16) spi_rx16(HSPI);
-// 		CHATFABRIC_DEBUG_FMT(1, "ADC1: %04x", data );
-// */
-// 	}
-// }
-
 
 
 void CP_ICACHE_FLASH_ATTR
@@ -731,7 +559,6 @@ user_init_stage2()
 
 	_GLOBAL_DEBUG = config.debug;
 	gpioInitFromConfig(&config);
-	pwm_setup();
 
 	os_timer_disarm(&statusReg);
 	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
@@ -742,12 +569,6 @@ user_init_stage2()
 	ProcessCommand("help");
 	
 }
-void CP_ICACHE_FLASH_ATTR
-bootwait() {
-	CHATFABRIC_PRINT ("Press Button to Boot\n");
-}
-
-
 
 //Init function 
 void CP_ICACHE_FLASH_ATTR
@@ -755,9 +576,6 @@ user_init()
 {
 	int i;
 
-	os_timer_disarm(&blinkingTimer);
-	os_timer_setfn(&blinkingTimer, (os_timer_func_t *)blinking_loop, NULL);
-	os_timer_arm(&blinkingTimer, DIMMER_INTERVAL, 1);
 	uart0enabled = 1;
 	userGPIOInit();
 
@@ -780,10 +598,9 @@ user_init()
 
 	user_init_stage2();
 
-
-	os_timer_disarm(&clockTimer);
-	os_timer_setfn(&clockTimer, (os_timer_func_t *)clock_loop, NULL);
-	os_timer_arm(&clockTimer, 1000, 1);
+	hw_timer_init(0,1);
+	hw_timer_set_func(clock_loop);
+	hw_timer_arm(1000000);
 
 
 }
