@@ -23,13 +23,20 @@ void* calloc_wrapper(size_t len, size_t size);
 //#define calloc os_zalloc
 extern int os_printf_plus(const char * format, ...);
 
+uint8_t CP_ICACHE_FLASH_ATTR hex2int(char hexChar);
+
+
 //#endif
 
 #define CHATFABRIC_PRINT(msg) os_printf("%s\n", msg );
+#define CHATFABRIC_PRINT_FMT(fmt, ...) os_printf("" fmt "\n", __VA_ARGS__ );
 #define CHATFABRIC_DEBUG(d, msg) if (d) os_printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg );
+
 #define CHATFABRIC_DEBUG_FMT(d, fmt, ...) if (d) os_printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__ );
 #define CHATFABRIC_DEBUG_FMT2(d, func, line, fmt, ...) if (d) os_printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, func, line, __VA_ARGS__ );
+
 #define CHATFABRIC_DEBUG_B2H(d, label, x, len) if (d) util_debug_bin2hex(label, x,len, __FILE__, __FUNCTION__, __LINE__ );
+#define CHATFABRIC_PRINT_B2H(label, x, len) if (d) util_bin2hex(label, x,len, __FILE__, __FUNCTION__, __LINE__ );
 
 #else 
 
@@ -38,10 +45,14 @@ extern int os_printf_plus(const char * format, ...);
 #include <stdlib.h>
 
 #define CHATFABRIC_PRINT(msg) printf("%s\n", msg );
+#define CHATFABRIC_PRINT_FMT(fmt, ...) printf("" fmt "\n", __VA_ARGS__ );
 #define CHATFABRIC_DEBUG(d, msg) if (d) printf("[DEBUG][%s:%s:%d] %s\n", __FILE__, __FUNCTION__, __LINE__, msg );
+
 #define CHATFABRIC_DEBUG_FMT(d, fmt, ...) if (d) printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__ );
 #define CHATFABRIC_DEBUG_FMT2(d, func, line, fmt, ...) if (d) printf("[DEBUG][%s:%s:%d] " fmt "\n", __FILE__, func, line, __VA_ARGS__ );
+
 #define CHATFABRIC_DEBUG_B2H(d, label, x, len) if (d) util_debug_bin2hex(label, x,len, __FILE__, __FUNCTION__, __LINE__ );
+#define CHATFABRIC_PRINT_B2H(label, x, len) util_bin2hex(label, x,len, __FILE__, __FUNCTION__, __LINE__ );
 
 #endif
 

@@ -596,3 +596,63 @@ _createConfigString (chatFabricConfig *config, msgbuffer *str)
 
 
 }
+
+void CP_ICACHE_FLASH_ATTR 
+chatFabricConfig_print (chatFabricConfig *config) 
+{
+	uint32_t i=0;
+#ifdef ESP8266	
+
+	cfTagPrinter ( CP_INT32,  cftag_header, 0, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_hasPairs, config->hasPairs, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_debug, config->debug, NULL, 0, NULL);
+	cfTagPrinter ( CP_UUID,  cftag_uuid0, 0, NULL, 0,  &config->uuid.u0);
+	cfTagPrinter ( CP_UUID,  cftag_uuid1, 0, NULL, 0,  &config->uuid.u1);
+
+	cfTagPrinter ( CP_INT32,  cftag_mode, config->mode, NULL, 0, NULL);
+
+	cfTagPrinter ( CP_INT32,  cftag_wifi_ap, 		config->wifi_ap_switch,  NULL, 0, NULL );
+	cfTagPrinter ( CP_INT32,  cftag_wifi_ap_dhcps, 	config->wifi_ap_dhcps_switch, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_wifi_sta, 		config->wifi_sta_switch, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_wifi_sta_dhcpc, config->dhcp_client_switch, NULL, 0, NULL);
+
+	cfTagPrinter ( CP_INT32,  cftag_dhcps_range_low, config->dhcps_range_low, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_dhcps_range_high, config->dhcps_range_high, NULL, 0, NULL);
+
+	cfTagPrinter ( CP_INT32,  cftag_sta_ipv4, config->sta_ipv4, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_sta_ipv4netmask, config->sta_ipv4netmask, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_sta_ipv4gw, config->sta_ipv4gw, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_sta_ipv4ns1, config->sta_ipv4ns1, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_sta_ipv4ns2, config->sta_ipv4ns2, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_sta_ntpv4, config->ntpv4, NULL, 0, NULL);
+	
+	cfTagPrinter ( CP_INT32,  cftag_ap_ipv4, config->ap_ipv4, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_ap_ipv4netmask, config->ap_ipv4netmask, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_ap_ipv4gw, config->ap_ipv4gw, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_ap_ipv4ns1, config->ap_ipv4ns1, NULL, 0, NULL);
+	cfTagPrinter ( CP_INT32,  cftag_ap_ipv4ns2, config->ap_ipv4ns2, NULL, 0, NULL);
+
+	cfTagPrinter ( CP_DATA8,  cftag_sta_ipv6, 			0, (unsigned char *)&config->sta_ipv6, 		16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_sta_ipv6netmask, 	0, (unsigned char *)&config->sta_ipv6netmask, 16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_sta_ipv6gw, 		0, (unsigned char *)&config->sta_ipv6gw, 		16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_sta_ipv6ns1, 		0, (unsigned char *)&config->sta_ipv6ns1, 	16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_sta_ipv6ns2, 		0, (unsigned char *)&config->sta_ipv6ns2, 	16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_sta_ntpv6, 			0, (unsigned char *)&config->ntpv6, 			16,  NULL);
+	
+	cfTagPrinter ( CP_DATA8,  cftag_ap_ipv6, 			0, (unsigned char *)&config->ap_ipv6, 		16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_ap_ipv6netmask, 	0, (unsigned char *)&config->ap_ipv6netmask, 	16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_ap_ipv6gw, 			0, (unsigned char *)&config->ap_ipv6gw, 		16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_ap_ipv6ns1, 		0, (unsigned char *)&config->ap_ipv6ns1, 		16,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_ap_ipv6ns2, 		0, (unsigned char *)&config->ap_ipv6ns2, 		16,  NULL);
+
+	cfTagPrinter ( CP_DATA8,  cftag_hostname, 			0, (unsigned char *)&config->hostname, 		32,  NULL);
+
+	cfTagPrinter ( CP_DATA8,  cftag_wifi_ap_ssid, 		0, (unsigned char *)&config->wifi_ap_ssid, 	32,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_wifi_ap_passwd, 	0, (unsigned char *)&config->wifi_ap_passwd, 	64,  NULL);
+
+	cfTagPrinter ( CP_DATA8,  cftag_wifi_sta_ssid, 		0, (unsigned char *)&config->wifi_sta_ssid, 	32,  NULL);
+	cfTagPrinter ( CP_DATA8,  cftag_wifi_sta_passwd, 	0, (unsigned char *)&config->wifi_sta_passwd, 	64,  NULL);
+#endif
+}
+
+

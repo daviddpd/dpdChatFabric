@@ -85,3 +85,12 @@ void CP_ICACHE_FLASH_ATTR util_bin2hex (char *cd, char* label, unsigned char * x
     free(_utilbuffer);
 
 }
+
+uint8_t CP_ICACHE_FLASH_ATTR hex2int(char hexChar)
+{
+    if(hexChar >= '0' && hexChar <= '9')
+    {
+        return hexChar - '0';
+    }
+    return (hexChar-'A'+10);
+}

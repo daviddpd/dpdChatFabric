@@ -103,49 +103,14 @@ if (
 } else 
 
 */
-if ( 
-	hostMeta.hwaddr[0] == 0x18 
-	&& hostMeta.hwaddr[1] == 0xfe 
-	&& hostMeta.hwaddr[2] == 0x34 
-	&& hostMeta.hwaddr[3] == 0xa2 
-	&& hostMeta.hwaddr[4] == 0xe0
-	&& hostMeta.hwaddr[5] == 0x5b
-	
-) {
-//#ifdef ESP_DEVICE_OUTLET
 
-	int i =	0;		
-	config.numOfControllers = 2;
-	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-	config.controlers[i].value = 0;
-	config.controlers[i].value_mask = 0x01;
-	config.controlers[i].label = "Top Outlet";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 1;
-	config.controlers[i].gpio = 12;
-
-	i++;
-	config.controlers[i].control = i;
-	config.controlers[i].type = ACTION_TYPE_BOOLEAN;
-	config.controlers[i].value = 0;
-	config.controlers[i].value_mask = 0x01;	
-	config.controlers[i].label = "Bottom Outlet";
-	config.controlers[i].labelLength = strlen(config.controlers[i].label);
-	config.controlers[i].rangeLow= 0;
-	config.controlers[i].rangeHigh= 1;
-	config.controlers[i].gpio = 13;
-	config.debug = 0;
-
-} else if (1) {
+if (1) {
 
 	int i =	0;		
 
 	config.debug = 0;
 
-	config.numOfControllers = 6;
+	config.numOfControllers = 3;
 	
 	config.controlers = (cfControl*)malloc(config.numOfControllers * sizeof(cfControl));
 	config.controlers[i].control = i;
@@ -173,6 +138,7 @@ if (
 	config.controlers[i].readOnly = 0;
 	config.controlers[i].readFuction = 0;
 
+/*
 	i++;
 	config.controlers[i].control = i;
 	config.controlers[i].type = ACTION_TYPE_DIMMER;
@@ -211,7 +177,7 @@ if (
 	config.controlers[i].gpio = 16;
 	config.controlers[i].readOnly = 0;
 	config.controlers[i].readFuction = 0;
-
+*/
 	i++;
 	config.controlers[i].control = i;
 	config.controlers[i].type = ACTION_TYPE_GAUGE;

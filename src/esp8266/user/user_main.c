@@ -17,11 +17,16 @@
 #include "esp-cf-config.h"
 #include "esp-cf-wifi.h"
 #include "driver/spi.h"
+//#include "pwm.h"
 #include <sys/time.h>
 #include "uuuid2.h"
 #include <c_types.h>
 #include <sys/types.h>
+#include "i2c.h"
+#include "sx1509_registers.h"
+#include "pca9530.h"
 
+/*
 #define PWM_0_OUT_IO_MUX PERIPHS_IO_MUX_MTMS_U
 #define PWM_0_OUT_IO_NUM 14
 #define PWM_0_OUT_IO_FUNC  FUNC_GPIO14
@@ -29,8 +34,11 @@
 #define PWM_1_OUT_IO_MUX PERIPHS_IO_MUX_MTDO_U
 #define PWM_1_OUT_IO_NUM 15
 #define PWM_1_OUT_IO_FUNC  FUNC_GPIO15
-
+*/
 //extern enum deviceModes currentMode;
+
+
+void PCA9530_Blink();
 
 extern time_t ntp_unix_timestamp;
 time_t seconds_since_boot;
@@ -42,11 +50,13 @@ extern char ntp_status_str[];
 extern struct mdns_info *mdnsinfo;
 
 extern void ProcessCommand(char* str);
+extern struct sx1509 sxio;
 
 int bootstatus = 0;  // 1 - network up, 2-ready
 // os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 static void loop();
 static void clock_loop();
+void spi_clk_helper();
 void CP_ICACHE_FLASH_ATTR user_init_stage2();
 //uint32_t ninc = 0;
 unsigned char ch = 0x00;
@@ -58,18 +68,20 @@ int shiftCounter = -1;
 //char ssid[32] = SSID;
 //char password[64] = SSID_PASSWORD;
 
-int SR_DATA = 5;
-int SR_SRCLK1 = 12;
-int SR_SRCLK2 = 14;
-int SR_SRCLK;
-int SR_RCLK = 4;
+uint8 I2C_PWM = 0;
+uint8 I2C_DIR = 0;
+uint8 CT = 0;
 
 uint32_t controls[16];
 uint32_t ntpcounter = 0;
 uint32_t ntpstatus_printed = 0;
+uint32_t ntpLoopInt = 0;
+
 
 LOCAL os_timer_t buttonDebounce;
 LOCAL os_timer_t statusReg;
+LOCAL os_timer_t clockTimer;
+LOCAL os_timer_t spi_clk_timer;
 
 enum button {	
 	BUTTON_UNDEFINED,
@@ -168,7 +180,7 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 {
 
 	int i=0, x=0;
-//	uint32 duty = 0;
+	uint32 duty = 0;
 	uint32 period = 0;
 	uint32 period_max =0;;
 	uint32 perunit =0;
@@ -218,11 +230,8 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 				}
 				if  ( 	config->controlers[i].type == ACTION_TYPE_DIMMER ) 
 				{					
-			
-					x = config->controlers[i].value_mask;
-
-//					duty[x] = config->controlers[i].value;
-/*					period = pwm_get_period();
+			/*
+					period = pwm_get_period();
 					period_max = ((period * 1000) / 45);
 	
 					perunit = period_max/100; // 100%
@@ -247,9 +256,10 @@ deviceCallBack(chatFabricConfig *config, chatPacket *cp,  chatFabricPairing *pai
 						(uint32)perunit
 						);
 					
-					pwm_set_duty( duty, 1 );
+					pwm_set_duty( duty, config->controlers[i].value_mask );
 					pwm_start();
-*/
+			*/
+
 				}				
 			}
 		}
@@ -329,17 +339,57 @@ tcp_listen(void *arg)
 //    espconn_regist_disconcb(pesp_conn, webserver_discon);
 }
 
+void CP_ICACHE_FLASH_ATTR 
+i2c_send(uint8 addr, uint8 reg, uint8 value) {
+	i2c_start();
+	i2c_writeByte(addr);
+	i2c_writeByte(reg);
+	i2c_writeByte(value);
+	i2c_stop();
+}
+
+void CP_ICACHE_FLASH_ATTR 
+PCA9530_reset() {
+
+	GPIO_OUTPUT_SET(4, 1 );
+	os_delay_us(100);
+	GPIO_OUTPUT_SET(4, 0 );
+	os_delay_us(100);
+	GPIO_OUTPUT_SET(4, 1 );
+	os_delay_us(100);
 
 
-static void CP_ICACHE_FLASH_ATTR
-clock_loop()
+}
+
+void CP_ICACHE_FLASH_ATTR 
+PCA9530_Blink() {
+	uint8 i = 0;
+	uint8 cmds[][3] = { 
+		{PCA9530_ADDRESS, PSC0, 0x0},
+		{PCA9530_ADDRESS, PSC1, 0x0},
+		{PCA9530_ADDRESS, PWM1, 0x0},
+		{PCA9530_ADDRESS, PWM0, 0x0},
+		{PCA9530_ADDRESS, LSEL, 0xFE},
+	};
+	
+	PCA9530_reset();
+	for (i=0; i<5; i++)  {
+		i2c_send(cmds[i][0],cmds[i][1], cmds[i][2]);	
+		os_delay_us(10);		
+	}
+
+}
+
+static void clock_loop()
 {
 	
 	if (ntp_unix_timestamp > 0) {
-	    ntp_unix_timestamp++;		
+		if (seconds_since_boot % 10) {
+	    	ntp_unix_timestamp++;
+	    }
 	}
-	seconds_since_boot++;
-	
+
+	seconds_since_boot++;	
 }
 
 
@@ -417,19 +467,35 @@ userGPIOInit()
 
     gpio_init();
 
+// 12,13 - outlets
+// 14,15 pwm
+// 16 - blinking
+// 0 - menu
+// 2 select
+
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, FUNC_GPIO15);
+	PIN_PULLUP_DIS(PERIPHS_IO_MUX_MTDO_U);
+
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, FUNC_GPIO14);
+	PIN_PULLUP_EN(PERIPHS_IO_MUX_MTMS_U);
+	
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, FUNC_GPIO13);
+	PIN_PULLUP_DIS(PERIPHS_IO_MUX_MTCK_U);
+
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_SD_DATA3_U, FUNC_GPIO10);
+	PIN_PULLUP_DIS(PERIPHS_IO_MUX_MTDI_U);
 
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO5_U, FUNC_GPIO5);
+	PIN_PULLUP_EN(PERIPHS_IO_MUX_GPIO5_U);
+
 	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO4_U, FUNC_GPIO4);
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+	PIN_PULLUP_EN(PERIPHS_IO_MUX_GPIO4_U);
 
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_U0RXD_U, FUNC_GPIO3);
-//	PIN_FUNC_SELECT(PERIPHS_IO_MUX_U0TXD_U, FUNC_GPIO1);
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
+	PIN_PULLUP_DIS(PERIPHS_IO_MUX_GPIO2_U);
+
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+	PIN_PULLUP_DIS(PERIPHS_IO_MUX_GPIO0_U);
 
 	gpio16_output_conf();
 	gpio16_output_set(0);
@@ -440,20 +506,11 @@ userGPIOInit()
 
 	GPIO_DIS_OUTPUT(0); // set for input
 	GPIO_DIS_OUTPUT(2); // set for input
-	GPIO_DIS_OUTPUT(4); // set for input
-//	GPIO_DIS_OUTPUT(5); // set for input
-//	GPIO_DIS_OUTPUT(2); // set for input
-//	GPIO_DIS_OUTPUT(3); // set for input
 
-//    gpio_pin_intr_state_set(GPIO_ID_PIN(13), GPIO_PIN_INTR_NEGEDGE);    
-    gpio_pin_intr_state_set(GPIO_ID_PIN(2), GPIO_PIN_INTR_POSEDGE);    
     gpio_pin_intr_state_set(GPIO_ID_PIN(0), GPIO_PIN_INTR_POSEDGE);    
-//    gpio_pin_intr_state_set(GPIO_ID_PIN(5), GPIO_PIN_INTR_POSEDGE); 
-    gpio_pin_intr_state_set(GPIO_ID_PIN(4), GPIO_PIN_INTR_POSEDGE);    
-
-//  gpio_pin_intr_state_set(GPIO_ID_PIN(13), GPIO_PIN_INTR_NEGEDGE);
+    gpio_pin_intr_state_set(GPIO_ID_PIN(2), GPIO_PIN_INTR_POSEDGE);    
     ETS_GPIO_INTR_ENABLE();
-
+	i2c_init();
 }
 
 
@@ -510,15 +567,29 @@ void CP_ICACHE_FLASH_ATTR
 adcCallBack(void * control ) {
 
 	cfControl *z = (cfControl *)control;
-	uint16 a,b,c,v = 0;
-	a = system_adc_read();
-	os_delay_us(1000);
-	b = system_adc_read();
-	os_delay_us(1000);
-	c = system_adc_read();
-	v = ( a + b + c ) / 3; 
-	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, " ADC0: %6d %6d %6d  ADC0_AVG: %6d", a, b, c, v);	
+	uint16 i,a,b,c,v = 0;
+	uint32 t=0;
+	for (i=0; i<20; i++) {
+		t += system_adc_read();
+		os_delay_us(10);
+	}
+	v = ( t ) / 20; 
+	CHATFABRIC_DEBUG_FMT(_GLOBAL_DEBUG, " ADC0: %6d  ADC0_AVG: %6d", t, v);	
 	z->value = v;
+
+}
+
+void CP_ICACHE_FLASH_ATTR
+spi_clk() 
+{
+	os_timer_disarm(&spi_clk_timer);
+
+	if ( I2C_DIR ) {
+		I2C_PWM++;
+		if ( I2C_PWM > 0xFE ) { I2C_PWM = 0; } 
+		//SX1509_set(REG_I_ON_4,I2C_PWM);
+	}
+	os_timer_arm(&spi_clk_timer, 1000, 1);
 
 }
 
@@ -564,12 +635,41 @@ user_init_stage2()
 	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
 	os_timer_arm(&statusReg, 2000, 1);
 
+	os_timer_disarm(&spi_clk_timer);
+	os_timer_setfn(&spi_clk_timer, (os_timer_func_t *)spi_clk, NULL);
+	os_timer_arm(&spi_clk_timer, 1000, 1);
+
 
 	//startShell
 	ProcessCommand("help");
 	
 }
 
+
+
+void CP_ICACHE_FLASH_ATTR
+PCA9530_pwm(uint8 ch, uint8 pwm) {
+
+	if ( ch == 1) 
+	{
+		i2c_start();
+		i2c_writeByte(PCA9530_ADDRESS);
+		i2c_writeByte(PWM1);
+		i2c_writeByte(pwm);
+		i2c_stop();
+	} else if ( ch == 0) {	
+		i2c_start();
+		i2c_writeByte(PCA9530_ADDRESS);
+		i2c_writeByte(PWM0);
+		i2c_writeByte(pwm);
+		i2c_stop();
+	}
+
+
+}
+
+
+//extern void pwm_setup();
 //Init function 
 void CP_ICACHE_FLASH_ATTR
 user_init()
@@ -578,7 +678,7 @@ user_init()
 
 	uart0enabled = 1;
 	userGPIOInit();
-
+	
 	seconds_since_boot=0;
 	uart_init(BIT_RATE_115200,BIT_RATE_115200);
 	#ifdef VERSION_DATE
@@ -593,14 +693,13 @@ user_init()
 	#endif
 	#endif
 	
-
 	currentMode = MODE_BOOTING;
 
 	user_init_stage2();
 
 	hw_timer_init(0,1);
 	hw_timer_set_func(clock_loop);
-	hw_timer_arm(1000000);
+	hw_timer_arm(100000);
 
 
 }

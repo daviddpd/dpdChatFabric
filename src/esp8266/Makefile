@@ -19,7 +19,7 @@ FW_BASE		= firmware
 FIRMW_DIR	= firmware
 
 FW_SECTS      = .text .data .rodata
-FW_USER_ARGS  = -quiet -bin -boot2
+FW_USER_ARGS  = -bin -boot2
 
 
 # base directory for the compiler
@@ -51,7 +51,7 @@ EXTRA_INCDIR    = include ../crypto ../includes $(RBOOT_BASE) rboot-api
 
 # libraries used in this project, mainly provided by the SDK
 #LIBS		= c gcc hal pp phy net80211 lwip wpa main
-LIBS		= cirom gcc hal pp phy net80211 lwip wpa wpa2 main crypto
+LIBS		= cirom gcc hal pp phy net80211 lwip wpa wpa2 main crypto pwm
 
 # compiler flags using during compilation of source files -fno-inline-functions
 CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wno-implicit -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN
@@ -117,11 +117,20 @@ FLASH_SIZE := 8m  #    [--flash_size {4m,2m,8m,16m,32m,16m-c1,32m-c1,32m-c2}]
 ADDR_RBOOT	= 0x00000
 ADDR_ROM0	= 0x02000
 ADDR_ROM1	= 0x82000
+
+# ADDR_DEFAULTBIN	= 0xF8000
+# ADDR_DATA0 = 0xF8000
+# ADDR_DATA1 = 0xF9000
+# ADDR_DATA2 = 0xFA000
+# ADDR_DATA3 = 0xFB000
+
 ADDR_DEFAULTBIN	= 0xFC000
+ADDR2_DEFAULTBIN	= 0xF8000
+
 ADDR_DATA0 = 0xFC000
 ADDR_DATA1 = 0xFD000
 ADDR_DATA2 = 0xFE000
-ADDR_DATA3 = 0xFD000
+ADDR_DATA3 = 0xFF000
 
 
 V ?= $(VERBOSE)
@@ -143,7 +152,7 @@ endef
 
 .PHONY: all checkdirs flash 
 
-all:  $(RBOOT_BIN) checkdirs $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin
+all:  $(RBOOT_BIN) checkdirs $(BUILD_BASE)/rom0.elf $(BUILD_BASE)/rom1.elf $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin
 
 $(RBOOT_BIN):
 	make -C $(RBOOT_DIR) RBOOT_DELAY_MICROS=1000000 RBOOT_RTC_ENABLED=1 SPI_SIZE=1M
@@ -212,9 +221,10 @@ flash: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 12kblank.bin 4kblank.bin
 flashdata: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 16kblank.bin 
 	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
 		$(ADDR_RBOOT) $(RBOOT_BASE)/firmware/rboot.bin  \
+		$(ADDR_DATA0) 16kblank.bin \
+		$(ADDR2_DEFAULTBIN) 16kblank.bin \
 		$(ADDR_ROM0) $(FIRMW_DIR)/rom0.bin  \
 		$(ADDR_ROM1) $(FIRMW_DIR)/rom1.bin  \
-		$(ADDR_DATA0) 16kblank.bin \
 		$(ADDR_DATA0) $(FW_DATA_DEFAULT)
 
 clean:

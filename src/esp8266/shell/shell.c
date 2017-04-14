@@ -14,10 +14,10 @@
 #include "dpdChatPacket.h"
 #include "esp8266.h"
 #include "util.h"
-#include "esp-cf-config.h"
-#include "esp-cf-wifi.h"
 
 #include "shell.h"
+#include "sx1509_registers.h"
+#include "pca9530.h"
 
 #include "rboot-api.h"
 #include "rboot-ota.h"
@@ -27,25 +27,31 @@ char shellBuffer[BUFF_LEN] = {0};
 int8 sbi = 0;
 static os_timer_t network_timer;
 extern chatFabricConfig config;  
-
+extern void PCA9530_Blink();
 void ICACHE_FLASH_ATTR user_rf_pre_init() {
 }
 
 void ICACHE_FLASH_ATTR ShowIP() {
 	struct ip_info ipconfig;
 	char msg[50];
+	char hwaddr[6] = {0};
+
 	wifi_get_ip_info(STATION_IF, &ipconfig);
 	if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) {
-		os_sprintf(msg, "ip: %d.%d.%d.%d, mask: %d.%d.%d.%d, gw: %d.%d.%d.%d\r\n",
-			IP2STR(&ipconfig.ip), IP2STR(&ipconfig.netmask), IP2STR(&ipconfig.gw));
+		os_sprintf(msg, "ip: %d.%d.%d.%d, mask: %d.%d.%d.%d, gw: %d.%d.%d.%d \r\n",
+			IP2STR(&ipconfig.ip), IP2STR(&ipconfig.netmask), IP2STR(&ipconfig.gw)) ;
 	} else {
 		os_sprintf(msg, "network status: %d\r\n", wifi_station_get_connect_status());
 	}
 	os_printf(msg);
+	wifi_get_macaddr(STATION_IF, hwaddr);
+	os_printf( "MAC=%02x:%02x:%02x:%02x:%02x:%02x", MAC2STR(hwaddr) );	
+	
 }
 
 void ICACHE_FLASH_ATTR ShowInfo() {
 	char msg[50];
+	char hwaddr[6] = {0};
 
     os_sprintf(msg, "\r\nSDK: v%s\r\n", system_get_sdk_version());
     os_printf(msg);
@@ -64,6 +70,8 @@ void ICACHE_FLASH_ATTR ShowInfo() {
 
     os_sprintf(msg, "SPI Flash Size: %d\r\n", (1 << ((spi_flash_get_id() >> 16) & 0xff)));
     os_printf(msg);
+	wifi_get_macaddr(STATION_IF, hwaddr);
+	os_printf( "MAC=%02x:%02x:%02x:%02x:%02x:%02x\r\n", MAC2STR(hwaddr) );	
 }
 
 void ICACHE_FLASH_ATTR Switch() {
@@ -142,7 +150,45 @@ void shellCircleBuffer (char RcvChar) {
 	return;
 }
 
+extern chatFabricConfig config;  
+extern uint8 I2C_DIR;
+
+
 void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
+
+	uint8 ch;
+	uint8 pwm;
+	uint8 reg;
+#define _CMD_LENGTH 4
+	char *cmd[_CMD_LENGTH];
+	int i=0;
+	int c=0;
+	size_t s = strlen(str);
+	
+	cmd[0] = &(str[i]);
+	cmd[1] = &(str[i]);
+	cmd[2] = &(str[i]);
+	cmd[3] = &(str[i]);
+	c++;
+
+	for (i=0; i<s; i++ ) {
+		os_printf(" == [%6d] == %c \n", i, str[i] ) ;
+		if ( str[i] == 0x20 )
+		{
+			str[i] = 0;
+			cmd[c] = &(str[i+1]);
+			c++;
+		}
+		if ( c == _CMD_LENGTH ) 
+		{
+			break;
+		}
+	}
+	
+	os_printf(" == [%6d] == %s === %s ==== %s ==== \n", s, cmd[0], cmd[1], cmd[2]);
+	os_printf(" =============================================== \n");	
+	
+	
 	if (!strcmp(str, "help")) {
 		os_printf(" =============================================== \n");	
 		os_printf("chatFabric comnplie date: %s git:%s SDK Version: %s\n" , VERSION_DATE, VERSION_GIT, system_get_sdk_version() );
@@ -154,21 +200,68 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 		os_printf("  switch - switch to the other rom and reboot\r\n");
 		os_printf("  ota - perform ota update, switch rom and reboot\r\n");
 		os_printf("  info - show esp8266 info\r\n");
+		os_printf("  gpio [1~16] [0|1] - show esp8266 info\r\n");
+		
 		os_printf("\n");	
 		os_printf("  === chatFabric controls ===\r\n");
 		os_printf("  unpair - clear all chatFabric paining info\r\n");
-		os_printf("  init - re-init all chatFabric config (factory reset)\r\n");
-		os_printf("  debugoff - disable chatFabric debugging (DOES NOT SAVE CONFIG)\r\n");
+		os_printf("  init - re-init all chatFabric config (factory reset)\r\n\n");
+		os_printf("  config - print config\r\n");
+		os_printf("  blink - pca9530 i2c start\r\n");
+		os_printf("  pcareset - pca9530 i2c reset\r\n");
+		os_printf("  pwm [0|1] [0 ~ 255] - pca9530 i2c inc\r\n");
+		os_printf("  sxinit - sx1509 i2c init\r\n");
+		os_printf("  sx [REG] [VALUE] - sx1509 i2c ctr\r\n");
+		os_printf("  sxloop\r\n");
+		
+		
+		os_printf("\n  debugoff - disable chatFabric debugging (DOES NOT SAVE CONFIG)\r\n");
 		os_printf("  debugon - disable chatFabric debugging (DOES NOT SAVE CONFIG)\r\n");
 		os_printf("  saveconfig - Saves the config into flash memory\r\n");
 		os_printf("  readconfig - re-read the config into from flash memory to RAM.\r\n");
-		os_printf("  raw0 - read from flash memory to RAM, print to hex\r\n");
+		os_printf("\n  raw0 - read from flash memory to RAM, print to hex\r\n");
 		os_printf("  raw1 - read from flash memory to RAM, print to hex\r\n");
 		os_printf("  raw2 - read from flash memory to RAM, print to hex\r\n");
 		os_printf("  raw3 - read from flash memory to RAM, print to hex\r\n");
 		os_printf("\r\n");
 	} else if (str[0] == 0) {
 		return;
+	} else if (!strcmp(str, "pcareset")) {		
+		PCA9530_reset();
+	} else if (!strcmp(str, "gpio")) {		
+		ch = atoi(cmd[1]);
+		pwm = atoi(cmd[2]);		
+		if ( ch != 16 ) {
+			GPIO_OUTPUT_SET(ch,  pwm?1:0);
+		} else {
+			gpio16_output_set(pwm?1:0);
+		}
+	
+	} else if (!strcmp(str, "pwm")) {		
+		ch = atoi(cmd[1]);
+		pwm = atoi(cmd[2]);
+		os_printf("PWM Ready: Ch: %d  duty: %d \n", ch, pwm);
+		PCA9530_pwm(ch, pwm);		
+	} else if (!strcmp(str, "sxinit")) {
+//		SX1509_Setup();
+	} else if (!strcmp(str, "sx")) {
+
+		i=0;
+		if ( cmd[1][0] == '0' && cmd[1][1] == 'x' ) { i=2; }		
+		reg = (hex2int(cmd[1][i]) * 16) + hex2int(cmd[1][i+1]);
+
+		i=0;
+		if ( cmd[2][0] == '0' && cmd[2][1] == 'x' ) { i=2; }		
+		pwm = (hex2int(cmd[2][i]) * 16) + hex2int(cmd[2][i+1]);
+		os_printf("SX1509: reg: %d  value: %d \n", reg, pwm);
+
+//		SX1509_set(reg,pwm);
+	} else if (!strcmp(str, "sxloop")) {
+		I2C_DIR = 1;	
+	} else if (!strcmp(str, "blink")) {
+		PCA9530_Blink();
+	} else if (!strcmp(str, "config")) {
+		chatFabricConfig_print (&config);
 	} else if (!strcmp(str, "ota")) {
 		OtaUpdate();
 	} else if (!strcmp(str, "restart")) {
@@ -187,13 +280,8 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 
 		bzero(&flashConfig, 4096);
 		cfConfigWrite(&config);
-		
-		chatFabricInit();
-		createHostMeta();
-		espCfConfigInit();
-		cfConfigWrite(&config);
-
 		system_restart();		
+		
 	} else if (!strcmp(str, "debugon")) {	
 		_GLOBAL_DEBUG = 1;
 		config.debug = 1;

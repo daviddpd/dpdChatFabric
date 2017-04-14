@@ -55,3 +55,56 @@ cfTagEncoder( enum chatPacketTagData type, unsigned char *b, uint32_t *i, unsign
 
 
 }
+
+extern uint32_t _data_type;
+
+
+void CP_ICACHE_FLASH_ATTR
+cfTagPrinter( enum chatPacketTagData type, unsigned char tag,  uint32_t value, unsigned char*s, uint32_t len, uuuid2_t *uuid)
+{
+#ifdef ESP8266	
+	char *buf;
+	unsigned char *v;
+	cfTagLookup(tag);
+	CHATFABRIC_DEBUG(1,"Check");	
+	if ( type == CP_INT32 ) {
+		if (_data_type == 0 ) {
+	CHATFABRIC_DEBUG(1,"Check");	
+			CHATFABRIC_PRINT_FMT( "[ %04x ] %-20s : %12d",  tag, cfTagLookup(tag), value );	
+		} else if (_data_type == 1 ) {
+	CHATFABRIC_DEBUG(1,"Check");	
+			buf = calloc(16, sizeof(char));			
+	CHATFABRIC_DEBUG(1,"Check");	
+			os_sprintf(buf, IPSTR, IP2STR(value));
+	CHATFABRIC_DEBUG(1,"Check");	
+			CHATFABRIC_PRINT_FMT( "[ %04x ] %-20s : %s",  tag, cfTagLookup(tag), buf);	
+			free(buf);		
+		}		
+	} else if (  type == CP_DATA8 ) {
+	CHATFABRIC_DEBUG(1,"Check");	
+		if (_data_type == 0  || _data_type == 2) {
+	CHATFABRIC_DEBUG(1,"Check");	
+			buf = calloc(len+1, sizeof(char));
+			memcpy(buf, s, len);
+	CHATFABRIC_DEBUG(1,"Check");	
+			CHATFABRIC_PRINT_FMT( "[ %04x ] %-20s : %s",  tag, cfTagLookup(tag), buf);	
+			free(buf);
+		} else if (_data_type == 1 ) {
+	CHATFABRIC_DEBUG(1,"Check");	
+			buf = calloc(16, sizeof(char));
+	CHATFABRIC_DEBUG(1,"Check");	
+			os_sprintf(buf, IPSTR, IP2STR(value));
+	CHATFABRIC_DEBUG(1,"Check");	
+			CHATFABRIC_PRINT_FMT( "[ %04x ] %-20s : %s",  tag, cfTagLookup(tag), buf);	
+			free(buf);
+		}
+	} else if (  type == CP_UUID ) {
+	CHATFABRIC_DEBUG(1,"Check");	
+		buf = calloc(37, sizeof(char));
+		uuuid2_to_str(buf, 37, uuid);
+		CHATFABRIC_PRINT_FMT( "[ %04x ] %-20s : %s",  tag, cfTagLookup(tag), buf);
+		free(buf);
+	}
+	CHATFABRIC_DEBUG(1,"Check");	
+#endif
+}

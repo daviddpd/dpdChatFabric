@@ -16,8 +16,9 @@ extern "C" {
 #endif
 
 // ota server details
-#define OTA_HOST "192.168.1.105"
+#define OTA_HOST "chatfabric.org"
 #define OTA_PORT 80
+#define OTA_HTTP_PATH "firmware/ota" // NO preceding / or trailing slash.
 #define OTA_ROM0 "rom0.bin"
 #define OTA_ROM1 "rom1.bin"
 // OTA_FILE is not required, but is part of the example

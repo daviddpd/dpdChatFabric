@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "esp8266.h"
 #endif
 
+uint32_t _data_type;
 
 const char * 
 CP_ICACHE_FLASH_ATTR
@@ -379,6 +380,7 @@ const char *
 CP_ICACHE_FLASH_ATTR
 cfTagLookup (enum chatFabricConfigTags tag) {
 
+	_data_type = 0;
 	switch (tag) {	
 		case cftag_publickey:
 			return "publickey";
@@ -453,69 +455,91 @@ cfTagLookup (enum chatFabricConfigTags tag) {
 			return "wifi_sta_dhcpc";
 		break;
 		case cftag_ap_ipv4:
+			_data_type = 1;
 			return "ap_ipv4";
 		break;
 		case cftag_ap_ipv4netmask:
+			_data_type = 1;
 			return "ap_ipv4netmask";
 		break;
 		case cftag_ap_ipv4gw:
+			_data_type = 1;
 			return "ap_ipv4gw";
 		break;
 		case cftag_ap_ipv4ns1:
+			_data_type = 1;
 			return "ap_ipv4ns1";
 		break;
 		case cftag_ap_ipv4ns2:
+			_data_type = 1;
 			return "ap_ipv4ns2";
 		break;
 		case cftag_ap_ipv6:
+			_data_type = 2;
 			return "ap_ipv6";
 		break;
 		case cftag_ap_ipv6netmask:
+			_data_type = 2;
 			return "ap_ipv6netmask";
 		break;
 		case cftag_ap_ipv6gw:
+			_data_type = 2;
 			return "ap_ipv6gw";
 		break;
 		case cftag_ap_ipv6ns1:
+			_data_type = 2;
 			return "ap_ipv6ns1";
 		break;
 		case cftag_ap_ipv6ns2:
+			_data_type = 2;
 			return "ap_ipv6ns2";
 		break;
 		case cftag_sta_ipv4:
+			_data_type = 1;
 			return "sta_ipv4";
 		break;
 		case cftag_sta_ipv4netmask:
+			_data_type = 1;
 			return "sta_ipv4netmask";
 		break;
 		case cftag_sta_ipv4gw:
+			_data_type = 1;
 			return "sta_ipv4gw";
 		break;
 		case cftag_sta_ipv4ns1:
+			_data_type = 1;
 			return "sta_ipv4ns1";
 		break;
 		case cftag_sta_ipv4ns2:
+			_data_type = 1;
 			return "sta_ipv4ns2";
 		break;
 		case cftag_sta_ntpv4:
+			_data_type = 1;
 			return "sta_ntpv4";
 		break;
 		case cftag_sta_ipv6:
+			_data_type = 2;
 			return "sta_ipv6";
 		break;
 		case cftag_sta_ipv6netmask:
+			_data_type = 2;
 			return "sta_ipv6netmask";
 		break;
 		case cftag_sta_ipv6gw:
+			_data_type = 2;
 			return "sta_ipv6gw";
 		break;
 		case cftag_sta_ipv6ns1:
+			_data_type = 2;
 			return "sta_ipv6ns1";
 		break;
 		case cftag_sta_ipv6ns2:
+			_data_type = 2;
 			return "sta_ipv6ns2";
 		break;
 		case cftag_sta_ntpv6:
+			_data_type = 2;
 			return "sta_ntpv6";
 		break;
 		case cftag_mode:

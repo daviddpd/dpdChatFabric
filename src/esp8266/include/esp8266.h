@@ -27,9 +27,13 @@ chatFabricPairing ESP_WORD_ALIGN pair[MAX_PAIRS];
 #define PRIV_PARAM_SAVE			0
 
 #define PRIV_PARAM_START_SEC	0xFC
+//#define PRIV_PARAM_START_SEC	0xF8
 
-#define ESP_PARAM_START_SEC		0xFD
-#define CP_ESP_PARAM_START_SEC 	0xFD
 
+// #define ESP_PARAM_START_SEC		0xFD
+// #define CP_ESP_PARAM_START_SEC 	0xFD
+
+#define ESP_PARAM_START_SEC		0xF8
+#define CP_ESP_PARAM_START_SEC 	0xF8
 
 #endif
