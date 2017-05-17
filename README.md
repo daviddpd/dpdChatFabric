@@ -36,11 +36,14 @@ or
 
 bsd-make won't work.  I must be using some gmake only conventions.		
 
-### ESP8266 w/ using esp_iot_sdk_v1.3.0
+### ESP8266 w/ SDK 2.0 is required.
 
-**NOTE PLEASE USE SDK 1.3.0 ... some strange things that I can't put my finger on are happening with 1.4 and 1.5**
+ESP8266_NONOS_SDK_V2.0.0 works fine now.  sdk/bin/esp_init_data_default.bin must be flashed if clearing rom.
 
-I have now included the SDK files in this repo. These are  from `esp_iot_sdk_v1.3.0/examples/driver_lib`, the following files should be copied into the following locations.
+Moved chatFabric Application data segment, so strange over write was happening.
+
+
+I have now included the SDK files in this repo. These are  from `{SDK}/examples/driver_lib`, the following files should be copied into the following locations.
 
 ```
 	src/esp8266/driver/gpio16.c
@@ -50,11 +53,7 @@ I have now included the SDK files in this repo. These are  from `esp_iot_sdk_v1.
 	src/esp8266/include/driver/uart_register.h
 ```	
 
-The current code size has extended beyond the two ROM 512k setup.  So, the include eagle.app.v6.full512.ld will map the irom0 segment starting at 0x10000, and stretches beyond the 0x40000 halfway point.   The configuration storaged is using the SDK's save with protect at offset 0x7a000.
-
-The product, un-configured, boots into softAP (access point) mode.  
-
-If you want to instead join your wifi network by default, you need to create a `src/esp8266/include/user_config.h` with the contents:
+If you want to instead join your wifi network by default, or create an soft-ap by default , you need to create a `src/esp8266/include/user_config.h` with the contents:
 
 ```C
 
