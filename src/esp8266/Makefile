@@ -47,14 +47,15 @@ TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
 MODULES		= ../dpdChatFabric ../dpdChatPacket driver user espChatFabric ../crypto ../util ../uuid_wrapper ../uuid rboot-api shell
-EXTRA_INCDIR    = include ../crypto ../includes $(RBOOT_BASE) rboot-api
+EXTRA_INCDIR    = include ../crypto ../includes $(RBOOT_BASE) rboot-api  /Volumes/esp8266/esp-open-sdk/sdk/include /Volumes/esp8266/esp-open-sdk/sdk/driver_lib/include 
 
 # libraries used in this project, mainly provided by the SDK
 #LIBS		= c gcc hal pp phy net80211 lwip wpa main
 LIBS		= cirom gcc hal pp phy net80211 lwip wpa wpa2 main crypto pwm
+#LIBS		= gcc hal pp phy net80211 lwip wpa wpa2 main crypto pwm
 
 # compiler flags using during compilation of source files -fno-inline-functions
-CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wno-implicit -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN
+CFLAGS		= -Os -g -Wpointer-arith -Wundef -Werror -Wno-implicit -Wl,-EL  -nostdlib -mlongcalls -mtext-section-literals -fno-inline-functions -D__ets__ -DICACHE_FLASH -DHAVE_LOCAL_CRYPTO -DESP8266 -D_LITTLE_ENDIAN  -L/Volumes/esp8266/esp-open-sdk/sdk/lib
 
 # ##### chatFabric Specific Options  ##############################
 #
@@ -110,10 +111,12 @@ MODULE_INCDIR	:= $(addsuffix /include,$(INCDIR))
 FW_FILE_1	:= $(addprefix $(FW_BASE)/,$(FW_FILE_1_ADDR).bin)
 FW_FILE_2	:= $(addprefix $(FW_BASE)/,$(FW_FILE_2_ADDR).bin)
 
+# /Volumes/esp8266/sdk/bin/esp_init_data_default_v08.bin
+# /Volumes/esp8266/esp-open-sdk/sdk/bin/esp_init_data_default.bin
 FW_DATA_DEFAULT := $(SDK_BASE)/bin/esp_init_data_default.bin
 FW_BLANK_DATA	:= 16kblank.bin
 
-FLASH_SIZE := 8m  #    [--flash_size {4m,2m,8m,16m,32m,16m-c1,32m-c1,32m-c2}]
+FLASH_SIZE := 4MB  #    [--flash_size {4m,2m,8m,16m,32m,16m-c1,32m-c1,32m-c2}]
 ADDR_RBOOT	= 0x00000
 ADDR_ROM0	= 0x02000
 ADDR_ROM1	= 0x82000
@@ -124,13 +127,8 @@ ADDR_ROM1	= 0x82000
 # ADDR_DATA2 = 0xFA000
 # ADDR_DATA3 = 0xFB000
 
-ADDR_DEFAULTBIN	= 0xFC000
-ADDR2_DEFAULTBIN	= 0xF8000
-
-ADDR_DATA0 = 0xFC000
-ADDR_DATA1 = 0xFD000
-ADDR_DATA2 = 0xFE000
-ADDR_DATA3 = 0xFF000
+ADDR_DATA0 = 0x3FC000
+ADDR_DATA1 = 0x3FE000
 
 
 V ?= $(VERBOSE)
@@ -210,19 +208,30 @@ chipinfo:
 # 0x0fc000 /Volumes/esp8266/esp-open-sdk/sdk/bin/esp_init_data_default.bin
 # RBOOT_BASE
 
+# /Volumes/esp8266/sdk/bin
+# $(RBOOT_BASE)/firmware/rboot.bin \
+
 flash: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 12kblank.bin 4kblank.bin
-	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
+	$(ESPTOOL) --chip esp8266  --no-stub --port $(ESPPORT) write_flash --flash_size $(FLASH_SIZE) \
 		$(ADDR_RBOOT) $(RBOOT_BASE)/firmware/rboot.bin \
 		$(ADDR_ROM0) $(FIRMW_DIR)/rom0.bin \
 		$(ADDR_ROM1) $(FIRMW_DIR)/rom1.bin \
-		$(ADDR_DATA0) 4kblank.bin \
 		$(ADDR_DATA0) $(FW_DATA_DEFAULT) 
+
+#		$(ADDR_DATA0) 4kblank.bin \
+
+flashzero: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 16kblank.bin 
+	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
+		$(ADDR_RBOOT) 16kblank.bin \
+		$(ADDR_DATA0) 16kblank.bin \
+		$(ADDR_DATA1) 16kblank.bin
+
 
 flashdata: $(FIRMW_DIR)/rom0.bin $(FIRMW_DIR)/rom1.bin 16kblank.bin 
 	$(ESPTOOL) --port $(ESPPORT) write_flash  --flash_size $(FLASH_SIZE) \
-		$(ADDR_RBOOT) $(RBOOT_BASE)/firmware/rboot.bin  \
+		$(ADDR_RBOOT) $(RBOOT_BASE)/firmware/rboot.bin \
 		$(ADDR_DATA0) 16kblank.bin \
-		$(ADDR2_DEFAULTBIN) 16kblank.bin \
+		$(ADDR_DATA1) 16kblank.bin \
 		$(ADDR_ROM0) $(FIRMW_DIR)/rom0.bin  \
 		$(ADDR_ROM1) $(FIRMW_DIR)/rom1.bin  \
 		$(ADDR_DATA0) $(FW_DATA_DEFAULT)

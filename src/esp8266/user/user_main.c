@@ -22,9 +22,9 @@
 #include "uuuid2.h"
 #include <c_types.h>
 #include <sys/types.h>
-#include "i2c.h"
-#include "sx1509_registers.h"
-#include "pca9530.h"
+//#include "i2c.h"
+// #include "sx1509_registers.h"
+// #include "pca9530.h"
 
 /*
 #define PWM_0_OUT_IO_MUX PERIPHS_IO_MUX_MTMS_U
@@ -38,39 +38,27 @@
 //extern enum deviceModes currentMode;
 
 
-void PCA9530_Blink();
-
 extern time_t ntp_unix_timestamp;
 time_t seconds_since_boot;
-extern enum NTP_STATE ntp_status;
+// extern enum NTP_STATE ntp_status;
 //extern char macAddr[];
 extern hostmeta_t hostMeta;
 
-extern char ntp_status_str[];
+// extern char ntp_status_str[];
 extern struct mdns_info *mdnsinfo;
 
 extern void ProcessCommand(char* str);
-extern struct sx1509 sxio;
+//extern struct sx1509 sxio;
 
-int bootstatus = 0;  // 1 - network up, 2-ready
-// os_event_t    user_procTaskQueue[user_procTaskQueueLen];
-static void loop();
 static void clock_loop();
-void spi_clk_helper();
+//void spi_clk_helper();
 void CP_ICACHE_FLASH_ATTR user_init_stage2();
 //uint32_t ninc = 0;
-unsigned char ch = 0x00;
+// unsigned char ch = 0x00;
 
-int uart0enabled = -1;
-int shiftCounter = -1;
-//uint8 shiftBits0[8];
-//uint8 shiftBits1[8];
-//char ssid[32] = SSID;
-//char password[64] = SSID_PASSWORD;
 
-uint8 I2C_PWM = 0;
-uint8 I2C_DIR = 0;
-uint8 CT = 0;
+// uint8 I2C_PWM = 0;
+// uint8 I2C_DIR = 0;
 
 uint32_t controls[16];
 uint32_t ntpcounter = 0;
@@ -78,17 +66,18 @@ uint32_t ntpstatus_printed = 0;
 uint32_t ntpLoopInt = 0;
 
 
-LOCAL os_timer_t buttonDebounce;
+// LOCAL os_timer_t buttonDebounce;
 LOCAL os_timer_t statusReg;
 LOCAL os_timer_t clockTimer;
-LOCAL os_timer_t spi_clk_timer;
+//LOCAL os_timer_t spi_clk_timer;
 
+/*
 enum button {	
 	BUTTON_UNDEFINED,
 	BUTTON_MENU,
 	BUTTON_SELECT,
 };
-
+*/
 
 //void userWifiInit();
 void chatFabricInit();
@@ -101,7 +90,7 @@ enum deviceModes menuItem = MODE_MENU_NONE;
 void adcBultin();
 void adcCallBack();
 
-
+/*
 void CP_ICACHE_FLASH_ATTR
 doButtonFunction(enum button b) 
 {
@@ -155,6 +144,7 @@ doButtonFunction(enum button b)
 	
 }
 
+*/
 
 void CP_ICACHE_FLASH_ATTR 
 gpioInitFromConfig(chatFabricConfig *config) 
@@ -339,6 +329,7 @@ tcp_listen(void *arg)
 //    espconn_regist_disconcb(pesp_conn, webserver_discon);
 }
 
+/*
 void CP_ICACHE_FLASH_ATTR 
 i2c_send(uint8 addr, uint8 reg, uint8 value) {
 	i2c_start();
@@ -379,7 +370,7 @@ PCA9530_Blink() {
 	}
 
 }
-
+*/
 static void clock_loop()
 {
 	
@@ -402,7 +393,7 @@ statusLoop() {
 	} 
 }
 
-
+/*
 void CP_ICACHE_FLASH_ATTR
 doButton(uint8 gpio_pin)
 {
@@ -439,7 +430,7 @@ doButton(uint8 gpio_pin)
 void CP_ICACHE_FLASH_ATTR
 buttonPress(void *n)
 {
-	uint8 i = 0;
+	uint32 i = 0;
     uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
 	os_printf ( " ==> buttonPress interrupt \n");		
 
@@ -452,7 +443,7 @@ buttonPress(void *n)
 			GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(i));
 
 		    os_timer_disarm(&buttonDebounce);
-		    os_timer_setfn(&buttonDebounce, (os_timer_func_t *)doButton, i);
+		    os_timer_setfn(&buttonDebounce, (os_timer_func_t *)doButton, (void *)i);
 		    os_timer_arm(&buttonDebounce, 200, 0);
 		    
 		    
@@ -460,7 +451,7 @@ buttonPress(void *n)
 	}
 
 }
-
+*/
 void CP_ICACHE_FLASH_ATTR
 userGPIOInit()
 {
@@ -501,7 +492,7 @@ userGPIOInit()
 	gpio16_output_set(0);
     
 	ETS_GPIO_INTR_DISABLE();
-	ETS_GPIO_INTR_ATTACH(buttonPress, NULL);
+//	ETS_GPIO_INTR_ATTACH(buttonPress, NULL);
 	PIN_PULLUP_DIS(PERIPHS_IO_MUX_GPIO0_U);
 
 	GPIO_DIS_OUTPUT(0); // set for input
@@ -510,7 +501,7 @@ userGPIOInit()
     gpio_pin_intr_state_set(GPIO_ID_PIN(0), GPIO_PIN_INTR_POSEDGE);    
     gpio_pin_intr_state_set(GPIO_ID_PIN(2), GPIO_PIN_INTR_POSEDGE);    
     ETS_GPIO_INTR_ENABLE();
-	i2c_init();
+//	i2c_init();
 }
 
 
@@ -529,11 +520,6 @@ chatFabricInit()
 	}
 
 	bzero(&flashConfig, 4096);
-
-//	heap =0;
-//	heapLast = 0;
-//	heapLast = heap;
-//	heap = system_get_free_heap_size();
 		
 
 }
@@ -579,19 +565,20 @@ adcCallBack(void * control ) {
 
 }
 
-void CP_ICACHE_FLASH_ATTR
-spi_clk() 
-{
-	os_timer_disarm(&spi_clk_timer);
-
-	if ( I2C_DIR ) {
-		I2C_PWM++;
-		if ( I2C_PWM > 0xFE ) { I2C_PWM = 0; } 
-		//SX1509_set(REG_I_ON_4,I2C_PWM);
-	}
-	os_timer_arm(&spi_clk_timer, 1000, 1);
-
-}
+// void CP_ICACHE_FLASH_ATTR
+// spi_clk() 
+// {
+// 	os_timer_disarm(&spi_clk_timer);
+// 
+// /*	if ( I2C_DIR ) {
+// 		I2C_PWM++;
+// 		if ( I2C_PWM > 0xFE ) { I2C_PWM = 0; } 
+// 		//SX1509_set(REG_I_ON_4,I2C_PWM);
+// 	}
+// */
+// 	os_timer_arm(&spi_clk_timer, 1000, 1);
+// 
+// }
 
 
 void CP_ICACHE_FLASH_ATTR
@@ -635,9 +622,9 @@ user_init_stage2()
 	os_timer_setfn(&statusReg, (os_timer_func_t *)statusLoop, NULL);
 	os_timer_arm(&statusReg, 2000, 1);
 
-	os_timer_disarm(&spi_clk_timer);
-	os_timer_setfn(&spi_clk_timer, (os_timer_func_t *)spi_clk, NULL);
-	os_timer_arm(&spi_clk_timer, 1000, 1);
+//	os_timer_disarm(&spi_clk_timer);
+//	os_timer_setfn(&spi_clk_timer, (os_timer_func_t *)spi_clk, NULL);
+//	os_timer_arm(&spi_clk_timer, 1000, 1);
 
 
 	//startShell
@@ -646,7 +633,7 @@ user_init_stage2()
 }
 
 
-
+/*
 void CP_ICACHE_FLASH_ATTR
 PCA9530_pwm(uint8 ch, uint8 pwm) {
 
@@ -667,7 +654,61 @@ PCA9530_pwm(uint8 ch, uint8 pwm) {
 
 
 }
+*/
 
+
+
+
+/******************************************************************************
+ * FunctionName : user_rf_cal_sector_set
+ * Description  : SDK just reversed 4 sectors, used for rf init data and paramters.
+ *                We add this function to force users to set rf cal sector, since
+ *                we don't know which sector is free in user's application.
+ *                sector map for last several sectors : ABCCC
+ *                A : rf cal
+ *                B : rf init data
+ *                C : sdk parameters
+ * Parameters   : none
+ * Returns      : rf cal sector
+*******************************************************************************/
+// uint32 CP_ICACHE_FLASH_ATTR
+// user_rf_cal_sector_set(void)
+// {
+//     enum flash_size_map size_map = system_get_flash_size_map();
+//     uint32 rf_cal_sec = 0;
+// 
+//     switch (size_map) {
+//         case FLASH_SIZE_4M_MAP_256_256:
+//             rf_cal_sec = 128 - 5;
+//             break;
+// 
+//         case FLASH_SIZE_8M_MAP_512_512:
+//             rf_cal_sec = 256 - 5;
+//             break;
+// 
+//         case FLASH_SIZE_16M_MAP_512_512:
+//         case FLASH_SIZE_16M_MAP_1024_1024:
+//             rf_cal_sec = 512 - 5;
+//             break;
+// 
+//         case FLASH_SIZE_32M_MAP_512_512:
+//         case FLASH_SIZE_32M_MAP_1024_1024:
+//             rf_cal_sec = 1024 - 5;
+//             break;
+// 
+//         case FLASH_SIZE_64M_MAP_1024_1024:
+//             rf_cal_sec = 2048 - 5;
+//             break;
+//         case FLASH_SIZE_128M_MAP_1024_1024:
+//             rf_cal_sec = 4096 - 5;
+//             break;
+//         default:
+//             rf_cal_sec = 0;
+//             break;
+//     }
+// 
+//     return rf_cal_sec;
+// }
 
 //extern void pwm_setup();
 //Init function 
@@ -676,7 +717,6 @@ user_init()
 {
 	int i;
 
-	uart0enabled = 1;
 	userGPIOInit();
 	
 	seconds_since_boot=0;

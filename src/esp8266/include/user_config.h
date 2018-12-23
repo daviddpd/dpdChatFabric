@@ -6,8 +6,8 @@
 #define SSID "demo"
 #define SSID_PASSWORD "demo1234"
 
-#define CONFIG_AP_SWITCH 0
-#define CONFIG_STA_SWITCH 1
+#define CONFIG_AP_SWITCH 1
+#define CONFIG_STA_SWITCH 0
 
 
 #endif

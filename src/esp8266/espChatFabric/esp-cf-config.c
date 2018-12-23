@@ -26,7 +26,7 @@ espCfConfigRawRead(int page) {
 		for (i=0; i<SPI_FLASH_SEC_SIZE; i=i+RAW_READ) 
 		{
 			spi_flash_read(sec * SPI_FLASH_SEC_SIZE + i, (uint32 *)tmp, RAW_READ);
-			os_sprintf (&str, "[FLASH %08x]", sec * SPI_FLASH_SEC_SIZE + i );
+			os_sprintf (&str[0], "[FLASH %08x]", sec * SPI_FLASH_SEC_SIZE + i );
 //			os_printf ("[FLASH %08x]\n", sec * SPI_FLASH_SEC_SIZE + i );
 			util_bin2hex ( " ", (char*)&str, tmp, RAW_READ  );
 //			CHATFABRIC_DEBUG_B2H(1, str, (unsigned char*)&(tmp[0]), RAW_READ  );

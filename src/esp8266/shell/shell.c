@@ -16,8 +16,8 @@
 #include "util.h"
 
 #include "shell.h"
-#include "sx1509_registers.h"
-#include "pca9530.h"
+// #include "sx1509_registers.h"
+// #include "pca9530.h"
 
 #include "rboot-api.h"
 #include "rboot-ota.h"
@@ -27,9 +27,9 @@ char shellBuffer[BUFF_LEN] = {0};
 int8 sbi = 0;
 static os_timer_t network_timer;
 extern chatFabricConfig config;  
-extern void PCA9530_Blink();
-void ICACHE_FLASH_ATTR user_rf_pre_init() {
-}
+// extern void PCA9530_Blink();
+
+void ICACHE_FLASH_ATTR user_rf_pre_init() { }
 
 void ICACHE_FLASH_ATTR ShowIP() {
 	struct ip_info ipconfig;
@@ -117,7 +117,7 @@ static void ICACHE_FLASH_ATTR OtaUpdate() {
 	
 }
 
-void shellCircleBuffer (char RcvChar) {
+void ICACHE_FLASH_ATTR shellCircleBuffer (char RcvChar) {
 
 		if ( sbi == BUFF_LEN-1 ) {
 			sbi = 0;
@@ -207,12 +207,12 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 		os_printf("  unpair - clear all chatFabric paining info\r\n");
 		os_printf("  init - re-init all chatFabric config (factory reset)\r\n\n");
 		os_printf("  config - print config\r\n");
-		os_printf("  blink - pca9530 i2c start\r\n");
-		os_printf("  pcareset - pca9530 i2c reset\r\n");
-		os_printf("  pwm [0|1] [0 ~ 255] - pca9530 i2c inc\r\n");
-		os_printf("  sxinit - sx1509 i2c init\r\n");
-		os_printf("  sx [REG] [VALUE] - sx1509 i2c ctr\r\n");
-		os_printf("  sxloop\r\n");
+//		os_printf("  blink - pca9530 i2c start\r\n");
+//		os_printf("  pcareset - pca9530 i2c reset\r\n");
+//		os_printf("  pwm [0|1] [0 ~ 255] - pca9530 i2c inc\r\n");
+//		os_printf("  sxinit - sx1509 i2c init\r\n");
+//		os_printf("  sx [REG] [VALUE] - sx1509 i2c ctr\r\n");
+//		os_printf("  sxloop\r\n");
 		
 		
 		os_printf("\n  debugoff - disable chatFabric debugging (DOES NOT SAVE CONFIG)\r\n");
@@ -226,8 +226,8 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 		os_printf("\r\n");
 	} else if (str[0] == 0) {
 		return;
-	} else if (!strcmp(str, "pcareset")) {		
-		PCA9530_reset();
+//	} else if (!strcmp(str, "pcareset")) {		
+//		PCA9530_reset();
 	} else if (!strcmp(str, "gpio")) {		
 		ch = atoi(cmd[1]);
 		pwm = atoi(cmd[2]);		
@@ -241,7 +241,7 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 		ch = atoi(cmd[1]);
 		pwm = atoi(cmd[2]);
 		os_printf("PWM Ready: Ch: %d  duty: %d \n", ch, pwm);
-		PCA9530_pwm(ch, pwm);		
+//		PCA9530_pwm(ch, pwm);		
 	} else if (!strcmp(str, "sxinit")) {
 //		SX1509_Setup();
 	} else if (!strcmp(str, "sx")) {
@@ -256,10 +256,10 @@ void ICACHE_FLASH_ATTR ProcessCommand(char* str) {
 		os_printf("SX1509: reg: %d  value: %d \n", reg, pwm);
 
 //		SX1509_set(reg,pwm);
-	} else if (!strcmp(str, "sxloop")) {
-		I2C_DIR = 1;	
-	} else if (!strcmp(str, "blink")) {
-		PCA9530_Blink();
+//	} else if (!strcmp(str, "sxloop")) {
+//		I2C_DIR = 1;	
+//	} else if (!strcmp(str, "blink")) {
+//		PCA9530_Blink();
 	} else if (!strcmp(str, "config")) {
 		chatFabricConfig_print (&config);
 	} else if (!strcmp(str, "ota")) {
