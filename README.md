@@ -137,6 +137,29 @@ There will be a third actor, a gateway or relay, which will have the features of
 	# etc ...	
 
 ```
+### FreeBSD Device - Advertise a device on mDNS using avahi:
+
+#### File : /usr/local/etc/avahi/services/988afcc9.service
+
+This needs adjustment / explanation - but it works. 
+```xml
+<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="no">cf-defiant</name>
+  <service>
+    <type>_exp1._tcp</type>
+    <port>2030</port>
+    <host-name>988afcc9.local</host-name>
+    <txt-record>MAC=78:31:c1:d4:56:86</txt-record>
+    <txt-record>uuid0=00000000-0000-0000-0000-000000000000</txt-record>
+   <txt-record>uuid1=d3bd5042-a073-11e5-b5a8-00a0988afcc9</txt-record>
+  </service>
+
+</service-group>
+
+```
+
 	
 
 # TODO
